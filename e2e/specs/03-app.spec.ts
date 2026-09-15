@@ -32,12 +32,19 @@ test("a browser signup lands in Postgres and ClickHouse", async ({ page }) => {
     },
     120_000,
   );
-  const [{ backend }] = clickhouse<{ backend: string }>(
-    `SELECT count() AS backend FROM default.otel_traces
-     WHERE TraceId = '${frontend.TraceId}' AND ServiceName = 'subscription-backend'
-       AND SpanName = 'POST /api/subscribe'`,
+  // Each service exports on its own batch timer, so the backend span can land after the browser's.
+  await waitFor(
+    "the backend POST /api/subscribe span in the same trace",
+    () =>
+      Number(
+        clickhouse<{ backend: string }>(
+          `SELECT count() AS backend FROM default.otel_traces
+           WHERE TraceId = '${frontend.TraceId}' AND ServiceName = 'subscription-backend'
+             AND SpanName = 'POST /api/subscribe'`,
+        )[0].backend,
+      ) === 1,
+    60_000,
   );
-  expect(Number(backend), "the backend span joins the browser trace").toBe(1);
   await waitFor(
     "a recorded browser session",
     () => clickhouse(`SELECT 1 FROM default.hyperdx_sessions WHERE Timestamp >= '${started}' LIMIT 1`).length > 0,
