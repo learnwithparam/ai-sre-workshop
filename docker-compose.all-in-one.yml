@@ -315,10 +315,13 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      # LibreChat caches tool schemas when it connects, so a rebuilt MCP server restarts it too.
       sre-control:
         condition: service_healthy
+        restart: true
       mcp-clickhouse:
         condition: service_healthy
+        restart: true
 
 volumes:
   librechat_mongodb:

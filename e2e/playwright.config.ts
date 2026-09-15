@@ -12,7 +12,8 @@ export default defineConfig({
   reporter: [["list"], ["json", { outputFile: "../artifacts/playwright.json" }], ["html", { open: "never" }]],
   timeout: 600_000,
   expect: { timeout: 20_000 },
-  use: { trace: "retain-on-failure", screenshot: "only-on-failure", video: "retain-on-failure" },
+  // No video: the host also runs Docker at 8 GB, and a recorder per spec is memory the stack needs.
+  use: { trace: "retain-on-failure", screenshot: "only-on-failure", video: "off" },
   projects: [
     { name: "setup", testDir: "./setup", testMatch: /.*\.setup\.ts/ },
     {

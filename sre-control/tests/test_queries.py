@@ -25,3 +25,8 @@ def test_parameters_are_bound_never_formatted():
     for name, query in load_queries(WORKSHOP).items():
         assert "{" not in query.sql or re.search(r"\{\w+:\w", query.sql), name
         assert "%s" not in query.sql and "format(" not in query.sql.lower(), name
+
+
+def test_example_values_may_contain_spaces():
+    example = load_queries(WORKSHOP)["search_logs"].example
+    assert example == {"service": "subscription-backend", "text": "connection pool", "minutes": "60"}

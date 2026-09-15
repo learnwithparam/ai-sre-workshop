@@ -5,16 +5,18 @@ from datetime import UTC, datetime, timedelta
 from sre_control.detector import Detector, ErrorRateSample, StuckRequests
 
 NOW = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
-STEADY = [0.01, 0.012, 0.009, 0.011, 0.01, 0.013, 0.008, 0.01, 0.011, 0.012]
+RATES = [0.01, 0.012, 0.009, 0.011, 0.01, 0.013, 0.008, 0.01, 0.011, 0.012] * 3
+STEADY = [(NOW - timedelta(seconds=70 + 10 * i), rate) for i, rate in enumerate(RATES)]
 
 
 class Signals:
     def __init__(self):
         self.current = 0.01
         self.stuck = 0
+        self.buckets = STEADY
 
     def error_rates(self, service):
-        return ErrorRateSample(baseline=STEADY, current=self.current, requests=120)
+        return ErrorRateSample(buckets=self.buckets, current=self.current, requests=120)
 
     def stuck_requests(self, service):
         return StuckRequests(count=self.stuck, oldest_s=45 if self.stuck else 0)
@@ -75,3 +77,18 @@ def test_an_incident_that_heals_on_its_own_closes_itself(store, remediations):
     assert incident.state == "resolved"
     (resolved,) = store.events(incident_id=incident.id, kind="incident_resolved")
     assert resolved.actor == "detector"
+
+
+def test_a_cold_start_pages_on_the_slo_ceiling(store):
+    signals = Signals()
+    signals.buckets, signals.current = [], 0.15
+    detector(store, signals).tick()
+    (incident,) = store.incidents()
+    assert "SLO ceiling" in incident.summary
+
+
+def test_a_modest_rise_without_a_baseline_stays_quiet(store):
+    signals = Signals()
+    signals.buckets, signals.current = [], 0.07
+    detector(store, signals).tick()
+    assert store.incidents() == []

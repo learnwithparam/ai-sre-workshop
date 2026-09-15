@@ -11,7 +11,7 @@ test("keys, ingest and memory are ready", async ({ request }) => {
   });
   expect(key.status(), "OPENROUTER_API_KEY is accepted by OpenRouter").toBe(200);
 
-  const ingest = await request.post("http://localhost:4318/v1/logs", {
+  const ingest = await request.post(`${config.otlpUrl}/v1/logs`, {
     headers: { authorization: config.hyperdxKey, "content-type": "application/json" },
     data: { resourceLogs: [] },
   });

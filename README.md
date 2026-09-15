@@ -1,100 +1,151 @@
 # AI SRE Workshop
 
 This repository is the lab for the AI SRE workshop at learnwithparam. It runs a small, fully
-instrumented web app next to an observability stack, so every page view, request, database call and
-log line lands somewhere you can query. The workshop uses it to practise the core SRE loop: notice a
-symptom, find the evidence, name the cause. Then we do the same work with an AI assistant and compare
-the two.
+instrumented web app next to ClickStack, and an AI SRE that watches it. When something breaks, a
+detector opens an incident, an agent investigates it with ClickStack tools, and it proposes one
+change. Nothing runs until a human approves that change, and every step lands in an audit log you
+can query.
 
-We will keep adding services, failure scenarios and exercises here as the workshop grows.
+Everything in this README is exercised by `make e2e`, which drives the whole loop with a real model
+and a real browser.
 
 ## The lab runs as one Docker Compose stack
 
 | Service | What it is | Port |
 |---|---|---|
-| `clickstack` | ClickStack all-in-one: ClickHouse for storage, the HyperDX UI for search, and an OpenTelemetry collector for ingest | 8080 (UI), 4317 and 4318 (OTLP) |
-| `subscription-app` | A Flask app serving a signup page. The backend is instrumented with OpenTelemetry, and the page loads the HyperDX browser SDK, which records sessions, console output and network calls | 8000 |
+| `clickstack` | ClickStack all-in-one: ClickHouse, the HyperDX UI, and an OpenTelemetry collector | 8080 (UI), 4317 and 4318 (OTLP) |
+| `subscription-app` | A Flask signup page, instrumented with OpenTelemetry and the HyperDX browser SDK. Ships as two images, `v1` and a faulty `v2` | 8000 |
 | `postgres-db` | Postgres, holding the `users` table the signup form writes to | internal |
-| `docs-loader` | A Go service called by the app's `/load-docs` route. Its logs carry the trace ID of the request that caused them | 8001 |
-| `load-generator` | Locust driving headless Chromium through Playwright, so the traffic includes real browser sessions and not only HTTP requests | none |
-| `otel-collector` and `socat` | A second collector that reads container CPU and memory stats from the Docker socket | none |
+| `docs-loader` | A Go service behind the app's `/load-docs` route, with a handler that never returns | internal |
+| `traffic` | Steady page views and signups, so every signal has a baseline | none |
+| `sre-control` | The AI SRE control plane: detector, incident and approval pages, the SRE MCP server, the remediation runner | 8090 |
+| `mcp-clickhouse` | ClickHouse's official MCP server, for read-only SQL | internal |
+| `librechat` and `mongodb` | The AI SRE workspace, on OpenRouter's `deepseek-v4-flash`, connected to both MCP servers | 3080 |
+| `otel-collector` and `socat` | Container CPU and memory stats from the Docker socket | none |
+| `load-generator` | Optional browser traffic (Locust and Chromium, 1.3 GB), under the `browser-load` profile | none |
 
-The browser, the Flask backend and the Go service all report to ClickStack, so you can follow one
-trace from a click on the page to the database write.
+The browser, Flask, Go, LibreChat, both MCP servers and sre-control all report to ClickStack, so
+you can follow one trace from a click on the page to the database write, and you can watch the AI
+SRE's own model calls and tool calls in the same place.
 
 ## Your machine needs Docker with about 8 GB of memory
 
-With the load generator running, `clickstack` uses about 1.8 GB and `load-generator` about 1.3 GB.
-Every other service stays under 100 MB. We run the lab on an Apple M1 with 16 GB of RAM, with Docker
-Desktop limited to 8 GB and 6 CPUs. Giving Docker the whole machine makes everything slower, because
-macOS starts swapping.
+The stack uses about 3.2 GB: `clickstack` about 1.8 GB, `librechat` and `mongodb` about 0.8 GB, and
+every other service under 150 MB. We run it on an Apple M1 with 16 GB of RAM and Docker Desktop
+limited to 8 GB. The e2e suite adds a headless Chromium on the host.
 
-## Start the lab in two passes
+## Start the lab
 
-The app needs an ingestion key, and the key only exists after you create an account in HyperDX. So
-ClickStack starts first.
-
-1. Start ClickStack on its own:
+1. Start ClickStack, open http://localhost:8080, create your HyperDX account, and copy the
+   ingestion API key from Team Settings.
    ```bash
    docker compose -f docker-compose.all-in-one.yml up -d clickstack
    ```
-2. Open http://localhost:8080, create an account, and copy the ingestion API key from Team Settings.
-3. Put the key in a `.env` file at the repo root. The file is git-ignored.
+2. Put two keys in `.env` at the repo root (the file is git-ignored):
    ```bash
    HYPERDX_API_KEY=<your ingestion key>
+   OPENROUTER_API_KEY=<your OpenRouter key>
    ```
-4. Start everything else:
+3. Generate every other secret, build both app releases, start everything, and create the workshop
+   logins:
    ```bash
-   docker compose -f docker-compose.all-in-one.yml up -d
+   make env
+   make up
    ```
-5. Open the app at http://localhost:8000 and HyperDX at http://localhost:8080. Within a minute you
-   should see traces from `subscription-frontend`, `subscription-backend` and `docs-loader`, and
-   recorded browser sessions under Client Sessions.
+4. Open the pages. Logins are in `.env`.
 
-## Stop the lab when you are not using it
+| Page | URL | Login |
+|---|---|---|
+| Signup app | http://localhost:8000 | none |
+| HyperDX | http://localhost:8080 | your account, or `HYPERDX_USER_EMAIL` |
+| sre-control | http://localhost:8090 | `SRE_APPROVER_EMAIL` |
+| LibreChat | http://localhost:3080 | `LIBRECHAT_USER_EMAIL` |
 
-The load generator restarts itself and runs until you stop it, so stop the stack after each session:
+Stop it with `make down`. Your data stays in `./clickstack/`, `./postgresql-db/` and the
+`librechat_mongodb` volume.
 
-```bash
-docker compose -f docker-compose.all-in-one.yml down
-```
-
-`down` keeps your data. The HyperDX account and the ClickHouse data live in `./clickstack/`, and the
-Postgres data lives in `./postgresql-db/`. Both are git-ignored. Delete those folders to start from
-nothing.
-
-To keep the stack running but stop the traffic:
+## Run the AI SRE loop
 
 ```bash
-docker compose -f docker-compose.all-in-one.yml stop load-generator
+make chaos SCENARIO=bad-release
 ```
 
-## The app ships with faults to investigate
+1. The detector compares the last minute of errors with a 3 sigma bound over a clean baseline and
+   opens an incident within about a minute. It appears on http://localhost:8090.
+2. **Investigate with AI SRE** opens LibreChat with the incident. The agent calls the SRE tools
+   (anomalies, time series, event deltas, a trace waterfall), names the release that broke, and
+   calls `propose_remediation` with trace ids as evidence.
+3. The proposal is refused if any trace id, service or release it cites has no telemetry, and if
+   the action is outside policy. A stored proposal waits as `pending`.
+4. Ask the agent to execute it anyway. `execute_remediation` is refused and the refusal is recorded.
+   The guardrail is the server, not the prompt.
+5. Open the approval link, read the evidence and the blast radius, and click **Approve**. Tell the
+   agent. It executes the rollback, and sre-control verifies recovery on a minute of fresh traffic
+   before it resolves the incident.
 
-These defects make good exercises. Try to find each one from the telemetry before you read the code.
+The second scenario, `make chaos SCENARIO=docs-hang`, hangs requests inside docs-loader. Try
+**Reject**, then **Edit** the action to `restart_service docs-loader`, then **Approve**.
+`make chaos-reset` puts both back.
 
-- **A request that never finishes.** The "load docs" link calls `/load-docs`, which calls the Go
-  service's `/load` handler. That handler allocates 1 MB every 10 ms in a loop that never returns
-  (`docs-loader/main.go`), and the Flask side calls it with no timeout
-  (`subscription-app/flask_app.py`). The browser waits and never gets an answer, and the loop keeps
-  running inside `docs-loader` after the browser gives up. What does this look like in the traces? And
-  why does `docs-loader` stay well under its 10 MB memory limit while "allocating" all that memory?
-- **A log line that lies.** After a signup, the backend logs `New subscription from ******** via ...`,
-  but the value it prints is `insert_data[0][3]`, the fourth character of the name, not the signup
-  source. Find it by comparing the log with the `source` column stored in Postgres.
-- **User actions that are never recorded.** The page has `HyperDX.addUserAction` calls for a
-  successful submit, a failed submit and a network error, all commented out
-  (`subscription-app/templates/index.html`). Wiring them in is the first instrumentation exercise.
+## What the AI SRE may do
 
-## Other ways to run it
+| Tool | Class | Server |
+|---|---|---|
+| `list_sources`, `service_timeseries`, `analyze_service_anomalies`, `get_event_deltas`, `event_patterns`, `get_trace_waterfall`, `search_logs`, `list_incidents`, `get_incident`, `get_remediation_status` | read | sre-control |
+| `run_query`, `list_databases`, `list_tables` | read, as the ClickHouse user `sre_agent` | mcp-clickhouse |
+| `propose_remediation` | stores a pending proposal | sre-control |
+| `execute_remediation` | runs `rollback_release` or `restart_service`, only after a human approval | sre-control |
 
-- `docker-compose.yml` sends data to a ClickHouse Cloud service instead of a local ClickHouse. It needs
-  `CLICKHOUSE_ENDPOINT`, `CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` in `.env` alongside the key.
-- `k8s/` holds Kubernetes manifests for the same stack. See `k8s/README.md`.
+`sre_agent` is read-only in ClickHouse itself (`readonly=2`, a 10 second limit, a 1 GB memory
+limit, 10,000 result rows), so even raw SQL from the model cannot write or starve ingest. The
+policy lives in `sre-control/sre_control/policy.py`, and a structural test fails if a tool is not
+classified.
+
+To roll back a release, sre-control runs `docker compose up` for the previous image through the
+host's Docker socket, the same command an operator would type. It builds that command from a fixed
+list of two actions and never from text the model wrote.
+
+## The workshop SQL is the agent's SQL
+
+`workshop/` holds the queries attendees write, as named blocks. sre-control loads the same blocks
+for its tools, so a query improved in the workshop improves the agent.
+
+| File | Module |
+|---|---|
+| `workshop/01-substrate.sql` | 1: tables, services, latency percentiles |
+| `workshop/02-anomaly.sql` | 2: time series, 3 sigma, the anomaly materialized view |
+| `workshop/03-event-deltas.sql` | 3: event deltas, log patterns, stuck requests |
+| `workshop/04-trace-graph.sql` | 3 and 4: trace waterfall, errors by release, grounding checks |
+
+## Gates
+
+| Command | What it proves |
+|---|---|
+| `make check` | Lint, unit and structural tests, compose validity for every mode, prose rules. No Docker, no model spend. CI runs it on every push. |
+| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 15 minutes; writes `evidence/e2e-report.json` and screenshots. |
+| `make score` | A score out of 100, computed from the latest `check` and `e2e` results. Results from older code count as missing. Below 100 exits 1. |
+
+`teach.html` is the facilitator guide for running the workshop live.
+
+## Run it on a VPS
+
+`docker-compose.vps.yml` puts Caddy in front with TLS and publishes only ports 80 and 443. Point
+five DNS names at the server (`app`, `otlp`, `hyperdx`, `chat` and `sre`, each under your domain),
+set `PUBLIC_DOMAIN` in `.env`, and run:
+
+```bash
+make env
+make up-vps
+```
+
+Registration is off in LibreChat, sre-control requires the approver login, and HyperDX uses its
+own accounts. Run `make e2e` on the server with `PUBLIC_DOMAIN` set, and the browser specs use the
+public URLs.
 
 ## Where this came from
 
 The lab started from ClickHouse's
 [clickstack-demo-subscription-app](https://github.com/ClickHouse/clickstack-demo-subscription-app),
-released under the Apache 2.0 license in `LICENSE`. The original is kept as the `upstream` git
-remote, so its fixes can be pulled with `git fetch upstream`.
+released under the Apache 2.0 license in `LICENSE`, kept as the `upstream` git remote. The agent
+workspace follows ClickHouse's [agentic-data-stack](https://github.com/ClickHouse/agentic-data-stack),
+and the tool set follows [ClickStack's AI SRE tools](https://clickhouse.com/clickstack/ai-sre-observability).

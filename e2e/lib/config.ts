@@ -32,6 +32,7 @@ export const config = {
   chatUrl: url("chat", 3080),
   sreUrl: url("sre", 8090),
   hyperdxUrl: url("hyperdx", 8080),
+  otlpUrl: url("otlp", 4318),
   approver: { email: required("SRE_APPROVER_EMAIL"), password: required("SRE_APPROVER_PASSWORD") },
   chatUser: { email: required("LIBRECHAT_USER_EMAIL"), password: required("LIBRECHAT_USER_PASSWORD") },
   hyperdxUser: { email: required("HYPERDX_USER_EMAIL"), password: required("HYPERDX_USER_PASSWORD") },

@@ -76,6 +76,11 @@ class Remediations:
         proposed_by: str,
     ) -> ActionState:
         validate_action(action, target, params)
+        # One live proposal per incident: a retried or repeated call returns the one already waiting,
+        # so a human never sees two approval requests for the same outage.
+        live = [a for a in self.actions_for(incident_id) if a.state in ("pending", "approved")]
+        if live:
+            return live[0]
         now = self.clock()
         window = f"the last {GROUNDING_HOURS} hours"
         if not trace_ids:

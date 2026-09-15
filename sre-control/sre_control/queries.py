@@ -33,7 +33,9 @@ def load_queries(directory: Path) -> dict[str, Query]:
             if name in queries:
                 raise ValueError(f"query {name} is defined twice")
             example = EXAMPLE.search(body)
-            pairs = dict(p.split("=", 1) for p in example.group(1).split()) if example else {}
+            # key=value pairs; a value may contain spaces and runs until the next key=
+            example_line = example.group(1) if example else ""
+            pairs = dict(re.findall(r"(\w+)=(.*?)(?=\s+\w+=|$)", example_line))
             sql = "\n".join(line for line in body.splitlines() if not line.startswith("--")).strip()
             queries[name] = Query(name=name, sql=sql.rstrip(";").strip(), example=pairs)
     return queries

@@ -7,12 +7,13 @@ Payloads are pruned: rows are capped and rounded, because every token returned i
 
 import datetime as dt
 import decimal
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from sre_control.approvals import ApprovalRequired, InvalidTransition, Remediations, Ungrounded
 from sre_control.policy import ACTIONS, TOOL_CLASSES, PolicyError, ToolClass
@@ -108,7 +109,7 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
 
     @tool
     def search_logs(service: str, text: str, minutes: int = 60) -> dict:
-        """Find log lines for one service containing a whole word, newest first."""
+        """Find log lines for one service containing a word or phrase (case-insensitive), newest first."""
         return {"logs": rows("search_logs", 25, service=service, text=text, minutes=minutes)}
 
     @tool
@@ -144,26 +145,39 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
              "approval_url": f"{public_url}/actions/{s.action_id}"}
         )  # fmt: skip
 
+    # Every argument is described. The first version had a bare `release: str`, and the model
+    # filled it with the release to roll back TO, which is exactly the ambiguity Module 4 teaches.
     @tool
     def propose_remediation(
-        incident_id: str,
-        action: str,
-        target: str,
-        root_cause: str,
-        service: str,
-        release: str,
-        trace_ids: list[str],
-        params: dict[str, str] | None = None,
+        incident_id: Annotated[str, Field(description="The incident id, for example inc-1a2b3c4d5e6f.")],
+        action: Annotated[str, Field(description="One of get_incident's allowed_actions keys.")],
+        target: Annotated[str, Field(description="A target listed for that action in allowed_actions.")],
+        root_cause: Annotated[str, Field(description="Two or three sentences: what fails, where, and why.")],
+        faulty_service: Annotated[str, Field(description="The service whose telemetry shows the fault.")],
+        faulty_release: Annotated[
+            str,
+            Field(
+                description="The service.version that introduced the fault (NOT the release to roll back to)."
+            ),
+        ],
+        trace_ids: Annotated[
+            list[str], Field(description="Failing trace ids exactly as a tool returned them.")
+        ],
+        params: Annotated[
+            dict[str, str] | None,
+            Field(
+                description='Action parameters. rollback_release needs {"release": "<release to deploy>"}.'
+            ),
+        ] = None,
     ) -> dict:
         """Store a remediation for a human to approve. It does not run anything.
 
-        action and target must be one of get_incident's allowed_actions. rollback_release takes
-        params {"release": "v1"}. trace_ids must come from tool results; unknown ids are refused.
+        Unknown trace ids, services or releases are refused, and so is any action outside policy.
         """
         try:
             s = remediations.propose(
                 incident_id=incident_id, action=action, target=target, params=params or {},
-                root_cause=root_cause, service=service, release=release, trace_ids=trace_ids,
+                root_cause=root_cause, service=faulty_service, release=faulty_release, trace_ids=trace_ids,
                 proposed_by="ai-sre",
             )  # fmt: skip
         except (Ungrounded, PolicyError) as err:

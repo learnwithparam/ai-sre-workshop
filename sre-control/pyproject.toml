@@ -10,6 +10,7 @@ dependencies = [
     "jinja2==3.1.6",
     "python-multipart==0.0.32",
     "clickhouse-connect==1.8.0",
+    "pydantic==2.13.5",
     "opentelemetry-distro==0.65b0",
     "opentelemetry-exporter-otlp==1.44.0",
 ]

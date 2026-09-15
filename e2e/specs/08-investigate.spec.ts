@@ -1,6 +1,6 @@
 import { config } from "../lib/config";
 import { auditEvents, chatToolCalls, clickhouse, state, waitFor } from "../lib/stack";
-import { expect, shot, test } from "../lib/ui";
+import { expect, shot, test, waitForAnswer } from "../lib/ui";
 
 test("the AI SRE investigates with tools and proposes a grounded rollback", async ({ page, request }) => {
   const { incidentId, openedAt } = state.read().badRelease;
@@ -24,6 +24,8 @@ test("the AI SRE investigates with tools and proposes a grounded rollback", asyn
   await expect(page.getByTestId("messages-view")).toContainText(`/actions/${proposal.action_id}`, {
     timeout: 300_000,
   });
+  // LibreChat stores the message, with its tool calls, only once the answer finishes streaming.
+  await waitForAnswer(page);
   await shot(page, "chat-proposal");
 
   const p = proposal.payload;

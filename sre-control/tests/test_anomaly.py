@@ -1,6 +1,8 @@
 """The 3 sigma rule the detector and the workshop SQL both use."""
 
-from sre_control.anomaly import error_rate, three_sigma
+from datetime import UTC, datetime, timedelta
+
+from sre_control.anomaly import clean_baseline, error_rate, three_sigma
 
 STEADY_RATES = [0.010, 0.012, 0.009, 0.011, 0.010, 0.013, 0.008, 0.010, 0.011, 0.012]
 
@@ -26,3 +28,10 @@ def test_blip_over_a_silent_baseline_needs_the_floor():
 
 def test_error_rate_of_no_traffic_is_zero():
     assert error_rate(errors=0, requests=0) == 0.0
+
+
+def test_past_incidents_are_not_baseline():
+    t0 = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+    buckets = [(t0 + timedelta(minutes=m), rate) for m, rate in enumerate([0.01, 0.3, 0.3, 0.01])]
+    incident = (t0 + timedelta(seconds=30), t0 + timedelta(minutes=2, seconds=30))
+    assert clean_baseline(buckets, [incident]) == [0.01, 0.01]

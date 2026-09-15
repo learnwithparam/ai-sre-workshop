@@ -27,7 +27,7 @@ def config(cmd: list[str], *extra: str) -> dict:
         capture_output=True,
         text=True,
         # Only PATH and HOME from the caller, so a stray APP_RELEASE in a shell cannot change the result.
-        env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "WORKSHOP_DIR": str(ROOT)},
+        env={"PATH": os.environ["PATH"], "HOME": os.environ["HOME"], "WORKSHOP_DIR": str(ROOT)},
     )
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)
@@ -39,6 +39,9 @@ def test_default_stack_is_valid():
     expected |= {"librechat", "mongodb", "mcp-clickhouse", "sre-control"}
     assert expected <= set(services)
     assert "load-generator" not in services
+    # LibreChat caches MCP tool schemas; a rebuilt MCP server must restart it or it rejects valid calls.
+    deps = services["librechat"]["depends_on"]
+    assert deps["sre-control"]["restart"] is True and deps["mcp-clickhouse"]["restart"] is True
 
 
 def test_browser_load_profile_is_valid():
@@ -74,4 +77,4 @@ def test_e2e_targets_derive_from_public_domain():
     source = (ROOT / "e2e/lib/config.ts").read_text()
     assert "PUBLIC_DOMAIN" in source
     assert source.count("localhost") == 1, "local URLs must come from the one url() helper"
-    assert set(re.findall(r'url\("(\w+)",\s*\d+\)', source)) == set(VPS_ROUTES) - {"otlp"}
+    assert set(re.findall(r'url\("(\w+)",\s*\d+\)', source)) == set(VPS_ROUTES)

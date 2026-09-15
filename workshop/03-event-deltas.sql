@@ -69,8 +69,9 @@ ORDER BY events DESC
 LIMIT 25;
 
 -- name: search_logs
--- teaches: token search on the lower(Body) index; the service filter hits the primary key first.
--- example: service=subscription-backend text=GET minutes=60
+-- teaches: substring search. hasToken would use the token index but refuses a phrase with spaces,
+-- and a model searches in phrases; the service filter on the primary key keeps the scan small.
+-- example: service=subscription-backend text=connection pool minutes=60
 SELECT
     Timestamp,
     SeverityText AS severity,
@@ -79,7 +80,7 @@ SELECT
 FROM default.otel_logs
 WHERE ServiceName = {service:String}
   AND Timestamp > now() - toIntervalMinute({minutes:UInt32})
-  AND hasTokenCaseInsensitive(Body, {text:String})
+  AND positionCaseInsensitive(Body, {text:String}) > 0
 ORDER BY Timestamp DESC
 LIMIT 50;
 

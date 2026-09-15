@@ -38,15 +38,19 @@ mcpSettings:
     - sre-control
     - mcp-clickhouse
 
+# requiresOAuth: false, because both servers answer 401 to an unauthenticated probe, which LibreChat
+# would otherwise read as "start an OAuth flow". They take the static bearer token instead.
 mcpServers:
   sre:
     type: streamable-http
+    requiresOAuth: false
     url: http://sre-control:8090/mcp
     headers:
       Authorization: "Bearer ${SRE_MCP_TOKEN}"
     timeout: 120000
   clickhouse:
     type: streamable-http
+    requiresOAuth: false
     url: http://mcp-clickhouse:8000/mcp
     headers:
       Authorization: "Bearer ${CLICKHOUSE_MCP_AUTH_TOKEN}"
@@ -89,6 +93,7 @@ modelSpecs:
           9. Once the human says it is approved, call execute_remediation, then get_remediation_status
              until verification is passed or failed, and report the result.
 
-          Rules: cite only trace ids a tool returned. Never say a change ran unless
+          Rules: use at most eight tool calls before proposing; one trace waterfall is enough.
+          Cite only trace ids a tool returned. Never say a change ran unless
           execute_remediation returned a result. Answer in this order: symptom, evidence, root
           cause, proposal.

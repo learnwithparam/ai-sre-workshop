@@ -37,6 +37,7 @@ def test_both_mcp_servers_send_a_bearer_token():
     assert servers["sre"]["headers"]["Authorization"] == "Bearer ${SRE_MCP_TOKEN}"
     assert servers["clickhouse"]["url"] == "http://mcp-clickhouse:8000/mcp"
     assert servers["clickhouse"]["headers"]["Authorization"] == "Bearer ${CLICKHOUSE_MCP_AUTH_TOKEN}"
+    assert all(s["requiresOAuth"] is False for s in servers.values())
 
 
 def test_the_model_id_is_written_once():

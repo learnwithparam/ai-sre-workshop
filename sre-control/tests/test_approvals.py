@@ -65,3 +65,13 @@ def test_audit_records_every_step_with_actor_and_time(remediations, rollback, st
     assert [e.actor for e in events] == ["ai-sre", "oncall@example.com", "ai-sre"]
     assert all(e.ts is not None for e in events)
     assert events == sorted(events, key=lambda e: e.ts)
+
+
+def test_proposing_twice_returns_the_waiting_proposal(remediations, rollback, incident, store, known_trace):
+    again = remediations.propose(
+        incident_id=incident.id, action="restart_service", target="subscription-app", params={},
+        root_cause="retry", service="subscription-backend", release="v2", trace_ids=[known_trace],
+        proposed_by="ai-sre",
+    )  # fmt: skip
+    assert again.action_id == rollback.action_id
+    assert len(store.events(incident_id=incident.id, kind="remediation_proposed")) == 1

@@ -25,7 +25,7 @@ test("approval rolls back, verifies recovery and resolves", async ({ page }) => 
   const { conversationId, actionId, incidentId, openedAt } = scenario();
 
   await page.goto(`${config.sreUrl}/actions/${actionId}`);
-  await expect(page.getByText("rollback_release")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /rollback release subscription-app/ })).toBeVisible();
   await expect(page.getByTestId("action-state")).toHaveText("pending");
   await shot(page, "approval-pending");
   await page.getByRole("button", { name: "Approve" }).click();

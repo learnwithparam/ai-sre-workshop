@@ -6,7 +6,7 @@ Append-only means the record of who decided what, and when, can never be edited 
 import json
 import secrets
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 
@@ -29,6 +29,7 @@ class Incident:
     opened_at: datetime
     state: str
     details: dict[str, Any]
+    resolved_at: datetime | None = None
 
 
 def new_id(prefix: str) -> str:
@@ -62,7 +63,7 @@ class Store:
         opened = next((e for e in events if e.kind == "incident_opened"), None)
         if opened is None:
             raise KeyError(incident_id)
-        resolved = any(e.kind == "incident_resolved" for e in events)
+        resolved = next((e for e in events if e.kind == "incident_resolved"), None)
         p = opened.payload
         return Incident(
             id=incident_id,
@@ -72,11 +73,21 @@ class Store:
             opened_at=opened.ts,
             state="resolved" if resolved else "open",
             details=p.get("details", {}),
+            resolved_at=resolved.ts if resolved else None,
         )
 
     def incidents(self) -> list[Incident]:
         opened = self.events(kind="incident_opened")
         return [self.incident(e.incident_id) for e in sorted(opened, key=lambda e: e.ts, reverse=True)]
+
+    def incident_windows(
+        self, rule: str, service: str, *, now: datetime, margin: timedelta
+    ) -> list[tuple[datetime, datetime]]:
+        return [
+            (i.opened_at - margin, (i.resolved_at or now) + margin)
+            for i in self.incidents()
+            if (i.rule, i.service) == (rule, service)
+        ]
 
     def open_incident_for(self, rule: str, service: str) -> Incident | None:
         for incident in self.incidents():

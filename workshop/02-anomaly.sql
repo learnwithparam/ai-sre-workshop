@@ -51,8 +51,9 @@ ORDER BY anomalous DESC, current_error_rate DESC
 LIMIT 50;
 
 -- name: error_rate_window
--- teaches: the detector's input, the same 3 sigma inputs returned as arrays for application code.
--- example: service=subscription-backend baseline_minutes=10
+-- teaches: the detector's input. Buckets keep their timestamps, so application code can drop the
+-- ones that fall inside past incidents before computing a baseline.
+-- example: service=subscription-backend baseline_minutes=15
 WITH buckets AS (
     SELECT
         toStartOfInterval(Timestamp, toIntervalSecond(10)) AS bucket,
@@ -66,7 +67,7 @@ WITH buckets AS (
     GROUP BY bucket
 )
 SELECT
-    arrayMap(x -> x.2 / x.3, arraySort(groupArrayIf((bucket, errors, requests), bucket < now() - INTERVAL 60 SECOND))) AS baseline,
+    arraySort(groupArrayIf((bucket, errors / requests), bucket < now() - INTERVAL 60 SECOND)) AS baseline,
     sumIf(errors, bucket >= now() - INTERVAL 60 SECOND) AS current_errors,
     sumIf(requests, bucket >= now() - INTERVAL 60 SECOND) AS current_requests
 FROM buckets
