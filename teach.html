@@ -279,10 +279,10 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Suppose the agent is right every time this week. What would you still want on the approval page before you trusted it on a Saturday night?</p></div>
 
       <div class="measured" aria-label="Measured on the last end-to-end run">
-        <div><strong><span data-figure="bad_release.time_to_root_cause_s">60</span> s</strong><span>incident opened to proposal, bad release</span></div>
-        <div><strong><span data-figure="bad_release.tool_calls_to_proposal">6</span></strong><span>tool calls before it proposed</span></div>
-        <div><strong><span data-figure="docs_hang.time_to_root_cause_s">283</span> s</strong><span>incident opened to proposal, hung requests</span></div>
-        <div><strong>$<span data-figure="total_cost_usd">0.0074</span></strong><span>model cost for both investigations</span></div>
+        <div><strong><span data-figure="bad_release.time_to_root_cause_s">85</span> s</strong><span>incident opened to proposal, bad release</span></div>
+        <div><strong><span data-figure="bad_release.tool_calls_to_proposal">7</span></strong><span>tool calls before it proposed</span></div>
+        <div><strong><span data-figure="docs_hang.time_to_root_cause_s">120</span> s</strong><span>incident opened to proposal, hung requests</span></div>
+        <div><strong>$<span data-figure="total_cost_usd">0.0068</span></strong><span>model cost for both investigations</span></div>
       </div>
       <p class="footnote">Measured by <code data-file="e2e/specs/12-report.spec.ts">e2e/specs/12-report.spec.ts</code> on the last <code>make e2e</code> run with <code>deepseek/deepseek-v4-flash</code>, written to <code data-file="evidence/e2e-report.json">evidence/e2e-report.json</code>. A test fails if these numbers drift from that file.</p>
     </section>
