@@ -1,0 +1,13 @@
+{
+  "name": "ai-sre-workshop-e2e",
+  "private": true,
+  "description": "End-to-end suite for the AI SRE workshop: real stack, real model, real browser.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.0",
+    "typescript": "5.9.3"
+  }
+}

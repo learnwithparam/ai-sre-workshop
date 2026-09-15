@@ -1,0 +1,56 @@
+.DEFAULT_GOAL := help
+SHELL := /bin/bash
+
+# Compose files. The VPS override layers TLS and login on top of the same stack.
+COMPOSE := docker compose -f docker-compose.all-in-one.yml
+COMPOSE_VPS := $(COMPOSE) -f docker-compose.vps.yml
+
+# sre-control mounts the repo at this same absolute path, so compose paths resolve identically.
+export WORKSHOP_DIR := $(CURDIR)
+
+.PHONY: help env build up down ps logs check e2e score chaos chaos-reset
+
+help: ## List every target
+	@grep -E '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-12s\033[0m %s\n", $$1, $$2}'
+
+env: ## Add any missing generated secrets to .env (never overwrites a value)
+	@uv run --quiet python scripts/generate_env.py
+
+build: env ## Build the local images, including both subscription-app releases
+	$(COMPOSE) build
+	APP_RELEASE=v2 $(COMPOSE) build subscription-app
+
+up: build ## Start the stack and wait until every service is healthy
+	$(COMPOSE) up -d --wait --wait-timeout 600
+
+down: ## Stop the stack (data is kept)
+	$(COMPOSE) --profile browser-load down
+
+ps: ## Show service health
+	$(COMPOSE) ps
+
+logs: ## Follow logs for one service: make logs SERVICE=sre-control
+	$(COMPOSE) logs -f $(SERVICE)
+
+check: ## Lint, unit and structural tests (no Docker, no model spend)
+	@mkdir -p artifacts && rm -f artifacts/junit.xml
+	@uv run --quiet python scripts/tree_hash.py --all > artifacts/check-tree.txt
+	uv run --quiet ruff check .
+	uv run --quiet ruff format --check .
+	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
+
+e2e: up ## Full stack, real model, real browser; writes artifacts/playwright.json
+	@mkdir -p artifacts && rm -f artifacts/playwright.json
+	cd e2e && npm ci --silent && npx playwright install chromium
+	trap 'uv run --quiet python scripts/chaos.py reset' EXIT; \
+		uv run --quiet python scripts/tree_hash.py > artifacts/e2e-tree.txt && \
+		cd e2e && npx playwright test
+
+score: ## Score the build 0 to 100 from the latest check and e2e results
+	@uv run --quiet python scripts/score.py
+
+chaos: ## Inject a failure: make chaos SCENARIO=bad-release|docs-hang
+	uv run --quiet python scripts/chaos.py $(SCENARIO)
+
+chaos-reset: ## Undo every injected failure
+	uv run --quiet python scripts/chaos.py reset

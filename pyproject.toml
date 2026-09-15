@@ -1,0 +1,41 @@
+[project]
+name = "ai-sre-workshop"
+version = "1.0.0"
+description = "AI SRE workshop lab by learnwithparam.com: gates, chaos and scoring"
+requires-python = ">=3.13"
+dependencies = [
+    "sre-control",
+    "pytest==9.1.1",
+    "ruff==0.16.7",
+    "pyyaml==6.0.3",
+    "httpx==0.28.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+sre-control = { workspace = true }
+
+[tool.uv.workspace]
+members = ["sre-control"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "sre-control/tests"]
+addopts = "--import-mode=importlib -q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+# The demo app keeps its upstream code and its deliberate defects (the missing timeout is an exercise).
+extend-exclude = ["e2e/node_modules", "clickstack", "postgresql-db", "subscription-app", "load-generator"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S101", "S603", "S607"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sre_control"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106"]
