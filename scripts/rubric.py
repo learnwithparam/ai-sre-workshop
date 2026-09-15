@@ -39,9 +39,9 @@ PHASES: dict[str, list[Check]] = {
     "4 MCP tools": [
         Check("junit", "sre-control/tests/test_tools.py::test_every_tool_is_classified", 3),
         Check("junit", "sre-control/tests/test_grounding.py::test_ungrounded_proposal_is_rejected", 2),
-        Check("pw", "06-mcp.spec.ts > every SRE read tool returns data", 4),
-        Check("pw", "06-mcp.spec.ts > MCP endpoints reject requests without a token", 3),
-        Check("pw", "06-mcp.spec.ts > mcp-clickhouse cannot write", 3),
+        Check("pw", "13-mcp.spec.ts > every SRE read tool returns data", 4),
+        Check("pw", "13-mcp.spec.ts > MCP endpoints reject requests without a token", 3),
+        Check("pw", "13-mcp.spec.ts > mcp-clickhouse cannot write", 3),
     ],
     "5 Agent loop and HITL": [
         Check(

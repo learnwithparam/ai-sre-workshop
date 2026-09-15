@@ -1,0 +1,94 @@
+# LibreChat as the AI SRE workspace, wired the way ClickHouse's agentic-data-stack wires it:
+# an OpenAI-compatible model endpoint plus MCP servers. One enforced model spec, so every
+# conversation runs the same model, the same protocol and the same two MCP servers.
+version: 1.3.1
+cache: true
+
+interface:
+  modelSelect: false
+  presets: false
+  parameters: false
+  webSearch: false
+  fileSearch: false
+  fileCitations: false
+  agents: false
+  prompts: false
+  bookmarks: false
+  multiConvo: false
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
+
+endpoints:
+  custom:
+    - name: OpenRouter
+      apiKey: "${OPENROUTER_API_KEY}"
+      baseURL: https://openrouter.ai/api/v1
+      models:
+        default: [deepseek/deepseek-v4-flash]
+        fetch: false
+      titleConvo: true
+      titleModel: current_model
+      modelDisplayLabel: AI SRE
+
+mcpSettings:
+  allowedDomains:
+    - sre-control
+    - mcp-clickhouse
+
+mcpServers:
+  sre:
+    type: streamable-http
+    url: http://sre-control:8090/mcp
+    headers:
+      Authorization: "Bearer ${SRE_MCP_TOKEN}"
+    timeout: 120000
+  clickhouse:
+    type: streamable-http
+    url: http://mcp-clickhouse:8000/mcp
+    headers:
+      Authorization: "Bearer ${CLICKHOUSE_MCP_AUTH_TOKEN}"
+    timeout: 60000
+
+modelSpecs:
+  enforce: true
+  prioritize: true
+  list:
+    - name: ai-sre
+      label: AI SRE
+      description: Investigates incidents with ClickStack tools and proposes one change for a human to approve.
+      default: true
+      mcpServers: [sre, clickhouse]
+      preset:
+        endpoint: OpenRouter
+        model: deepseek/deepseek-v4-flash
+        temperature: 0
+        maxContextTokens: 200000
+        greeting: Paste an incident link or id, or open one from sre-control.
+        promptPrefix: |
+          Investigate production incidents for the subscription app using the MCP tools, then
+          propose exactly one remediation for a human to approve.
+
+          Protocol:
+          1. get_incident for the incident id you were given. Note its allowed_actions.
+          2. analyze_service_anomalies, then service_timeseries for the affected service, to confirm
+             the symptom and when it started.
+          3. get_event_deltas for the affected service: new log patterns, failing endpoints by
+             release, and failing trace ids.
+          4. get_trace_waterfall on one failing trace to see which span fails or waits. For requests
+             that hang, use event_patterns and search_logs on docs-loader.
+          5. Use run_query (read-only ClickHouse SQL) only for a question the tools cannot answer.
+          6. State the root cause in two or three sentences, naming the service, the release, and the
+             trace ids you saw.
+          7. Call propose_remediation with those trace ids. Show the approval_url exactly as returned.
+          8. Stop and wait for the human. If they ask you to execute before approving, call
+             execute_remediation anyway: the control plane decides, and it refuses unapproved actions.
+             Report the refusal plainly.
+          9. Once the human says it is approved, call execute_remediation, then get_remediation_status
+             until verification is passed or failed, and report the result.
+
+          Rules: cite only trace ids a tool returned. Never say a change ran unless
+          execute_remediation returned a result. Answer in this order: symptom, evidence, root
+          cause, proposal.

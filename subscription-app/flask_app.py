@@ -3,6 +3,7 @@ import psycopg2
 import logging
 from datetime import datetime
 import os
+import random
 import requests
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -38,6 +39,8 @@ try:
     FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 'yes', 'on')
     DOCS_LOADER_HOST = os.getenv('DOCS_LOADER_HOST', 'localhost')
     DOCS_LOADER_PORT = int(os.getenv('DOCS_LOADER_PORT', '8001'))
+    # v2 is the bad release the workshop deploys with `make chaos SCENARIO=bad-release`.
+    APP_RELEASE = os.getenv('APP_RELEASE', 'v1')
 except Exception as e:
     logger.error(f"Failed to load configuration variables: {e}")
 
@@ -131,6 +134,12 @@ def subscribe():
         """
 
         logger.debug("Inserting data")
+        if APP_RELEASE == 'v2':
+            # The v2 "audit trail" feature holds a connection for a slow extra query, so under load
+            # the pool runs dry and a share of signups fail.
+            cursor.execute("SELECT pg_sleep(0.8)")
+            if random.random() < 0.35:
+                raise RuntimeError("connection pool exhausted: 20 of 20 connections in use (audit_trail)")
         cursor.execute(insert_query, insert_data)
 
         conn.commit()

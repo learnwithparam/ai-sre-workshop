@@ -1,6 +1,7 @@
 """The compose stack is valid in every mode, and the VPS mode exposes nothing but TLS."""
 
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -25,7 +26,8 @@ def config(cmd: list[str], *extra: str) -> dict:
         cwd=ROOT,
         capture_output=True,
         text=True,
-        env={"PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin", "WORKSHOP_DIR": str(ROOT)},
+        # Only PATH and HOME from the caller, so a stray APP_RELEASE in a shell cannot change the result.
+        env={"PATH": os.environ["PATH"], "HOME": os.environ.get("HOME", "/tmp"), "WORKSHOP_DIR": str(ROOT)},
     )
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout)

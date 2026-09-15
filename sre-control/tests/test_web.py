@@ -29,7 +29,7 @@ def settings():
 
 @pytest.fixture
 def client(settings, remediations, store):
-    app = create_app(settings=settings, remediations=remediations, store=store, telemetry=None)
+    app = create_app(settings=settings, remediations=remediations, store=store)
     with TestClient(app, follow_redirects=False) as c:
         yield c
 

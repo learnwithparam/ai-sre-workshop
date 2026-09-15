@@ -1,11 +1,13 @@
 import { config } from "../lib/config";
-import { probe } from "../lib/stack";
+import { probe, state } from "../lib/stack";
 import { expect, test } from "../lib/ui";
 
 type ToolRun = { server: string; tool: string; ok: boolean; items: number; error: string | null };
 
 test("every SRE read tool returns data", async () => {
-  const runs = probe<ToolRun[]>("tools");
+  // Runs last, so the incident and remediation the scenarios created are real inputs.
+  const { incidentId, actionId } = state.read().badRelease;
+  const runs = probe<ToolRun[]>("tools", incidentId, actionId);
   const sre = runs.filter((r) => r.server === "sre");
   expect(sre.map((r) => r.tool).sort()).toEqual(
     [

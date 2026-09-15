@@ -1,3 +1,11 @@
+# The AI SRE lab: the subscription app, ClickStack, and the AI SRE that watches them.
+# Start it with `make up`; the Makefile sets WORKSHOP_DIR and builds both app releases first.
+
+x-otlp: &otlp
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_EXPORTER_OTLP_HEADERS: authorization=${HYPERDX_API_KEY:?run make env}
+
 services:
   clickstack:
     image: clickhouse/clickstack-all-in-one:2.19.0
@@ -6,15 +14,19 @@ services:
       - 8080:8080
       - 4317:4317
       - 4318:4318
+    environment:
+      CLICKHOUSE_READER_PASSWORD: ${CLICKHOUSE_READER_PASSWORD:?run make env}
+      CLICKHOUSE_WRITER_PASSWORD: ${CLICKHOUSE_WRITER_PASSWORD:?run make env}
     volumes:
       - ./clickstack/db:/data/db
       - ./clickstack/ch_data:/var/lib/clickhouse
       - ./clickstack/ch_logs:/var/log/clickhouse-server
+      - ./config/clickhouse/users.d/sre.xml:/etc/clickhouse-server/users.d/sre.xml:ro
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8123/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 6
       start_period: 40s
 
   postgres-db:
@@ -28,55 +40,52 @@ services:
       POSTGRES_PASSWORD: changeme
     healthcheck:
       test: ["CMD", "pg_isready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 6
       start_period: 40s
 
   subscription-app:
-    image: ghcr.io/clickhouse/clickstack-demo-subscription-app:26.4.0-subscription-app
-    build: ./subscription-app
+    # Each release is its own image, so a rollback redeploys the previous image, as in production.
+    image: ai-sre-workshop/subscription-app:${APP_RELEASE:-v1}
+    build:
+      context: ./subscription-app
+      args:
+        APP_RELEASE: ${APP_RELEASE:-v1}
     container_name: subscription-app
     ports:
-      - 8000:8000 # Change if you want to change the FLASK_PORT below and/or also the external PORT
+      - 8000:8000
     environment:
-      # PostgreSQL Configuration
-      - POSTGRES_HOST=postgres-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USERNAME=postgres
-      - POSTGRES_PASSWORD=changeme
-      - POSTGRES_DATABASE=postgres
-
-      # HyperDX Configuration
-      - HYPERDX_API_KEY=${HYPERDX_API_KEY}
-      - OTEL_SERVICE_NAME=subscription-backend
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318
-      - HYPERDX_ENABLE_ADVANCED_NETWORK_CAPTURE=1
-      - HYPERDX_SERVICE_NAME=subscription-frontend
-      - HYPERDX_ENDPOINT=http://clickstack:4318
-
-      # Docs loader
-      - DOCS_LOADER_HOST=docs-loader
-      - DOCS_LOADER_PORT=8001
-
-      # Flask Application Configuration
-      - FLASK_HOST=0.0.0.0
-      - FLASK_PORT=8000
-      - FLASK_DEBUG=false
-
-      # Logging Configuration
-      - LOG_LEVEL=INFO
+      POSTGRES_HOST: postgres-db
+      POSTGRES_PORT: 5432
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DATABASE: postgres
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY:?run make env}
+      OTEL_SERVICE_NAME: subscription-backend
+      OTEL_RESOURCE_ATTRIBUTES: service.version=${APP_RELEASE:-v1}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
+      HYPERDX_ENABLE_ADVANCED_NETWORK_CAPTURE: 1
+      HYPERDX_SERVICE_NAME: subscription-frontend
+      # The browser SDK posts from the visitor's machine, so this is the public ingest URL.
+      HYPERDX_ENDPOINT: ${PUBLIC_OTLP_URL:-http://localhost:4318}
+      DOCS_LOADER_HOST: docs-loader
+      DOCS_LOADER_PORT: 8001
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 8000
+      FLASK_DEBUG: "false"
+      LOG_LEVEL: INFO
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
-      interval: 1s
-      timeout: 1s
-      retries: 3
-      start_period: 40s
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=2).raise_for_status()"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
+        max-size: 10m
         max-file: "3"
     depends_on:
       clickstack:
@@ -95,36 +104,53 @@ services:
       resources:
         limits:
           memory: 10M
-    ports:
-      - 8001:8001
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_EXPORTER_OTLP_INSECURE=true
-      - OTEL_SERVICE_NAME=docs-loader
-      - OTEL_EXPORTER_OTLP_HEADERS=authorization=${HYPERDX_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      OTEL_SERVICE_NAME: docs-loader
+      OTEL_EXPORTER_OTLP_HEADERS: authorization=${HYPERDX_API_KEY:?run make env}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8001"]
-      interval: 1s
-      timeout: 1s
-      retries: 3
-      start_period: 40s
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
     depends_on:
       clickstack:
         condition: service_healthy
 
+  traffic:
+    build: ./traffic
+    image: ai-sre-workshop/traffic:1
+    container_name: traffic
+    restart: unless-stopped
+    environment:
+      TARGET_URL: http://subscription-app:8000
+      REQUESTS_PER_SECOND: "4"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, time; assert time.time() - os.path.getmtime('/tmp/heartbeat') < 30"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      subscription-app:
+        condition: service_healthy
+
   load-generator:
+    profiles: [browser-load]
     image: ghcr.io/clickhouse/clickstack-demo-subscription-app:26.4.0-load-generator
     build: ./load-generator
     container_name: load-generator
     restart: unless-stopped
     environment:
-      - LOCUST_WEB_PORT=8081
-      - LOCUST_USERS=5
-      - LOCUST_HOST=http://subscription-app:8000
-      - LOCUST_HEADLESS=true
-      - LOCUST_AUTOSTART=true
-      - LOCUST_WEB_HOST=0.0.0.0
+      LOCUST_WEB_PORT: 8081
+      LOCUST_USERS: 5
+      LOCUST_HOST: http://subscription-app:8000
+      LOCUST_HEADLESS: "true"
+      LOCUST_AUTOSTART: "true"
+      LOCUST_WEB_HOST: 0.0.0.0
     depends_on:
       subscription-app:
         condition: service_healthy
@@ -143,7 +169,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
   otel-collector:
     image: ghcr.io/clickhouse/clickstack-demo-subscription-app:26.4.0-otel-collector
@@ -152,18 +178,150 @@ services:
     volumes:
       - ./otel-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     environment:
-      - HYPERDX_API_KEY=${HYPERDX_API_KEY}
+      HYPERDX_API_KEY: ${HYPERDX_API_KEY:?run make env}
     healthcheck:
       test: ["CMD", "./healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 20s
     depends_on:
       socat:
         condition: service_healthy
       clickstack:
         condition: service_healthy
+
+  mongodb:
+    image: mongo:8.0.17
+    container_name: mongodb
+    restart: unless-stopped
+    command: mongod --noauth --quiet
+    volumes:
+      - librechat_mongodb:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  mcp-clickhouse:
+    build: ./mcp-clickhouse
+    image: ai-sre-workshop/mcp-clickhouse:0.6.0
+    container_name: mcp-clickhouse
+    restart: unless-stopped
+    environment:
+      <<: *otlp
+      OTEL_SERVICE_NAME: mcp-clickhouse
+      CLICKHOUSE_HOST: clickstack
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_SECURE: "false"
+      CLICKHOUSE_USER: sre_agent
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_READER_PASSWORD:?run make env}
+      CLICKHOUSE_MCP_SERVER_TRANSPORT: http
+      CLICKHOUSE_MCP_BIND_HOST: 0.0.0.0
+      CLICKHOUSE_MCP_BIND_PORT: 8000
+      # DNS rebinding protection: only these Host headers are served (LibreChat and sre-control).
+      CLICKHOUSE_MCP_ALLOWED_HOSTS: mcp-clickhouse:8000
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?run make env}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    depends_on:
+      clickstack:
+        condition: service_healthy
+
+  sre-control:
+    build:
+      context: .
+      dockerfile: sre-control/Dockerfile
+    image: ai-sre-workshop/sre-control:1
+    container_name: sre-control
+    restart: unless-stopped
+    ports:
+      - 8090:8090
+    environment:
+      <<: *otlp
+      OTEL_SERVICE_NAME: sre-control
+      CLICKHOUSE_HOST: clickstack
+      CLICKHOUSE_READER_USER: sre_agent
+      CLICKHOUSE_READER_PASSWORD: ${CLICKHOUSE_READER_PASSWORD:?run make env}
+      CLICKHOUSE_WRITER_USER: sre_control
+      CLICKHOUSE_WRITER_PASSWORD: ${CLICKHOUSE_WRITER_PASSWORD:?run make env}
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?run make env}
+      SRE_MCP_TOKEN: ${SRE_MCP_TOKEN:?run make env}
+      SRE_APPROVER_EMAIL: ${SRE_APPROVER_EMAIL:?run make env}
+      SRE_APPROVER_PASSWORD: ${SRE_APPROVER_PASSWORD:?run make env}
+      SRE_SESSION_SECRET: ${SRE_SESSION_SECRET:?run make env}
+      SRE_PUBLIC_URL: ${SRE_PUBLIC_URL:-http://localhost:8090}
+      CHAT_PUBLIC_URL: ${CHAT_PUBLIC_URL:-http://localhost:3080}
+      WORKSHOP_DIR: ${WORKSHOP_DIR:?run through make}
+    volumes:
+      # Remediation runs `docker compose` against this same project, so it sees the repo at the
+      # same absolute path as the host does, and talks to the host's Docker daemon.
+      - ${WORKSHOP_DIR:?run through make}:${WORKSHOP_DIR:?run through make}:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    depends_on:
+      clickstack:
+        condition: service_healthy
+      mcp-clickhouse:
+        condition: service_healthy
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:v0.8.7
+    container_name: librechat
+    restart: unless-stopped
+    ports:
+      - 3080:3080
+    environment:
+      <<: *otlp
+      OTEL_TRACING_ENABLED: "true"
+      OTEL_SERVICE_NAME: librechat
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      DOMAIN_CLIENT: ${CHAT_PUBLIC_URL:-http://localhost:3080}
+      DOMAIN_SERVER: ${CHAT_PUBLIC_URL:-http://localhost:3080}
+      CONFIG_PATH: /app/librechat.yaml
+      SEARCH: "false"
+      ALLOW_REGISTRATION: "false"
+      ALLOW_SOCIAL_LOGIN: "false"
+      ALLOW_EMAIL_LOGIN: "true"
+      JWT_SECRET: ${JWT_SECRET:?run make env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?run make env}
+      CREDS_KEY: ${CREDS_KEY:?run make env}
+      CREDS_IV: ${CREDS_IV:?run make env}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?add your OpenRouter key to .env}
+      SRE_MCP_TOKEN: ${SRE_MCP_TOKEN:?run make env}
+      CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?run make env}
+      SRE_PUBLIC_URL: ${SRE_PUBLIC_URL:-http://localhost:8090}
+    volumes:
+      - ./librechat/librechat.yaml:/app/librechat.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      sre-control:
+        condition: service_healthy
+      mcp-clickhouse:
+        condition: service_healthy
+
+volumes:
+  librechat_mongodb:
 
 networks:
   default:

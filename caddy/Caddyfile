@@ -1,0 +1,22 @@
+# VPS entry point. Caddy obtains TLS certificates for each name, and nothing else is published.
+# Point these five DNS names at the VPS: app, otlp, hyperdx, chat, sre (each .PUBLIC_DOMAIN).
+
+app.{$PUBLIC_DOMAIN} {
+	reverse_proxy subscription-app:8000
+}
+
+otlp.{$PUBLIC_DOMAIN} {
+	reverse_proxy clickstack:4318
+}
+
+hyperdx.{$PUBLIC_DOMAIN} {
+	reverse_proxy clickstack:8080
+}
+
+chat.{$PUBLIC_DOMAIN} {
+	reverse_proxy librechat:3080
+}
+
+sre.{$PUBLIC_DOMAIN} {
+	reverse_proxy sre-control:8090
+}

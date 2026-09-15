@@ -25,12 +25,14 @@ test("traces and logs arrive for every app service", async () => {
 });
 
 test("docs-loader logs join traces by TraceId", async () => {
+  // The Go service writes the trace id into a log attribute, not the TraceId column.
   const [{ joined }] = clickhouse<{ joined: string }>(
     `SELECT count() AS joined
      FROM default.otel_logs AS l
-     INNER JOIN (SELECT DISTINCT TraceId FROM default.otel_traces WHERE ${WINDOW} LIMIT 10000) AS t
-       ON l.TraceId = t.TraceId
-     WHERE l.ServiceName = 'docs-loader' AND l.${WINDOW} AND l.TraceId != ''`,
+     INNER JOIN (SELECT DISTINCT TraceId FROM default.otel_traces
+                 WHERE ServiceName = 'docs-loader' AND ${WINDOW} LIMIT 10000) AS t
+       ON l.LogAttributes['trace_id'] = t.TraceId
+     WHERE l.ServiceName = 'docs-loader' AND l.${WINDOW}`,
   );
   expect(Number(joined)).toBeGreaterThan(0);
 });

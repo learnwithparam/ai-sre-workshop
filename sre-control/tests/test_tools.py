@@ -19,8 +19,8 @@ def test_every_tool_is_classified(remediations):
     assert set(registered) == set(TOOL_CLASSES)
     for name, tool in registered.items():
         cls = TOOL_CLASSES[name]
-        assert tool.annotations.readOnlyHint is (cls is ToolClass.READ), name
-        assert tool.annotations.destructiveHint is (cls is ToolClass.ACTION), name
+        assert tool.annotations.read_only_hint is (cls is ToolClass.READ), name
+        assert tool.annotations.destructive_hint is (cls is ToolClass.ACTION), name
 
 
 def test_an_unclassified_tool_cannot_register():

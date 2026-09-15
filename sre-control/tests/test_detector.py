@@ -1,6 +1,6 @@
 """The detector opens one incident per failing signal, and a fresh one only after resolution."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sre_control.detector import Detector, ErrorRateSample, StuckRequests
 
@@ -57,3 +57,21 @@ def test_a_resolved_incident_lets_a_new_one_open(store):
     store.resolve_incident(first.id, actor="ai-sre", at=NOW, note="rolled back")
     d.tick()
     assert len(store.incidents()) == 2
+
+
+def test_an_incident_that_heals_on_its_own_closes_itself(store, remediations):
+    signals = Signals()
+    signals.current = 0.34
+    now = [NOW]
+    d = Detector(signals=signals, store=store, clock=lambda: now[0], remediations=remediations)
+    d.tick()
+    signals.current = 0.01
+    now[0] = NOW + timedelta(minutes=1)
+    d.tick()
+    assert store.incidents()[0].state == "open"
+    now[0] = NOW + timedelta(minutes=3)
+    d.tick()
+    (incident,) = store.incidents()
+    assert incident.state == "resolved"
+    (resolved,) = store.events(incident_id=incident.id, kind="incident_resolved")
+    assert resolved.actor == "detector"

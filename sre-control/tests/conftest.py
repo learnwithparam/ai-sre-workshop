@@ -15,13 +15,13 @@ class FakeTelemetry:
     services = {"subscription-backend": {"v1", "v2"}, "docs-loader": {"1.0.0"}}
     traces = {KNOWN_TRACE}
 
-    def missing_trace_ids(self, trace_ids, since):
+    def missing_trace_ids(self, trace_ids):
         return [t for t in trace_ids if t not in self.traces]
 
-    def service_seen(self, service, since):
+    def service_seen(self, service):
         return service in self.services
 
-    def release_seen(self, service, release, since):
+    def release_seen(self, service, release):
         return release in self.services.get(service, set())
 
 

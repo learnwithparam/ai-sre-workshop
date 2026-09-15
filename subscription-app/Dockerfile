@@ -1,6 +1,10 @@
 # Use Python 3.13 slim image as base
 FROM python:3.13.5-slim
 
+# The release is baked into the image, so v1 and v2 are two images and a rollback is a redeploy.
+ARG APP_RELEASE=v1
+ENV APP_RELEASE=${APP_RELEASE}
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

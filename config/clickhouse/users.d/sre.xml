@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+  Two ClickHouse users for the AI SRE, separated by what they may do.
+  sre_agent: every agent query. Read-only, and capped so a runaway query cannot starve ingest.
+  sre_control: the control plane. Writes only its own audit log and anomaly view in `sre`.
+  Passwords come from the container environment, which compose fills from .env.
+-->
+<clickhouse>
+    <profiles>
+        <sre_agent>
+            <readonly>2</readonly>
+            <max_execution_time>10</max_execution_time>
+            <max_memory_usage>1000000000</max_memory_usage>
+            <max_result_rows>10000</max_result_rows>
+            <result_overflow_mode>throw</result_overflow_mode>
+            <max_threads>2</max_threads>
+            <constraints>
+                <readonly><min>2</min><max>2</max></readonly>
+                <max_execution_time><max>10</max></max_execution_time>
+                <max_memory_usage><max>1000000000</max></max_memory_usage>
+                <max_result_rows><max>10000</max></max_result_rows>
+                <max_threads><max>2</max></max_threads>
+            </constraints>
+        </sre_agent>
+        <sre_control>
+            <max_execution_time>30</max_execution_time>
+            <max_memory_usage>2000000000</max_memory_usage>
+        </sre_control>
+    </profiles>
+
+    <users>
+        <sre_agent>
+            <password from_env="CLICKHOUSE_READER_PASSWORD" />
+            <profile>sre_agent</profile>
+            <quota>default</quota>
+            <networks><ip>::/0</ip></networks>
+            <grants>
+                <query>GRANT SELECT ON default.*</query>
+                <query>GRANT SELECT ON sre.*</query>
+                <query>GRANT SELECT ON system.parts</query>
+            </grants>
+        </sre_agent>
+        <sre_control>
+            <password from_env="CLICKHOUSE_WRITER_PASSWORD" />
+            <profile>sre_control</profile>
+            <quota>default</quota>
+            <networks><ip>::/0</ip></networks>
+            <grants>
+                <query>GRANT SELECT ON default.*</query>
+                <query>GRANT CREATE DATABASE ON sre.*</query>
+                <query>GRANT SELECT, INSERT, CREATE TABLE, CREATE VIEW, ALTER ON sre.*</query>
+            </grants>
+        </sre_control>
+    </users>
+</clickhouse>

@@ -1,0 +1,44 @@
+# VPS layer on top of docker-compose.all-in-one.yml: `make up-vps`.
+# Every service loses its published ports; Caddy alone listens, on 80 and 443, with TLS.
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?set PUBLIC_DOMAIN in .env}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      librechat:
+        condition: service_healthy
+      sre-control:
+        condition: service_healthy
+
+  clickstack:
+    ports: !reset []
+  subscription-app:
+    ports: !reset []
+    environment:
+      HYPERDX_ENDPOINT: https://otlp.${PUBLIC_DOMAIN}
+  sre-control:
+    ports: !reset []
+    environment:
+      SRE_PUBLIC_URL: https://sre.${PUBLIC_DOMAIN}
+      CHAT_PUBLIC_URL: https://chat.${PUBLIC_DOMAIN}
+  librechat:
+    ports: !reset []
+    environment:
+      DOMAIN_CLIENT: https://chat.${PUBLIC_DOMAIN}
+      DOMAIN_SERVER: https://chat.${PUBLIC_DOMAIN}
+      SRE_PUBLIC_URL: https://sre.${PUBLIC_DOMAIN}
+      ALLOW_REGISTRATION: "false"
+      ALLOW_SOCIAL_LOGIN: "false"
+
+volumes:
+  caddy_data:

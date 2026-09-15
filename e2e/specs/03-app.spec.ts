@@ -13,24 +13,31 @@ test("a browser signup lands in Postgres and ClickHouse", async ({ page }) => {
   await page.getByLabel("Email Address").fill(email);
   await page.locator("#source").selectOption("webinar");
   await page.getByRole("button", { name: "Subscribe to Updates" }).click();
-  await expect(page.getByText("Successfully subscribed")).toBeVisible();
+  await expect(page.locator("#successMessage")).toContainText("Thank you for subscribing");
   await shot(page, "app-signup");
 
   expect(postgres(`SELECT source FROM users WHERE email = '${email}'`)).toBe("webinar");
 
-  // The browser SDK reports the fetch; the backend reports the insert it caused.
-  await waitFor(
-    "frontend and backend spans for the signup",
+  // The browser SDK records the fetch with its request body; the backend span shares its trace.
+  const [frontend] = await waitFor(
+    "the browser's POST /api/subscribe span carrying this email",
     () => {
-      const rows = clickhouse<{ ServiceName: string }>(
-        `SELECT DISTINCT ServiceName FROM default.otel_traces
-         WHERE Timestamp >= '${started}' AND SpanName ILIKE '%subscribe%'
-           AND ServiceName IN ('subscription-frontend', 'subscription-backend') LIMIT 10`,
+      const rows = clickhouse<{ TraceId: string }>(
+        `SELECT TraceId FROM default.otel_traces
+         WHERE Timestamp >= '${started}' AND ServiceName = 'subscription-frontend'
+           AND SpanAttributes['http.url'] LIKE '%/api/subscribe'
+           AND position(SpanAttributes['http.request.body'], '${email}') > 0 LIMIT 1`,
       );
-      return rows.length === 2;
+      return rows.length > 0 && rows;
     },
     120_000,
   );
+  const [{ backend }] = clickhouse<{ backend: string }>(
+    `SELECT count() AS backend FROM default.otel_traces
+     WHERE TraceId = '${frontend.TraceId}' AND ServiceName = 'subscription-backend'
+       AND SpanName = 'POST /api/subscribe'`,
+  );
+  expect(Number(backend), "the backend span joins the browser trace").toBe(1);
   await waitFor(
     "a recorded browser session",
     () => clickhouse(`SELECT 1 FROM default.hyperdx_sessions WHERE Timestamp >= '${started}' LIMIT 1`).length > 0,

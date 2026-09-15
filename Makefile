@@ -20,8 +20,13 @@ build: env ## Build the local images, including both subscription-app releases
 	$(COMPOSE) build
 	APP_RELEASE=v2 $(COMPOSE) build subscription-app
 
-up: build ## Start the stack and wait until every service is healthy
+up: build ## Start the stack, wait until every service is healthy, create the workshop logins
 	$(COMPOSE) up -d --wait --wait-timeout 600
+	@uv run --quiet python scripts/bootstrap_users.py
+
+up-vps: build ## On a VPS: the same stack behind Caddy with TLS, only ports 80 and 443 open
+	$(COMPOSE_VPS) up -d --wait --wait-timeout 900
+	@uv run --quiet python scripts/bootstrap_users.py
 
 down: ## Stop the stack (data is kept)
 	$(COMPOSE) --profile browser-load down
