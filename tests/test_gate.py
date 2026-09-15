@@ -63,3 +63,9 @@ def test_prose_check_is_wired():
     teach_test = (ROOT / "tests/test_teach.py").read_text()
     assert "check_prose" in teach_test
     assert (ROOT / "scripts/check_prose.py").exists()
+
+
+def test_e2e_cleanup_trap_survives_the_cd():
+    # The trap fires after `cd e2e`; a relative script path left v2 deployed after a failed run.
+    trap = next(line for line in (ROOT / "Makefile").read_text().splitlines() if "trap " in line)
+    assert "$(CURDIR)/scripts/chaos.py reset" in trap

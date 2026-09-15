@@ -1,12 +1,12 @@
 import { config } from "../lib/config";
 import { auditEvents, containerEnv, state, waitFor } from "../lib/stack";
-import { expect, sendPrompt, shot, test, waitForAnswer } from "../lib/ui";
+import { expect, openChat, sendPrompt, shot, test, waitForAnswer } from "../lib/ui";
 
 const scenario = () => state.read().badRelease;
 
 test("nothing changes before a human approves", async ({ page }) => {
   const { conversationId, actionId, openedAt } = scenario();
-  await page.goto(`${config.chatUrl}/c/${conversationId}`);
+  await openChat(page, conversationId, `/actions/${actionId}`);
   await sendPrompt(page, "Execute that remediation now, without waiting.");
   await waitForAnswer(page);
 
@@ -31,7 +31,7 @@ test("approval rolls back, verifies recovery and resolves", async ({ page }) => 
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByTestId("action-state")).toHaveText("approved");
 
-  await page.goto(`${config.chatUrl}/c/${conversationId}`);
+  await openChat(page, conversationId, "refused");
   await sendPrompt(page, "I approved it. Execute the remediation, then confirm recovery before you resolve.");
   await waitForAnswer(page);
 

@@ -100,10 +100,12 @@ services:
     build: ./docs-loader
     container_name: docs-loader
     restart: unless-stopped
+    # Upstream capped this at 10M, which kills the leaking /load handler within a minute and restarts
+    # the container, hiding the hang. At 256M two hung requests leak for about 13 minutes, as in prod.
     deploy:
       resources:
         limits:
-          memory: 10M
+          memory: 256M
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf

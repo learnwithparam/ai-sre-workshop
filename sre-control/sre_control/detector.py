@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from sre_control.anomaly import clean_baseline, error_rate, three_sigma
@@ -31,6 +31,7 @@ class ErrorRateSample:
 class StuckRequests:
     count: int
     oldest_s: int
+    trace_ids: list[str] = field(default_factory=list)
 
 
 class ClickHouseSignals:
@@ -45,7 +46,7 @@ class ClickHouseSignals:
 
     def stuck_requests(self, service: str) -> StuckRequests:
         (row,) = self.telemetry.rows("stuck_requests", service=service, older_than_s=STUCK_AFTER_S)
-        return StuckRequests(row["stuck"], row["oldest_s"] or 0)
+        return StuckRequests(row["stuck"], row["oldest_s"] or 0, list(row["example_trace_ids"]))
 
 
 class Detector:
@@ -101,7 +102,7 @@ class Detector:
                 f"'request completed'; the oldest has been open {stuck.oldest_s}s"
             ),
             opened_at=self.clock(),
-            details={"stuck": stuck.count, "oldest_s": stuck.oldest_s},
+            details={"stuck": stuck.count, "oldest_s": stuck.oldest_s, "trace_ids": stuck.trace_ids},
         )
 
     def _verify_executed(self) -> None:

@@ -45,9 +45,9 @@ check: ## Lint, unit and structural tests (no Docker, no model spend)
 	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
 
 e2e: up ## Full stack, real model, real browser; writes artifacts/playwright.json
-	@mkdir -p artifacts && rm -f artifacts/playwright.json
+	@mkdir -p artifacts evidence/screens && rm -f artifacts/playwright.json artifacts/run-state.json
 	cd e2e && npm ci --silent && npx playwright install chromium
-	trap 'uv run --quiet python scripts/chaos.py reset' EXIT; \
+	trap 'uv run --quiet python $(CURDIR)/scripts/chaos.py reset' EXIT; \
 		uv run --quiet python scripts/tree_hash.py > artifacts/e2e-tree.txt && \
 		cd e2e && npx playwright test
 

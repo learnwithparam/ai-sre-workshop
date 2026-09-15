@@ -33,3 +33,9 @@ def test_an_unclassified_tool_cannot_register():
 
 def test_only_one_tool_can_act():
     assert [n for n, c in TOOL_CLASSES.items() if c is ToolClass.ACTION] == ["execute_remediation"]
+
+
+def test_every_remediation_target_names_its_service():
+    from sre_control.policy import ACTIONS, TARGETS
+
+    assert {t for targets in ACTIONS.values() for t in targets} == set(TARGETS)

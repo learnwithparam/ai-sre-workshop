@@ -13,26 +13,31 @@ test("report records tool calls, tokens, cost and time to root cause", async ({ 
   // The model id is written once, in the AI SRE model spec (tests/test_librechat.py pins that).
   const model = readFileSync(resolve(ROOT, "librechat/librechat.yaml"), "utf8").match(/^\s+model: (\S+)$/m)![1];
 
-  const scenario = (s: { conversationId: string; openedAt: number; proposedAt: number }) => ({
-    tool_calls: chatToolCalls(s.conversationId).length,
-    tokens: chatTokens(s.conversationId),
-    time_to_root_cause_s: Math.round((s.proposedAt - s.openedAt) / 1000),
-  });
+  // Tool calls and tokens are per conversation; "to proposal" stops at the first propose_remediation.
+  const scenario = (s: { conversationId: string; openedAt: number; proposedAt: number }) => {
+    const calls = chatToolCalls(s.conversationId);
+    return {
+      tool_calls_to_proposal: calls.findIndex((c) => c.startsWith("propose_remediation")) + 1,
+      tool_calls_total: calls.length,
+      tokens: chatTokens(s.conversationId),
+      time_to_root_cause_s: Math.round((s.proposedAt - s.openedAt) / 1000),
+    };
+  };
   const report = {
     model,
     generated_at: new Date().toISOString(),
-    bad_release: {
-      ...scenario(run.badRelease),
-      // OpenRouter bills per key; the delta spans both investigations, attributed to the first.
-      cost_usd: Number((usageAfter - run.badRelease.usageBefore).toFixed(4)),
-    },
+    // OpenRouter bills per key, so cost is measured across both investigations together.
+    total_cost_usd: Number((usageAfter - run.badRelease.usageBefore).toFixed(4)),
+    bad_release: scenario(run.badRelease),
     docs_hang: scenario(run.docsHang),
   };
 
-  for (const key of ["tool_calls", "tokens", "time_to_root_cause_s", "cost_usd"] as const) {
-    expect(report.bad_release[key], key).toBeGreaterThan(0);
+  for (const s of [report.bad_release, report.docs_hang]) {
+    expect(s.tool_calls_to_proposal).toBeGreaterThanOrEqual(3);
+    expect(s.tokens).toBeGreaterThan(0);
+    expect(s.time_to_root_cause_s).toBeGreaterThan(0);
   }
-  expect(report.docs_hang.tool_calls).toBeGreaterThan(0);
+  expect(report.total_cost_usd).toBeGreaterThan(0);
   mkdirSync(resolve(ROOT, "evidence"), { recursive: true });
   writeFileSync(resolve(ROOT, "evidence/e2e-report.json"), `${JSON.stringify(report, null, 2)}\n`);
 });

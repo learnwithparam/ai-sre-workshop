@@ -1,7 +1,7 @@
 """Inject or undo the workshop's failures.
 
 bad-release  deploy subscription-app v2, whose signups are slow and a third of them fail
-docs-hang    send six requests to /load-docs; each one hangs inside docs-loader forever
+docs-hang    send two requests to /load-docs; each one hangs inside docs-loader, leaking memory
 reset        redeploy v1 and restart docs-loader
 """
 
@@ -29,7 +29,7 @@ def deploy(release: str) -> None:
     print(f"subscription-app is now running release {release}")
 
 
-def hang_docs(count: int = 6) -> None:
+def hang_docs(count: int = 2) -> None:
     def call() -> None:
         try:
             urllib.request.urlopen(f"{APP}/load-docs", timeout=3)  # noqa: S310  fixed local URL

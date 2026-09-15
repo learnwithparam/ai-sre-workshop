@@ -23,6 +23,11 @@ members = ["sre-control"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "sre-control/tests"]
 addopts = "--import-mode=importlib -q"
+# Starlette's TestClient still references an anyio alias anyio deprecated; not our code, and
+# nothing we can change short of forking the client. Every other warning still counts.
+filterwarnings = [
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning:starlette.testclient",
+]
 
 [tool.ruff]
 line-length = 110

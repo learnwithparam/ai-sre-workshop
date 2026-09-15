@@ -58,11 +58,34 @@ ORDER BY first_seen
 LIMIT 20;
 
 -- name: known_trace_ids
--- teaches: grounding. A proposal is refused unless every trace id it cites exists.
+-- teaches: grounding. A proposal is refused unless every trace id it cites exists, as a span or,
+-- for a request that never finished and so never exported a span, as a correlated log line.
 -- example: trace_ids=@sample_error_traces hours=6
-SELECT DISTINCT TraceId AS trace_id
-FROM default.otel_traces
-WHERE TraceId IN {trace_ids:Array(String)} AND Timestamp > now() - toIntervalHour({hours:UInt32})
+SELECT trace_id FROM (
+    SELECT DISTINCT TraceId AS trace_id
+    FROM default.otel_traces
+    WHERE TraceId IN {trace_ids:Array(String)} AND Timestamp > now() - toIntervalHour({hours:UInt32})
+    UNION DISTINCT
+    SELECT DISTINCT if(TraceId != '', TraceId, LogAttributes['trace_id']) AS trace_id
+    FROM default.otel_logs
+    WHERE (TraceId IN {trace_ids:Array(String)} OR LogAttributes['trace_id'] IN {trace_ids:Array(String)})
+      AND Timestamp > now() - toIntervalHour({hours:UInt32})
+)
+LIMIT 100;
+
+-- name: trace_logs
+-- teaches: logs correlated to one trace. The Go service writes the id to a log attribute, Python to
+-- the TraceId column, so the query reads both.
+-- example: trace_id=@sample_error_traces
+SELECT
+    Timestamp,
+    ServiceName AS service,
+    SeverityText AS severity,
+    Body AS body
+FROM default.otel_logs
+WHERE (TraceId = {trace_id:String} OR LogAttributes['trace_id'] = {trace_id:String})
+  AND Timestamp > now() - INTERVAL 1 DAY
+ORDER BY Timestamp
 LIMIT 100;
 
 -- name: service_releases

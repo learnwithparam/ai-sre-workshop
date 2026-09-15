@@ -6,8 +6,8 @@ detector opens an incident, an agent investigates it with ClickStack tools, and 
 change. Nothing runs until a human approves that change, and every step lands in an audit log you
 can query.
 
-Everything in this README is exercised by `make e2e`, which drives the whole loop with a real model
-and a real browser.
+The loop described below is exercised end to end by `make e2e`, with a real model and a real
+browser.
 
 ## The lab runs as one Docker Compose stack
 
@@ -70,8 +70,9 @@ Stop it with `make down`. Your data stays in `./clickstack/`, `./postgresql-db/`
 make chaos SCENARIO=bad-release
 ```
 
-1. The detector compares the last minute of errors with a 3 sigma bound over a clean baseline and
-   opens an incident within about a minute. It appears on http://localhost:8090.
+1. The detector compares the last minute of errors with a 3 sigma bound over a baseline that
+   leaves out past incidents, and with a fixed 10% SLO ceiling for when there is no clean baseline
+   yet. It opens an incident within about a minute, on http://localhost:8090.
 2. **Investigate with AI SRE** opens LibreChat with the incident. The agent calls the SRE tools
    (anomalies, time series, event deltas, a trace waterfall), names the release that broke, and
    calls `propose_remediation` with trace ids as evidence.
@@ -122,7 +123,7 @@ for its tools, so a query improved in the workshop improves the agent.
 | Command | What it proves |
 |---|---|
 | `make check` | Lint, unit and structural tests, compose validity for every mode, prose rules. No Docker, no model spend. CI runs it on every push. |
-| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 15 minutes; writes `evidence/e2e-report.json` and screenshots. |
+| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 13 minutes after the stack is up; writes `evidence/e2e-report.json` and screenshots. |
 | `make score` | A score out of 100, computed from the latest `check` and `e2e` results. Results from older code count as missing. Below 100 exits 1. |
 
 `teach.html` is the facilitator guide for running the workshop live.
@@ -139,8 +140,9 @@ make up-vps
 ```
 
 Registration is off in LibreChat, sre-control requires the approver login, and HyperDX uses its
-own accounts. Run `make e2e` on the server with `PUBLIC_DOMAIN` set, and the browser specs use the
-public URLs.
+own accounts. `make check` verifies this layer structurally: the override is valid, only Caddy
+publishes ports, and the e2e suite builds its browser URLs from `PUBLIC_DOMAIN`. It has not yet been
+run against a live server.
 
 ## Where this came from
 

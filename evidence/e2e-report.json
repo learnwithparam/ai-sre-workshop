@@ -1,0 +1,17 @@
+{
+  "model": "deepseek/deepseek-v4-flash",
+  "generated_at": "2026-09-15T21:10:50.953Z",
+  "total_cost_usd": 0.0074,
+  "bad_release": {
+    "tool_calls_to_proposal": 6,
+    "tool_calls_total": 9,
+    "tokens": 75042,
+    "time_to_root_cause_s": 60
+  },
+  "docs_hang": {
+    "tool_calls_to_proposal": 12,
+    "tool_calls_total": 14,
+    "tokens": 120670,
+    "time_to_root_cause_s": 283
+  }
+}

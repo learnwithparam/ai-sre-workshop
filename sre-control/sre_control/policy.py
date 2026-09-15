@@ -31,6 +31,12 @@ ACTIONS: dict[str, dict[str, dict[str, set[str]]]] = {
     "restart_service": {"docs-loader": {}, "subscription-app": {}},
 }
 
+# A remediation targets a container; telemetry names a service. The agent needs both names.
+TARGETS: dict[str, str] = {
+    "subscription-app": "container running service subscription-backend (Flask), which calls docs-loader",
+    "docs-loader": "container running service docs-loader (Go), called by subscription-backend /load-docs",
+}
+
 # Shown on the approval page, so the approver sees the cost of saying yes.
 BLAST_RADIUS = {
     "rollback_release": (

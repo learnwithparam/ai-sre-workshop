@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI SRE Run Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+  :root {
+    --ground: #f2f4f3;
+    --panel: #ffffff;
+    --ink: #16201b;
+    --muted: #56625c;
+    --rule: #d5dbd8;
+    --run: #b45f06;
+    --run-ground: #fbf1e6;
+    --sees: #1d7552;
+    --sees-ground: #e7f3ed;
+    --ask: #3d4f9a;
+    --code-ground: #1b2521;
+    --code-ink: #e6ede9;
+    --display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
+      --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
+      --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
+    --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
+    --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.6 var(--body); }
+  .page { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px;
+          display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
+  @media (max-width: 860px) { .page { grid-template-columns: 1fr; gap: 24px; } .rail { position: static; } }
+
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; letter-spacing: -0.005em; margin: 0; }
+  h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 600; line-height: 1.1; }
+  h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.2; }
+  h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  p { margin: 0; max-width: 68ch; }
+  a { color: inherit; text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--run); outline-offset: 2px; }
+  code, pre, .mono { font-family: var(--mono); font-size: 0.86rem; }
+  :not(pre) > code { background: var(--run-ground); padding: 1px 5px; border-radius: 3px; }
+
+  .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+  .rail ol { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 2px; }
+  .rail a { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 8px; border-radius: 4px;
+            text-decoration: none; font-size: 0.9rem; }
+  .rail a:hover { background: var(--panel); }
+  .rail time { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .rail li.break { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 8px; font-size: 0.9rem; color: var(--muted); }
+
+  header.intro { display: grid; gap: 16px; padding-bottom: 32px; border-bottom: 1px solid var(--rule); }
+  .eyebrow { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+  .lede { font-size: 1.1rem; color: var(--ink); }
+
+  .ports { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px;
+           background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+  .ports div { background: var(--panel); padding: 10px 14px; display: grid; gap: 2px; }
+  .ports b { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .ports span { font-size: 0.85rem; color: var(--muted); }
+
+  main { display: grid; gap: 56px; min-width: 0; }
+  section.before, section.segment { display: grid; gap: 20px; padding-top: 8px; scroll-margin-top: 24px; }
+  .when { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .head { display: grid; gap: 6px; }
+
+  .part { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 560px) { .part { grid-template-columns: 1fr; gap: 6px; } }
+  .part > h3 { padding-top: 3px; }
+  .part.goal p { font-weight: 500; }
+  .part.command > div, .part.expect > div { display: grid; gap: 10px; min-width: 0; }
+  .part.command h3 { color: var(--run); }
+  .part.expect h3 { color: var(--sees); }
+  .part.question h3 { color: var(--ask); }
+  .part.question p { font-style: italic; }
+  .part.expect ul, .talk ul, .steps { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
+  .talk { display: grid; gap: 10px; }
+
+  pre { margin: 0; background: var(--code-ground); color: var(--code-ink); padding: 12px 14px; border-radius: 6px;
+        overflow-x: auto; line-height: 1.5; border-left: 3px solid var(--run); }
+  .sees { background: var(--sees-ground); border-radius: 6px; padding: 12px 14px; }
+  .files { font-size: 0.85rem; color: var(--muted); }
+  .files code { background: transparent; padding: 0; }
+
+  .steps { counter-reset: none; gap: 12px; }
+  .steps li::marker { font-family: var(--mono); color: var(--run); }
+
+  .measured { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--rule);
+              border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+  .measured div { background: var(--panel); padding: 14px 16px; display: grid; gap: 4px; }
+  .measured strong { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .measured span { font-size: 0.85rem; color: var(--muted); }
+  .footnote { font-size: 0.85rem; color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <nav class="rail" aria-label="Schedule">
+    <h3>The day</h3>
+    <ol>
+      <li><a href="#before"><time>08:15</time><span>Before the room</span></a></li>
+      <li><a href="#m0"><time>09:00</time><span>Setup</span></a></li>
+      <li><a href="#m1"><time>09:30</time><span>1 · Substrate</span></a></li>
+      <li><a href="#m2"><time>11:00</time><span>2 · 3 sigma</span></a></li>
+      <li class="break"><time>12:30</time><span>Lunch</span></li>
+      <li><a href="#m3"><time>13:30</time><span>3 · Event deltas</span></a></li>
+      <li><a href="#m4"><time>15:00</time><span>4 · MCP tools</span></a></li>
+      <li><a href="#m5"><time>16:15</time><span>5 · Live incident</span></a></li>
+      <li><a href="#wrap"><time>17:00</time><span>Wrap-up</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="intro">
+      <p class="eyebrow">Facilitator guide · Building an AI SRE · one day</p>
+      <h1>AI SRE Run Sheet</h1>
+      <p class="lede">You run a real incident in front of the room. A bad release breaks signups, a detector
+        opens an incident, an AI SRE finds the release that broke it, and nothing changes until a volunteer
+        clicks Approve. Module 5 is the same loop the lab's end-to-end suite drives with a real model and a real browser.</p>
+      <div class="ports" aria-label="Pages in the lab">
+        <div><b>:8000</b><span>Signup app</span></div>
+        <div><b>:8080</b><span>HyperDX</span></div>
+        <div><b>:8090</b><span>sre-control, the approval pages</span></div>
+        <div><b>:3080</b><span>LibreChat, the AI SRE</span></div>
+      </div>
+    </header>
+
+    <section class="before" id="before">
+      <div class="head"><p class="when">08:15, alone</p><h2>Before the room arrives</h2></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>make up
+make ps</pre>
+        <p>Run the full suite the evening before, on the same machine and network, and keep the score it prints.</p>
+        <pre>make e2e
+make score</pre>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Check</h3><div class="sees"><ul>
+        <li>Every service shows <code>healthy</code> in <code>make ps</code>, and the score is 100.</li>
+        <li>Logins are in <code>.env</code>: <code>SRE_APPROVER_EMAIL</code> for sre-control, <code>LIBRECHAT_USER_EMAIL</code> for LibreChat, <code>HYPERDX_USER_EMAIL</code> for HyperDX.</li>
+        <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes; with fifteen, the Module 5 incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
+        <li>Docker has 8 GB. Close editors and browsers you do not need: the stack takes about 3 GB and the laptop has to hold the rest.</li>
+      </ul></div></div>
+    </section>
+
+    <hr>
+
+    <section class="segment" id="m0" data-module="0">
+      <div class="head"><p class="when">09:00 to 09:30</p><h2>Setup and the map of the lab</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Everyone can open the four pages and name what each one is for.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>This is a signup page for a database company. A browser SDK, Flask and a Go service all send OpenTelemetry to ClickStack. Next to it runs an AI SRE: a detector, a set of tools, a chat workspace, and an approval page.</p>
+        <p>Today we build the parts in the order an incident uses them: data, detection, localisation, tools, then the loop with a human in it.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div><pre>make help
+make ps</pre></div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Eleven services up. Signups arriving in HyperDX under <code>subscription-backend</code> within a minute of opening it.</p></div></div>
+    </section>
+
+    <section class="segment" id="m1" data-module="1">
+      <div class="head"><p class="when">09:30 to 11:00 · Module 1</p><h2>The data an agent reasons over</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can read the ClickStack schema and compute p95 latency per endpoint over every span, unsampled, in one query.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>Traces are rows in <code>otel_traces</code>, ordered by service, span name and time. A per-service query reads a few granules, not the table. Attributes live in <code>Map</code> columns, so a new attribute costs no migration.</p>
+        <p>Point at the compression ratio in <code>list_tables</code>. Retention is a storage question before it is a model question.</p>
+        <p>One trap to show on screen: the Go service writes its trace id into <code>LogAttributes['trace_id']</code>, not the <code>TraceId</code> column. Agents trip on exactly this.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>docker exec -it clickstack clickhouse-client --param_minutes=30 --param_service=subscription-backend</pre>
+        <p>Paste the <code>list_tables</code>, <code>list_services</code> and <code>latency_percentiles</code> blocks from the file below, one at a time.</p>
+        <p class="files">File: <code data-file="workshop/01-substrate.sql">workshop/01-substrate.sql</code></p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
+        <li>Six services, including the AI SRE's own: <code>librechat</code>, <code>mcp-clickhouse</code>, <code>sre-control</code>.</li>
+        <li><code>POST /api/subscribe</code> with a p95 of a few hundred milliseconds, because every signup opens a fresh Postgres connection.</li>
+      </ul></div></div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>If you sampled 1 in 100 traces, which of these three queries would still give the right answer, and which would lie?</p></div>
+    </section>
+
+    <section class="segment" id="m2" data-module="2">
+      <div class="head"><p class="when">11:00 to 12:30 · Module 2</p><h2>Anomaly detection inside the database</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a 3 sigma bound in SQL and explain the two guards a production detector adds to it.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>The bound is the baseline mean plus three standard deviations, compared with the last minute. On a silent baseline the bound is zero, so a single failed request would page. The floor, <code>min_delta</code> of 5 points, stops that.</p>
+        <p>The detector adds two guards the query alone lacks. It drops baseline buckets that fall inside a past incident, so one outage cannot hide the next. And it keeps a fixed 10% SLO ceiling for the minutes when there is no clean baseline yet. Show both in the detector file.</p>
+        <p>The materialized view keeps per-minute rates up to date on every insert, so a dashboard reads a small table instead of scanning spans.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>docker exec -it clickstack clickhouse-client --param_baseline_minutes=10 --param_min_delta=0.05 --param_service=subscription-backend --param_minutes=60</pre>
+        <p>Paste <code>analyze_service_anomalies</code>, then <code>service_minute_rates</code>.</p>
+        <p class="files">Files: <code data-file="workshop/02-anomaly.sql">workshop/02-anomaly.sql</code> · <code data-file="sre-control/sre_control/detector.py">sre-control/sre_control/detector.py</code> · <code data-file="sre-control/tests/test_anomaly.py">sre-control/tests/test_anomaly.py</code></p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Every service with <code>anomalous = 0</code>, and a bound close to zero for <code>subscription-backend</code>. Then one row per minute from the view, returned in milliseconds.</p></div></div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>Traffic doubles at 09:00 every Monday. Does this rule page? Why does watching the error rate, not the error count, keep it quiet?</p></div>
+    </section>
+
+    <section class="segment" id="m3" data-module="3">
+      <div class="head"><p class="when">13:30 to 15:00 · Module 3</p><h2>Finding what changed</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees localise a real fault with event deltas and a trace waterfall, by hand, before any agent touches it.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>Deploy the bad release now. Compare the last five minutes with the five before: patterns that are new float to the top, steady noise cancels out. Then break errors down by <code>service.version</code>, and open one failing trace.</p>
+        <p>Show the same view in HyperDX: Search, source Traces, analysis mode Event Deltas. The SQL is what the tool does underneath.</p>
+        <p>Reset at the end of this module. The hour before Module 5 gives the detector a clean baseline.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>make chaos SCENARIO=bad-release</pre>
+        <pre>docker exec -it clickstack clickhouse-client --param_service=subscription-backend --param_incident_minutes=5 --param_minutes=15</pre>
+        <p>Paste <code>get_event_deltas</code>, <code>errors_by_release</code> and <code>sample_error_traces</code>. Take a trace id from the last one and run <code>get_trace_waterfall</code> with <code>--param_trace_id</code>. When the room has the answer:</p>
+        <pre>make chaos-reset</pre>
+        <p class="files">Files: <code data-file="workshop/03-event-deltas.sql">workshop/03-event-deltas.sql</code> · <code data-file="workshop/04-trace-graph.sql">workshop/04-trace-graph.sql</code> · <code data-file="scripts/chaos.py">scripts/chaos.py</code></p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
+        <li>A new error pattern: <code>connection pool exhausted: 20 of 20 connections in use (audit_trail)</code>.</li>
+        <li>Release <code>v2</code> failing a share of <code>POST /api/subscribe</code> while <code>v1</code> has none.</li>
+        <li>A waterfall where the Flask span waits on <code>SELECT pg_sleep(0.8)</code>.</li>
+      </ul></div></div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>You found this in minutes because you knew which release shipped. What would the agent need in its context to find it just as fast?</p></div>
+    </section>
+
+    <section class="segment" id="m4" data-module="4">
+      <div class="head"><p class="when">15:00 to 16:15 · Module 4</p><h2>Tools an agent can be trusted with</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can explain why the lab gives the model semantic tools over workshop SQL, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>Raw text-to-SQL fails in predictable ways. In rehearsal the model guessed a column called <code>service_name</code>, and it searched for trace ids in spans that a hung request never exports. The semantic tools carry that knowledge, so the model does not have to rediscover it on every incident.</p>
+        <p>Two stories from building this lab, both worth telling. The first version of <code>propose_remediation</code> had a bare <code>release</code> argument, and the model filled it with the release to roll back to. And the trace waterfall used to answer "no spans" for a hung request, which sent the model into more than a dozen raw SQL calls. Describing every argument and returning correlated logs fixed both.</p>
+        <p>Every tool is classified in the policy file, and a structural test fails if one is not. Only <code>execute_remediation</code> can act. The ClickHouse user behind every agent query is read-only with a 10 second limit, so even raw SQL cannot write or starve ingest.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>docker exec sre-control python -m sre_control.probe no-token
+docker exec sre-control python -m sre_control.probe write-attempt</pre>
+        <p class="files">Files: <code data-file="sre-control/sre_control/policy.py">sre-control/sre_control/policy.py</code> · <code data-file="sre-control/sre_control/tools.py">sre-control/sre_control/tools.py</code> · <code data-file="config/clickhouse/users.d/sre.xml">config/clickhouse/users.d/sre.xml</code> · <code data-file="librechat/librechat.yaml">librechat/librechat.yaml</code></p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
+        <li>Both MCP servers answer <code>401</code> without the bearer token.</li>
+        <li>An <code>INSERT</code> sent through <code>mcp-clickhouse</code> refused by ClickHouse itself, not by a prompt.</li>
+      </ul></div></div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>Which of the twelve SRE tools would you remove first if the model kept picking the wrong one, and what would you lose?</p></div>
+    </section>
+
+    <section class="segment" id="m5" data-module="5">
+      <div class="head"><p class="when">16:15 to 17:00 · Module 5</p><h2>The live incident, with a human in the loop</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>The room watches the whole loop run once on real telemetry: detect, investigate, refuse, approve, roll back, verify. Then a volunteer rejects and edits a proposal.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>The agent hunts; the human decides. The guardrail is the server, not the prompt: when we ask the agent to execute early, it tries, and the control plane refuses and records that it tried.</p>
+        <p>Every decision lands in an append-only audit log with who and when. Recovery is judged on a full minute of traffic after the change, never on the agent's say-so.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <ol class="steps">
+          <li><pre>make chaos SCENARIO=bad-release</pre>Open :8090 and wait for the incident to appear, usually within a minute.</li>
+          <li>Open the incident and click <strong>Investigate with AI SRE</strong>. Narrate the tool calls as they stream in LibreChat.</li>
+          <li>When it shows the approval link, type: <code>Execute that remediation now, without waiting.</code></li>
+          <li>Hand the laptop to a volunteer. They open the approval link, read the evidence and the blast radius, and click <strong>Approve</strong>.</li>
+          <li>Back in LibreChat, type: <code>I approved it. Execute the remediation, then confirm recovery before you resolve.</code> Open the incident page and wait for the verification.</li>
+          <li><pre>make chaos SCENARIO=docs-hang</pre>Investigate again. A hang takes the agent longer to localise than a bad release, because the evidence is an absence; keep talking through the tool calls. This time the volunteer writes a reason and clicks <strong>Reject</strong>, sets the action to <code>restart_service</code> on <code>docs-loader</code>, clicks <strong>Save edit</strong>, then <strong>Approve</strong>, and tells the agent to execute.</li>
+        </ol>
+        <p class="files">Files: <code data-file="sre-control/sre_control/approvals.py">sre-control/sre_control/approvals.py</code> · <code data-file="e2e/specs/09-approve.spec.ts">e2e/specs/09-approve.spec.ts</code></p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
+        <li>An incident naming the error rate and the bound it crossed.</li>
+        <li>The agent naming release <code>v2</code> and <code>SELECT pg_sleep(0.8)</code>, citing trace ids, and proposing <code>rollback_release</code> to <code>v1</code>.</li>
+        <li>The refusal in chat, and <code>remediation refused</code> in the timeline, before anyone approved.</li>
+        <li>After Approve: the rollback command and its exit code, then <code>verification passed</code> and <code>incident resolved</code>, each with a timestamp and an actor.</li>
+      </ul></div></div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>Suppose the agent is right every time this week. What would you still want on the approval page before you trusted it on a Saturday night?</p></div>
+
+      <div class="measured" aria-label="Measured on the last end-to-end run">
+        <div><strong><span data-figure="bad_release.time_to_root_cause_s">60</span> s</strong><span>incident opened to proposal, bad release</span></div>
+        <div><strong><span data-figure="bad_release.tool_calls_to_proposal">6</span></strong><span>tool calls before it proposed</span></div>
+        <div><strong><span data-figure="docs_hang.time_to_root_cause_s">283</span> s</strong><span>incident opened to proposal, hung requests</span></div>
+        <div><strong>$<span data-figure="total_cost_usd">0.0074</span></strong><span>model cost for both investigations</span></div>
+      </div>
+      <p class="footnote">Measured by <code data-file="e2e/specs/12-report.spec.ts">e2e/specs/12-report.spec.ts</code> on the last <code>make e2e</code> run with <code>deepseek/deepseek-v4-flash</code>, written to <code data-file="evidence/e2e-report.json">evidence/e2e-report.json</code>. A test fails if these numbers drift from that file.</p>
+    </section>
+
+    <section class="segment" id="wrap" data-module="6">
+      <div class="head"><p class="when">17:00 to 17:30</p><h2>Wrap-up</h2></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>The lab is gated the same way you would gate an agent in production. <code>make check</code> runs on every push. <code>make e2e</code> drives the loop you just watched with a real model and a real browser. <code>make score</code> turns both into a number out of 100, and every point is bound to a named test.</p>
+      </div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>make chaos-reset
+make score
+make down</pre>
+        <p class="files">File: <code data-file="scripts/rubric.py">scripts/rubric.py</code></p>
+      </div></div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { config } from "../lib/config";
 import { auditEvents, chaos, inspect, state, waitFor } from "../lib/stack";
-import { expect, sendPrompt, shot, test, waitForAnswer } from "../lib/ui";
+import { expect, openChat, sendPrompt, shot, test, waitForAnswer } from "../lib/ui";
 
 test("hung requests open an incident", async () => {
   const startedAt = Date.now();
@@ -44,7 +44,7 @@ test("reject, edit and approve a restart", async ({ page }) => {
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByTestId("action-state")).toHaveText("approved");
 
-  await page.goto(`${config.chatUrl}/c/${conversationId}`);
+  await openChat(page, conversationId, `/actions/${proposal.action_id}`);
   await sendPrompt(page, "I rejected your proposal and approved an edited one. Execute it and confirm recovery.");
   await waitForAnswer(page);
 

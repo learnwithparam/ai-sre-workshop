@@ -14,7 +14,12 @@ from check_prose import violations  # noqa: E402
 
 MODULES = {"1", "2", "3", "4", "5"}
 PARTS = {"goal", "talk", "command", "expect", "question"}
-FIGURES = {"tool_calls", "tokens", "cost_usd", "time_to_root_cause_s"}
+FIGURES = {
+    "bad_release.tool_calls_to_proposal",
+    "bad_release.time_to_root_cause_s",
+    "docs_hang.time_to_root_cause_s",
+    "total_cost_usd",
+}
 
 
 class Segments(HTMLParser):
@@ -85,7 +90,10 @@ def test_figures_match_e2e_report():
     figures = parsed().figures
     assert FIGURES <= set(figures)
     for key in FIGURES:
-        assert figures[key].strip() == str(report["bad_release"][key]), key
+        value = report
+        for part in key.split("."):
+            value = value[part]
+        assert figures[key].strip() == str(value), key
 
 
 def test_prose_is_clean():

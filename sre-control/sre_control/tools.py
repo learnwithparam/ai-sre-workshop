@@ -16,7 +16,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from sre_control.approvals import ApprovalRequired, InvalidTransition, Remediations, Ungrounded
-from sre_control.policy import ACTIONS, TOOL_CLASSES, PolicyError, ToolClass
+from sre_control.policy import ACTIONS, TARGETS, TOOL_CLASSES, PolicyError, ToolClass
 
 INSTRUCTIONS = """You are connected to the control plane of a production web app.
 Read tools query ClickStack telemetry. propose_remediation stores a proposal that a human must
@@ -101,11 +101,18 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
 
     @tool
     def get_trace_waterfall(trace_id: str) -> dict:
-        """Every span in one trace, in start order, with service, duration, status and SQL statement."""
+        """One trace: every span in start order (service, duration, status, SQL) and its correlated logs."""
         spans = rows("get_trace_waterfall", 50, trace_id=trace_id)
+        logs = rows("trace_logs", 50, trace_id=trace_id)
+        if not spans and not logs:
+            raise ToolError(f"no spans or logs found for trace {trace_id}")
+        result = {"trace_id": trace_id, "spans": spans, "logs": logs}
         if not spans:
-            raise ToolError(f"no spans found for trace {trace_id}")
-        return {"trace_id": trace_id, "spans": spans}
+            result["note"] = (
+                "No spans: a span is exported when its request finishes, so a request that is still "
+                "hanging has only its logs. That absence is itself evidence of a hang."
+            )
+        return result
 
     @tool
     def search_logs(service: str, text: str, minutes: int = 60) -> dict:
@@ -130,7 +137,12 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
             for a in remediations.actions_for(incident_id)
         ]
         allowed = {action: sorted(targets) for action, targets in ACTIONS.items()}
-        return {"incident": jsonable(vars(incident)), "remediations": actions, "allowed_actions": allowed}
+        return {
+            "incident": jsonable(vars(incident)),
+            "remediations": actions,
+            "allowed_actions": allowed,
+            "targets": TARGETS,
+        }
 
     @tool
     def get_remediation_status(action_id: str) -> dict:

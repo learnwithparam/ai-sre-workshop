@@ -34,6 +34,16 @@ export const loginSre = async (page: Page): Promise<void> => {
   await expect(page.getByRole("heading", { name: "Incidents" })).toBeVisible();
 };
 
+/**
+ * Reopens a conversation and waits until its history is on screen. Typing before the thread loads
+ * sends the message as a new root with no context, and the model starts the investigation over.
+ */
+export const openChat = async (page: Page, conversationId: string, lastSeen: string): Promise<void> => {
+  await page.goto(`${config.chatUrl}/c/${conversationId}`);
+  await expect(page.getByTestId("messages-view")).toContainText(lastSeen, { timeout: 60_000 });
+  await expect(page.getByTestId("text-input")).toBeEnabled({ timeout: 60_000 });
+};
+
 /** Types into the LibreChat composer of the conversation already open in `page`. */
 export const sendPrompt = async (page: Page, prompt: string): Promise<void> => {
   const input = page.getByTestId("text-input");
