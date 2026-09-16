@@ -1,5 +1,5 @@
 import { config } from "../lib/config";
-import { auditEvents, chatToolCalls, clickhouse, state, waitFor } from "../lib/stack";
+import { auditEvents, chatToolCalls, clickhouse, nameConversation, state, waitFor } from "../lib/stack";
 import { expect, shot, test, waitForAnswer } from "../lib/ui";
 
 test("the AI SRE investigates with tools and proposes a grounded rollback", async ({ page, request }) => {
@@ -9,13 +9,16 @@ test("the AI SRE investigates with tools and proposes a grounded rollback", asyn
   });
   const usageBefore = (await key.json()).data.usage as number;
 
+  await page.goto(config.sreUrl);
+  await expect(page.getByRole("heading", { name: "Incidents", exact: true })).toBeVisible();
+  await shot(page, "console-incidents");
+
   await page.goto(`${config.sreUrl}/incidents/${incidentId}`);
   await expect(page.getByRole("heading", { name: /subscription-backend/ })).toBeVisible();
   await shot(page, "incident-open");
   await page.getByRole("link", { name: "Investigate with AI SRE" }).click();
   await page.waitForURL(/\/c\/[0-9a-f-]{36}/, { timeout: 60_000 });
   const conversationId = page.url().match(/\/c\/([0-9a-f-]{36})/)![1];
-
   const proposal = await waitFor(
     "the agent to propose a remediation",
     () => auditEvents(openedAt, `kind = 'remediation_proposed' AND incident_id = '${incidentId}'`)[0],
@@ -26,6 +29,14 @@ test("the AI SRE investigates with tools and proposes a grounded rollback", asyn
   });
   // LibreChat stores the message, with its tool calls, only once the answer finishes streaming.
   await waitForAnswer(page);
+
+  // LibreChat titles a thread with the model once the first answer lands, which reads differently
+  // every run. Name it after the incident and reload, so the sidebar in every screenshot is legible.
+  nameConversation(conversationId, "Bad release: subscription-backend");
+  await page.reload();
+  await expect(page.getByTestId("messages-view")).toContainText(`/actions/${proposal.action_id}`, {
+    timeout: 60_000,
+  });
   await shot(page, "chat-proposal");
 
   const p = proposal.payload;

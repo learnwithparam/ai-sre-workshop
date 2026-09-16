@@ -79,6 +79,43 @@ def test_an_incident_that_heals_on_its_own_closes_itself(store, remediations):
     assert resolved.actor == "detector"
 
 
+def test_a_failed_verification_does_not_block_the_next_incident(store, remediations, known_trace):
+    """A remediation that did not fix it leaves the incident open until the signal itself is clean."""
+    signals = Signals()
+    signals.stuck = 4
+    now = [NOW]
+    d = Detector(signals=signals, store=store, clock=lambda: now[0], remediations=remediations)
+    d.tick()
+    (incident,) = [i for i in store.incidents() if i.rule == "stuck_requests"]
+
+    restart = remediations.propose(
+        incident_id=incident.id,
+        action="restart_service",
+        target="docs-loader",
+        params={},
+        root_cause="Handlers in docs-loader never return, so requests pile up.",
+        service="docs-loader",
+        release="1.0.0",
+        trace_ids=[known_trace],
+        proposed_by="ai-sre",
+    )
+    remediations.approve(restart.action_id, approver="oncall@example.com")
+    remediations.execute(restart.action_id, executed_by="ai-sre")
+    remediations.record_verification(restart.action_id, passed=False, evidence={"stuck": 4})
+    assert remediations.status(restart.action_id).verification == "failed"
+
+    # The hang clears by other means; three minutes later the detector closes its own incident.
+    signals.stuck = 0
+    now[0] = NOW + timedelta(minutes=3)
+    d.tick()
+    assert store.incident(incident.id).state == "resolved"
+
+    # And the next hang opens a fresh incident instead of being swallowed by the old one.
+    signals.stuck = 2
+    d.tick()
+    assert len([i for i in store.incidents() if i.rule == "stuck_requests"]) == 2
+
+
 def test_a_cold_start_pages_on_the_slo_ceiling(store):
     signals = Signals()
     signals.buckets, signals.current = [], 0.15

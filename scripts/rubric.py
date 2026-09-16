@@ -15,10 +15,10 @@ class Check(NamedTuple):
 
 PHASES: dict[str, list[Check]] = {
     "1 Gate": [
-        Check("junit", "tests/test_gate.py::test_make_targets_exist", 3),
+        Check("junit", "tests/test_gate.py::test_make_targets_exist", 2),
         Check("junit", "tests/test_gate.py::test_ci_runs_make_check", 2),
-        Check("junit", "tests/test_gate.py::test_every_scored_check_exists", 3),
-        Check("junit", "tests/test_gate.py::test_prose_check_is_wired", 2),
+        Check("junit", "tests/test_gate.py::test_every_scored_check_exists", 2),
+        Check("junit", "tests/test_gate.py::test_prose_check_is_wired", 1),
     ],
     "2 Substrate and telemetry": [
         Check("pw", "01-stack.spec.ts > every service is healthy", 2),
@@ -27,7 +27,15 @@ PHASES: dict[str, list[Check]] = {
         Check("pw", "05-workshop-sql.spec.ts > every workshop query runs as sre_agent", 3),
         Check("pw", "05-workshop-sql.spec.ts > sre_agent cannot write", 2),
         Check("pw", "03-app.spec.ts > a browser signup lands in Postgres and ClickHouse", 2),
+        Check("pw", "03-app.spec.ts > the signup page holds together at phone width", 1),
+        Check("junit", "tests/test_app_ui.py::test_ids_the_load_generator_drives_exist", 1),
         Check("pw", "04-hyperdx.spec.ts > HyperDX search shows subscription-backend traces", 2),
+        Check("pw", "08-clickstack-tour.spec.ts > a trace waterfall shows the spans of one slow signup", 1),
+        Check(
+            "pw",
+            "08-clickstack-tour.spec.ts > the session replay lists the browser visit that signed up",
+            1,
+        ),
     ],
     "3 Detection": [
         Check("junit", "sre-control/tests/test_anomaly.py::test_spike_is_flagged", 1),
@@ -40,8 +48,8 @@ PHASES: dict[str, list[Check]] = {
         Check("junit", "sre-control/tests/test_tools.py::test_every_tool_is_classified", 3),
         Check("junit", "sre-control/tests/test_grounding.py::test_ungrounded_proposal_is_rejected", 2),
         Check("pw", "13-mcp.spec.ts > every SRE read tool returns data", 4),
-        Check("pw", "13-mcp.spec.ts > MCP endpoints reject requests without a token", 3),
-        Check("pw", "13-mcp.spec.ts > mcp-clickhouse cannot write", 3),
+        Check("pw", "13-mcp.spec.ts > MCP endpoints reject requests without a token", 2),
+        Check("pw", "13-mcp.spec.ts > mcp-clickhouse cannot write", 2),
     ],
     "5 Agent loop and HITL": [
         Check(
@@ -66,7 +74,7 @@ PHASES: dict[str, list[Check]] = {
     ],
     "7 VPS-ready": [
         Check("junit", "tests/test_compose.py::test_vps_override_is_valid", 1),
-        Check("junit", "tests/test_compose.py::test_vps_publishes_only_web_ports", 2),
+        Check("junit", "tests/test_compose.py::test_vps_publishes_only_web_ports", 1),
         Check("junit", "tests/test_compose.py::test_every_vps_ui_requires_login", 1),
         Check("junit", "tests/test_compose.py::test_e2e_targets_derive_from_public_domain", 1),
     ],
@@ -76,5 +84,6 @@ PHASES: dict[str, list[Check]] = {
         Check("junit", "tests/test_teach.py::test_every_module_segment_is_complete", 4),
         Check("junit", "tests/test_teach.py::test_figures_match_e2e_report", 4),
         Check("junit", "tests/test_teach.py::test_prose_is_clean", 2),
+        Check("junit", "tests/test_teach.py::test_screenshots_come_from_the_e2e_run", 2),
     ],
 }

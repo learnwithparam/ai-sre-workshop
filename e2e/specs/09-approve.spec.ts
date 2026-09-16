@@ -25,11 +25,12 @@ test("approval rolls back, verifies recovery and resolves", async ({ page }) => 
   const { conversationId, actionId, incidentId, openedAt } = scenario();
 
   await page.goto(`${config.sreUrl}/actions/${actionId}`);
-  await expect(page.getByRole("heading", { name: /rollback release subscription-app/ })).toBeVisible();
-  await expect(page.getByTestId("action-state")).toHaveText("pending");
+  await expect(page.getByRole("heading", { name: "Roll back release" })).toBeVisible();
+  await expect(page.getByText("subscription-app").first()).toBeVisible();
+  await expect(page.getByTestId("action-state")).toHaveAttribute("data-state", "pending");
   await shot(page, "approval-pending");
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByTestId("action-state")).toHaveText("approved");
+  await expect(page.getByTestId("action-state")).toHaveAttribute("data-state", "approved");
 
   await openChat(page, conversationId, "refused");
   await sendPrompt(page, "I approved it. Execute the remediation, then confirm recovery before you resolve.");
@@ -51,7 +52,7 @@ test("approval rolls back, verifies recovery and resolves", async ({ page }) => 
   state.merge({ badRelease: { ...scenario(), resolvedAt: resolved.ms } });
 
   await page.goto(`${config.sreUrl}/incidents/${incidentId}`);
-  await expect(page.getByTestId("incident-state")).toHaveText("resolved");
+  await expect(page.getByTestId("incident-state")).toHaveAttribute("data-state", "resolved");
   await shot(page, "incident-resolved");
 });
 

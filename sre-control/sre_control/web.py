@@ -24,6 +24,22 @@ COOKIE = "sre_session"
 SESSION_S = 12 * 3600
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
+# One place turns machine names into the words a human reads. Anything not listed here reads as a
+# sentence anyway, so a new rule or event kind never shows up as snake_case on the page.
+PHRASES = {
+    "rollback_release": "Roll back release",
+    "restart_service": "Restart service",
+    "error_rate": "Error rate above the bound",
+    "stuck_requests": "Requests that never finished",
+}
+
+
+def phrase(name: str) -> str:
+    return PHRASES.get(name) or name.replace("_", " ").capitalize()
+
+
+templates.env.globals["phrase"] = phrase
+
 
 def sign(secret: str, email: str, expires: int) -> str:
     mac = hmac.new(secret.encode(), f"{email}|{expires}".encode(), hashlib.sha256).hexdigest()

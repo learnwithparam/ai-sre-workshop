@@ -7,6 +7,7 @@ test("a browser signup lands in Postgres and ClickHouse", async ({ page }) => {
   const started = new Date(Date.now() - 5_000).toISOString().replace("T", " ").slice(0, 19);
 
   await page.goto(config.appUrl);
+  await shot(page, "app-home");
   await page.locator("#subscribe").scrollIntoViewIfNeeded();
   await page.getByLabel("Full Name").fill("Workshop Attendee");
   await page.getByLabel("Company").fill("learnwithparam");
@@ -50,4 +51,20 @@ test("a browser signup lands in Postgres and ClickHouse", async ({ page }) => {
     () => clickhouse(`SELECT 1 FROM default.hyperdx_sessions WHERE Timestamp >= '${started}' LIMIT 1`).length > 0,
     120_000,
   );
+});
+
+test("the signup page holds together at phone width", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(config.appUrl);
+
+  // Nothing may push the body sideways, and every driver's target stays reachable.
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  for (const link of ["Features", "Performance", "Subscribe", "Docs"]) {
+    await expect(page.locator(".nav-links").getByRole("link", { name: link, exact: true })).toBeVisible();
+  }
+  await page.locator("#subscribe").scrollIntoViewIfNeeded();
+  await expect(page.getByLabel("Full Name")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Subscribe to Updates" })).toBeVisible();
+  await shot(page, "app-mobile");
 });

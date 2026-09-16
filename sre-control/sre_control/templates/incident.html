@@ -1,59 +1,74 @@
 {% extends "base.html" %}
-{% block title %}{{ incident.service }} · {{ incident.id }}{% endblock %}
+{% block title %}{{ incident.service }} · AI SRE Control{% endblock %}
 {% block main %}
-<p class="mono muted">{{ incident.id }} · {{ incident.rule }}</p>
-<h1>{{ incident.service }}: {{ incident.rule.replace("_", " ") }}</h1>
-<p><span class="pill {{ incident.state }}" data-testid="incident-state">{{ incident.state }}</span></p>
-<div class="panel">
-  <p style="margin-top:0">{{ incident.summary }}</p>
-  {% if incident.state == "open" %}
-  <a class="btn ai" href="{{ investigate_url }}">Investigate with AI SRE</a>
-  {% endif %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Incidents</a> <span>/</span> <span>{{ incident.id }}</span></nav>
+
+<div class="stack">
+  <div class="title-row">
+    <h1>{{ incident.service }}</h1>
+    <span class="pill" data-state="{{ incident.state }}" data-testid="incident-state">{{ incident.state|capitalize }}</span>
+  </div>
+  <p class="lede">{{ phrase(incident.rule) }}. {{ incident.summary }}</p>
 </div>
 
-<h2>Remediations</h2>
-<div class="panel">
-  {% if actions %}
-  <table>
-    <thead><tr><th>State</th><th>Action</th><th>Target</th><th>Proposed by</th><th></th></tr></thead>
-    <tbody>
-    {% for a in actions %}
-      <tr>
-        <td><span class="pill {{ a.state }}">{{ a.state }}</span></td>
-        <td class="mono">{{ a.action }}</td>
-        <td class="mono">{{ a.target }}</td>
-        <td>{{ a.proposed_by }}</td>
-        <td><a href="/actions/{{ a.action_id }}">Review</a></td>
-      </tr>
+{% if incident.state == "open" %}
+<div class="section">
+  <div class="panel">
+    <h3>Hand this to the AI SRE</h3>
+    <p class="muted">It opens a chat with the incident already described, reads telemetry with its tools,
+      and comes back with one proposed change and the trace ids behind it.</p>
+    <p><a class="btn ai" href="{{ investigate_url }}">Investigate with AI SRE</a></p>
+  </div>
+</div>
+{% endif %}
+
+<div class="section">
+  <h2>Proposed remediations</h2>
+  <div class="panel tight">
+    {% if actions %}
+    <table>
+      <thead><tr><th>State</th><th>Action</th><th>Target</th><th>Proposed by</th><th></th></tr></thead>
+      <tbody>
+      {% for a in actions %}
+        <tr>
+          <td><span class="pill" data-state="{{ a.state }}">{{ a.state|capitalize }}</span></td>
+          <td>{{ phrase(a.action) }}<div class="muted mono">{{ a.action }}</div></td>
+          <td><span class="chip">{{ a.target }}</span></td>
+          <td class="muted">{{ a.proposed_by }}</td>
+          <td><a href="/actions/{{ a.action_id }}">Review</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 24px 22px"><p class="muted">Nothing has been proposed yet.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>Audit trail</h2>
+  <div class="panel">
+    <ol class="timeline" data-testid="timeline">
+    {% for e in timeline %}
+      <li data-event-kind="{{ e.kind }}">
+        <time datetime="{{ e.ts.isoformat() }}">{{ e.ts.strftime("%H:%M:%S.%f")[:-3] }} UTC</time>
+        <span><span class="kind">{{ phrase(e.kind) }}</span><span class="actor">{{ e.actor }}</span></span>
+        <span class="detail">
+          {% if e.kind == "incident_opened" %}{{ e.payload.summary }}
+          {% elif e.kind == "remediation_proposed" %}<code>{{ e.payload.action }} {{ e.payload.target }}</code>: {{ e.payload.root_cause }}
+          {% elif e.kind == "remediation_edited" %}Changed to <code>{{ e.payload.action }} {{ e.payload.target }}</code>
+          {% elif e.kind == "remediation_rejected" %}{{ e.payload.reason }}
+          {% elif e.kind == "remediation_refused" %}Refused while {{ e.payload.state }}: no human had approved it
+          {% elif e.kind in ("remediation_executed", "remediation_failed") %}<code>{{ e.payload.result.command }}</code> exited {{ e.payload.result.exit_code }}
+          {% elif e.kind.startswith("verification") %}<code>{{ e.payload }}</code>
+          {% elif e.kind == "incident_resolved" %}{{ e.payload.note }}
+          {% endif %}
+          {% if e.action_id %}<a class="mono" href="/actions/{{ e.action_id }}">{{ e.action_id }}</a>{% endif %}
+        </span>
+      </li>
     {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted" style="margin:0">Nothing proposed yet.</p>
-  {% endif %}
-</div>
-
-<h2>Timeline</h2>
-<div class="panel">
-  <ol class="timeline" data-testid="timeline">
-  {% for e in timeline %}
-    <li data-event-kind="{{ e.kind }}">
-      <time datetime="{{ e.ts.isoformat() }}">{{ e.ts.strftime("%H:%M:%S.%f")[:-3] }} UTC</time>
-      <span><span class="kind">{{ e.kind.replace("_", " ") }}</span><br><span class="muted">{{ e.actor }}</span></span>
-      <span>
-        {% if e.kind == "incident_opened" %}{{ e.payload.summary }}
-        {% elif e.kind == "remediation_proposed" %}<code>{{ e.payload.action }} {{ e.payload.target }}</code>: {{ e.payload.root_cause }}
-        {% elif e.kind == "remediation_edited" %}changed to <code>{{ e.payload.action }} {{ e.payload.target }}</code>
-        {% elif e.kind == "remediation_rejected" %}{{ e.payload.reason }}
-        {% elif e.kind == "remediation_refused" %}refused while {{ e.payload.state }}: no human approval
-        {% elif e.kind in ("remediation_executed", "remediation_failed") %}<code>{{ e.payload.result.command }}</code> exited {{ e.payload.result.exit_code }}
-        {% elif e.kind.startswith("verification") %}<code>{{ e.payload }}</code>
-        {% elif e.kind == "incident_resolved" %}{{ e.payload.note }}
-        {% endif %}
-        {% if e.action_id %}<a class="mono" href="/actions/{{ e.action_id }}">{{ e.action_id }}</a>{% endif %}
-      </span>
-    </li>
-  {% endfor %}
-  </ol>
+    </ol>
+  </div>
 </div>
 {% endblock %}

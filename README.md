@@ -14,11 +14,11 @@ browser.
 | Service | What it is | Port |
 |---|---|---|
 | `clickstack` | ClickStack all-in-one: ClickHouse, the HyperDX UI, and an OpenTelemetry collector | 8080 (UI), 4317 and 4318 (OTLP) |
-| `subscription-app` | A Flask signup page, instrumented with OpenTelemetry and the HyperDX browser SDK. Ships as two images, `v1` and a faulty `v2` | 8000 |
+| `subscription-app` | A Flask signup page, instrumented with OpenTelemetry and the HyperDX browser SDK. Its footer shows the running release, so a rollback is visible on the page. Ships as two images, `v1` and a faulty `v2` | 8000 |
 | `postgres-db` | Postgres, holding the `users` table the signup form writes to | internal |
 | `docs-loader` | A Go service behind the app's `/load-docs` route, with a handler that never returns | internal |
 | `traffic` | Steady page views and signups, so every signal has a baseline | none |
-| `sre-control` | The AI SRE control plane: detector, incident and approval pages, the SRE MCP server, the remediation runner | 8090 |
+| `sre-control` | The control plane behind the AI SRE Control pages: detector, incidents and approvals, the SRE MCP server, the remediation runner | 8090 |
 | `mcp-clickhouse` | ClickHouse's official MCP server, for read-only SQL | internal |
 | `librechat` and `mongodb` | The AI SRE workspace, on OpenRouter's `deepseek-v4-flash`, connected to both MCP servers | 3080 |
 | `otel-collector` and `socat` | Container CPU and memory stats from the Docker socket | none |
@@ -58,7 +58,7 @@ limited to 8 GB. The e2e suite adds a headless Chromium on the host.
 |---|---|---|
 | Signup app | http://localhost:8000 | none |
 | HyperDX | http://localhost:8080 | your account, or `HYPERDX_USER_EMAIL` |
-| sre-control | http://localhost:8090 | `SRE_APPROVER_EMAIL` |
+| AI SRE Control | http://localhost:8090 | `SRE_APPROVER_EMAIL` |
 | LibreChat | http://localhost:3080 | `LIBRECHAT_USER_EMAIL` |
 
 Stop it with `make down`. Your data stays in `./clickstack/`, `./postgresql-db/` and the
@@ -123,7 +123,7 @@ for its tools, so a query improved in the workshop improves the agent.
 | Command | What it proves |
 |---|---|
 | `make check` | Lint, unit and structural tests, compose validity for every mode, prose rules. No Docker, no model spend. CI runs it on every push. |
-| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 13 minutes after the stack is up; writes `evidence/e2e-report.json` and screenshots. |
+| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, the signup page at phone width, the HyperDX views the workshop teaches from, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 13 minutes after the stack is up; writes `evidence/e2e-report.json` and the screenshots `teach.html` shows. |
 | `make score` | A score out of 100, computed from the latest `check` and `e2e` results. Results from older code count as missing. Below 100 exits 1. |
 
 `teach.html` is the facilitator guide for running the workshop live.

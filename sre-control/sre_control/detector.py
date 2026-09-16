@@ -111,10 +111,11 @@ class Detector:
             if incident.state != "open":
                 continue
             actions = self.remediations.actions_for(incident.id)
-            if (
-                not any(a.state == "executed" for a in actions)
-                and now - incident.opened_at > SELF_RECOVERY_AFTER
-            ):
+            # Nothing is waiting on a verdict: either nothing ran, or what ran has been judged.
+            # Without the second case a failed verification would hold the incident open forever,
+            # and an open incident stops the same signal from ever opening the next one.
+            awaiting = [a for a in actions if a.state == "executed" and a.verification is None]
+            if not awaiting and now - incident.opened_at > SELF_RECOVERY_AFTER:
                 healthy, evidence = self._healthy(incident)
                 if healthy:
                     note = f"signal recovered with no remediation executed: {evidence}"

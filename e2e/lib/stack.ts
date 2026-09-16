@@ -47,6 +47,28 @@ export const chatToolCalls = (conversationId: string): string[] =>
     ]), // prettier-ignore
   ) as string[];
 
+const mongo = (js: string): string =>
+  run("docker", ["exec", "mongodb", "mongosh", "LibreChat", "--quiet", "--eval", js]).trim();
+
+/**
+ * Empties the AI SRE's chat history. Runs before the suite so the workspace on screen holds this
+ * run's conversations and nothing else: the sidebar is part of what the workshop teaches from.
+ */
+export const clearChatHistory = (): void => {
+  mongo("db.messages.deleteMany({}); db.conversations.deleteMany({});");
+};
+
+/**
+ * Names a conversation after the incident it belongs to. LibreChat titles threads with the model,
+ * which produces a different phrase every run, and the sidebar is in every screenshot.
+ */
+export const nameConversation = (conversationId: string, title: string): void => {
+  mongo(
+    `db.conversations.updateOne({ conversationId: ${JSON.stringify(conversationId)} },
+      { $set: { title: ${JSON.stringify(title)} } })`,
+  );
+};
+
 /** Prompt and completion tokens LibreChat recorded for one conversation. */
 export const chatTokens = (conversationId: string): number =>
   Number(

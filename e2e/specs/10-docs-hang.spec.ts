@@ -1,5 +1,5 @@
 import { config } from "../lib/config";
-import { auditEvents, chaos, inspect, state, waitFor } from "../lib/stack";
+import { auditEvents, chaos, inspect, nameConversation, state, waitFor } from "../lib/stack";
 import { expect, openChat, sendPrompt, shot, test, waitForAnswer } from "../lib/ui";
 
 test("hung requests open an incident", async () => {
@@ -11,7 +11,9 @@ test("hung requests open an incident", async () => {
       auditEvents(startedAt, "kind = 'incident_opened'").find(
         (e) => e.payload.rule === "stuck_requests" && e.payload.service === "docs-loader",
       ),
-    90_000,
+    // A request counts as hung after 20 s, and the detector can be a tick behind while it is
+    // verifying the recovery from the scenario before this one.
+    150_000,
   );
   state.merge({ docsHang: { incidentId: opened.incident_id, openedAt: opened.ms } });
 });
@@ -30,19 +32,20 @@ test("reject, edit and approve a restart", async ({ page }) => {
     300_000,
   );
   await waitForAnswer(page);
+  nameConversation(conversationId, "Hung requests: docs-loader");
 
   await page.goto(`${config.sreUrl}/actions/${proposal.action_id}`);
   await page.getByLabel("Reason").fill("Only docs-loader holds the hung handlers; restart it and track the timeout fix.");
   await page.getByRole("button", { name: "Reject" }).click();
-  await expect(page.getByTestId("action-state")).toHaveText("rejected");
+  await expect(page.getByTestId("action-state")).toHaveAttribute("data-state", "rejected");
 
   await page.getByLabel("Action").selectOption("restart_service");
   await page.getByLabel("Target").selectOption("docs-loader");
-  await page.getByRole("button", { name: "Save edit" }).click();
-  await expect(page.getByTestId("action-state")).toHaveText("pending");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByTestId("action-state")).toHaveAttribute("data-state", "pending");
   await shot(page, "approval-edited");
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByTestId("action-state")).toHaveText("approved");
+  await expect(page.getByTestId("action-state")).toHaveAttribute("data-state", "approved");
 
   await openChat(page, conversationId, `/actions/${proposal.action_id}`);
   await sendPrompt(page, "I rejected your proposal and approved an edited one. Execute it and confirm recovery.");

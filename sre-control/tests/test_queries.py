@@ -29,4 +29,8 @@ def test_parameters_are_bound_never_formatted():
 
 def test_example_values_may_contain_spaces():
     example = load_queries(WORKSHOP)["search_logs"].example
-    assert example == {"service": "subscription-backend", "text": "connection pool", "minutes": "60"}
+    assert example == {
+        "service": "subscription-backend",
+        "text": "POST /api/subscribe",
+        "minutes": "60",
+    }

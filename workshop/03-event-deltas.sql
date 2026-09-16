@@ -71,7 +71,9 @@ LIMIT 25;
 -- name: search_logs
 -- teaches: substring search. hasToken would use the token index but refuses a phrase with spaces,
 -- and a model searches in phrases; the service filter on the primary key keeps the scan small.
--- example: service=subscription-backend text=connection pool minutes=60
+-- The example searches a phrase every run has, so this block does not depend on a failure being
+-- injected first. During an incident the phrase to try is "connection pool".
+-- example: service=subscription-backend text=POST /api/subscribe minutes=60
 SELECT
     Timestamp,
     SeverityText AS severity,

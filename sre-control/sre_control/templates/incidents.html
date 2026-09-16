@@ -1,26 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Incidents · sre-control{% endblock %}
+{% block title %}Incidents · AI SRE Control{% endblock %}
 {% block main %}
-<h1>Incidents</h1>
-<p class="muted">Opened by the detector from ClickStack telemetry. The AI SRE investigates; a human approves every change.</p>
-<div class="panel">
-  {% if incidents %}
-  <table>
-    <thead><tr><th>State</th><th>Service</th><th>Signal</th><th>Opened</th><th>Summary</th></tr></thead>
-    <tbody>
-    {% for i in incidents %}
-      <tr>
-        <td><span class="pill {{ i.state }}">{{ i.state }}</span></td>
-        <td><a href="/incidents/{{ i.id }}">{{ i.service }}</a></td>
-        <td class="mono">{{ i.rule }}</td>
-        <td><time class="mono" datetime="{{ i.opened_at.isoformat() }}">{{ i.opened_at.strftime("%Y-%m-%d %H:%M:%S") }}</time></td>
-        <td>{{ i.summary }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">No incidents. The detector checks every service every ten seconds.</p>
-  {% endif %}
+<div class="stack">
+  <h1>Incidents</h1>
+  <p class="lede">Opened automatically from ClickStack telemetry. The AI SRE investigates and proposes
+    one change. A human approves it before anything runs.</p>
+</div>
+
+<div class="section">
+  <h2>All incidents</h2>
+  <div class="panel tight">
+    {% if incidents %}
+    <table>
+      <thead><tr><th>State</th><th>Service</th><th>What the detector saw</th><th>Opened</th></tr></thead>
+      <tbody>
+      {% for i in incidents %}
+        <tr>
+          <td><span class="pill" data-state="{{ i.state }}">{{ i.state|capitalize }}</span></td>
+          <td><a href="/incidents/{{ i.id }}"><strong>{{ i.service }}</strong></a>
+              <div class="muted mono">{{ phrase(i.rule) }}</div></td>
+          <td>{{ i.summary }}</td>
+          <td><time class="mono" datetime="{{ i.opened_at.isoformat() }}">{{ i.opened_at.strftime("%H:%M:%S") }} UTC</time>
+              <div class="muted mono">{{ i.opened_at.strftime("%d %b") }}</div></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 28px 22px" class="stack">
+      <h3>No incidents are open</h3>
+      <p class="muted">The detector compares every service with its own baseline, once every ten seconds.
+        Break something with <code>make chaos SCENARIO=bad-release</code> and one will appear here within a minute.</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

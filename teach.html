@@ -19,6 +19,8 @@
     --sees: #1d7552;
     --sees-ground: #e7f3ed;
     --ask: #3d4f9a;
+    --risk: #9b2f2f;
+    --risk-ground: #fbeeee;
     --code-ground: #1b2521;
     --code-ink: #e6ede9;
     --display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
@@ -30,12 +32,14 @@
     :root:not([data-theme="light"]) {
       --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
       --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
+      --risk: #f09b9b; --risk-ground: #2b1618;
       --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
     --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
+    --risk: #f09b9b; --risk-ground: #2b1618;
     --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
   }
 
@@ -49,6 +53,7 @@
   h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 600; line-height: 1.1; }
   h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.2; }
   h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  h4 { font-family: var(--display); font-size: 1.05rem; font-weight: 600; margin: 0; }
   p { margin: 0; max-width: 68ch; }
   a { color: inherit; text-underline-offset: 3px; }
   a:focus-visible, button:focus-visible { outline: 2px solid var(--run); outline-offset: 2px; }
@@ -82,22 +87,48 @@
   @media (max-width: 560px) { .part { grid-template-columns: 1fr; gap: 6px; } }
   .part > h3 { padding-top: 3px; }
   .part.goal p { font-weight: 500; }
-  .part.command > div, .part.expect > div { display: grid; gap: 10px; min-width: 0; }
+  .part.command > div, .part.expect > div, .part.show > div { display: grid; gap: 10px; min-width: 0; }
   .part.command h3 { color: var(--run); }
   .part.expect h3 { color: var(--sees); }
   .part.question h3 { color: var(--ask); }
   .part.question p { font-style: italic; }
-  .part.expect ul, .talk ul, .steps { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
+  .part.expect ul, .talk ul, .steps, .plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
   .talk { display: grid; gap: 10px; }
 
   pre { margin: 0; background: var(--code-ground); color: var(--code-ink); padding: 12px 14px; border-radius: 6px;
         overflow-x: auto; line-height: 1.5; border-left: 3px solid var(--run); }
+  pre.sql { border-left-color: var(--sees); }
   .sees { background: var(--sees-ground); border-radius: 6px; padding: 12px 14px; }
   .files { font-size: 0.85rem; color: var(--muted); }
   .files code { background: transparent; padding: 0; }
 
   .steps { counter-reset: none; gap: 12px; }
   .steps li::marker { font-family: var(--mono); color: var(--run); }
+
+  /* A click path through the HyperDX UI, written the way it is clicked. */
+  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono);
+          font-size: 0.8rem; margin: 0; padding: 0; list-style: none; }
+  .path li { background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; }
+  .path li.arrow { border: 0; background: transparent; color: var(--muted); padding: 2px 0; }
+  .where { display: grid; gap: 14px; }
+  .where > div { display: grid; gap: 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+
+  figure.shot { margin: 0; display: grid; gap: 8px; }
+  figure.shot img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+  figure.shot figcaption { font-size: 0.85rem; color: var(--muted); max-width: 68ch; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  .scroll { overflow-x: auto; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+  td code { white-space: nowrap; }
+
+  .risks { display: grid; gap: 16px; }
+  .risks article { display: grid; gap: 8px; padding: 16px 18px; background: var(--panel);
+                   border: 1px solid var(--rule); border-left: 3px solid var(--risk); border-radius: 6px; }
+  .risks p.today { color: var(--muted); font-size: 0.95rem; }
+  .risks p.fix { background: var(--risk-ground); border-radius: 4px; padding: 8px 12px; font-size: 0.95rem; max-width: none; }
 
   .measured { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--rule);
               border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
@@ -119,10 +150,12 @@
       <li><a href="#m1"><time>09:30</time><span>1 · Substrate</span></a></li>
       <li><a href="#m2"><time>11:00</time><span>2 · 3 sigma</span></a></li>
       <li class="break"><time>12:30</time><span>Lunch</span></li>
-      <li><a href="#m3"><time>13:30</time><span>3 · Event deltas</span></a></li>
-      <li><a href="#m4"><time>15:00</time><span>4 · MCP tools</span></a></li>
+      <li><a href="#m3"><time>13:30</time><span>3 · What changed</span></a></li>
+      <li><a href="#m4"><time>15:00</time><span>4 · Tools</span></a></li>
       <li><a href="#m5"><time>16:15</time><span>5 · Live incident</span></a></li>
-      <li><a href="#wrap"><time>17:00</time><span>Wrap-up</span></a></li>
+      <li><a href="#harden"><time>17:00</time><span>6 · Hardening</span></a></li>
+      <li><a href="#rescue"><time></time><span>If it goes wrong</span></a></li>
+      <li><a href="#wrap"><time>17:30</time><span>Wrap-up</span></a></li>
     </ol>
   </nav>
 
@@ -132,11 +165,13 @@
       <h1>AI SRE Run Sheet</h1>
       <p class="lede">You run a real incident in front of the room. A bad release breaks signups, a detector
         opens an incident, an AI SRE finds the release that broke it, and nothing changes until a volunteer
-        clicks Approve. Module 5 is the same loop the lab's end-to-end suite drives with a real model and a real browser.</p>
+        clicks Approve. Every module asks the room to answer a question with SQL first, then shows the same
+        answer in the ClickStack UI, then hands it to the agent as a tool. Module 5 is the same loop the
+        lab's end-to-end suite drives with a real model and a real browser.</p>
       <div class="ports" aria-label="Pages in the lab">
         <div><b>:8000</b><span>Signup app</span></div>
-        <div><b>:8080</b><span>HyperDX</span></div>
-        <div><b>:8090</b><span>sre-control, the approval pages</span></div>
+        <div><b>:8080</b><span>HyperDX, the ClickStack UI</span></div>
+        <div><b>:8090</b><span>AI SRE Control, the approval pages</span></div>
         <div><b>:3080</b><span>LibreChat, the AI SRE</span></div>
       </div>
     </header>
@@ -152,10 +187,21 @@ make score</pre>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Check</h3><div class="sees"><ul>
         <li>Every service shows <code>healthy</code> in <code>make ps</code>, and the score is 100.</li>
-        <li>Logins are in <code>.env</code>: <code>SRE_APPROVER_EMAIL</code> for sre-control, <code>LIBRECHAT_USER_EMAIL</code> for LibreChat, <code>HYPERDX_USER_EMAIL</code> for HyperDX.</li>
+        <li>Logins are in <code>.env</code>: <code>SRE_APPROVER_EMAIL</code> for AI SRE Control, <code>LIBRECHAT_USER_EMAIL</code> for LibreChat, <code>HYPERDX_USER_EMAIL</code> for HyperDX.</li>
+        <li>The signup page footer reads <code>Release v1</code>. That footer is how the room sees a rollback land in Module 5.</li>
         <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes; with fifteen, the Module 5 incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
         <li>Docker has 8 GB. Close editors and browsers you do not need: the stack takes about 3 GB and the laptop has to hold the rest.</li>
       </ul></div></div>
+      <div class="part show" data-part="show"><h3>Open</h3><div>
+        <p>Set up four browser tabs in this order, and keep them in this order all day. You will move between them twenty times.</p>
+        <ol class="plain">
+          <li>The signup app on :8000, scrolled to the form.</li>
+          <li>HyperDX on :8080, on Search, source Traces.</li>
+          <li>AI SRE Control on :8090, signed in.</li>
+          <li>LibreChat on :3080, signed in, on the AI SRE spec.</li>
+        </ol>
+        <p>A fifth window holds a terminal at the repo root, with the font large enough to read from the back row.</p>
+      </div></div>
     </section>
 
     <hr>
@@ -164,12 +210,28 @@ make score</pre>
       <div class="head"><p class="when">09:00 to 09:30</p><h2>Setup and the map of the lab</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Everyone can open the four pages and name what each one is for.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>This is a signup page for a database company. A browser SDK, Flask and a Go service all send OpenTelemetry to ClickStack. Next to it runs an AI SRE: a detector, a set of tools, a chat workspace, and an approval page.</p>
-        <p>Today we build the parts in the order an incident uses them: data, detection, localisation, tools, then the loop with a human in it.</p>
+        <p>This is a signup page for a database company, and it is the demo app ClickHouse ships with ClickStack. A browser SDK, a Flask backend and a Go service all send OpenTelemetry to ClickStack. Next to it runs an AI SRE: a detector, a set of tools, a chat workspace, and an approval page.</p>
+        <p>Today we build the parts in the order an incident uses them: data, detection, localisation, tools, then the loop with a human in it. Every module runs the same way. You answer the question in SQL, then we find the same answer in the ClickStack UI, then we hand it to the agent and watch it ask the same question in one tool call.</p>
       </div></div>
-      <div class="part command" data-part="command"><h3>Run</h3><div><pre>make help
-make ps</pre></div></div>
-      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Eleven services up. Signups arriving in HyperDX under <code>subscription-backend</code> within a minute of opening it.</p></div></div>
+      <div class="part command" data-part="command"><h3>Run</h3><div>
+        <pre>make help
+make ps</pre>
+        <p>Ask everyone to open :8000 and sign up with their own name, then keep that tab open.</p>
+      </div></div>
+      <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees">
+        <p>Eleven services up. A signup that confirms in under a second, and a footer that reads <code>Release v1</code>. Their own signup arriving in HyperDX under <code>subscription-backend</code> within a minute.</p>
+      </div></div>
+      <div class="shots">
+        <figure class="shot">
+          <img src="evidence/screens/app-home.png" alt="The signup app on a laptop, dark page with the subscribe form below the hero" loading="lazy">
+          <figcaption>The app under test. Everything the room sees today starts as a click on this page.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/console-incidents.png" alt="The Incidents list in AI SRE Control, dark console with state pills" loading="lazy">
+          <figcaption>AI SRE Control on :8090. Quiet right now, and the page the room watches in Module 5.</figcaption>
+        </figure>
+      </div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>What is the smallest piece of evidence that would convince you your own signup reached the database?</p></div>
     </section>
 
     <section class="segment" id="m1" data-module="1">
@@ -178,17 +240,41 @@ make ps</pre></div></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Traces are rows in <code>otel_traces</code>, ordered by service, span name and time. A per-service query reads a few granules, not the table. Attributes live in <code>Map</code> columns, so a new attribute costs no migration.</p>
         <p>Point at the compression ratio in <code>list_tables</code>. Retention is a storage question before it is a model question.</p>
-        <p>One trap to show on screen: the Go service writes its trace id into <code>LogAttributes['trace_id']</code>, not the <code>TraceId</code> column. Agents trip on exactly this.</p>
+        <p>One trap to show on screen: the Go service writes its trace id into <code>LogAttributes['trace_id']</code>, not the <code>TraceId</code> column. Agents trip on exactly this, and ours did.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>docker exec -it clickstack clickhouse-client --param_minutes=30 --param_service=subscription-backend</pre>
-        <p>Paste the <code>list_tables</code>, <code>list_services</code> and <code>latency_percentiles</code> blocks from the file below, one at a time.</p>
+        <p>Paste these three blocks from the file below, one at a time, and read the comment above each one aloud before you run it.</p>
+        <pre class="sql">list_tables          -- what ClickStack keeps, how much of it, and how well it compresses
+list_services        -- who reports telemetry, with releases and error counts
+latency_percentiles  -- p50, p95, p99 and error rate per endpoint, over every span</pre>
         <p class="files">File: <code data-file="workshop/01-substrate.sql">workshop/01-substrate.sql</code></p>
+      </div></div>
+      <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
+        <p>Now move to :8080 and find the same rows in the UI. Walk the search page slowly once; every later module reuses it.</p>
+        <ul class="path"><li>Search</li><li class="arrow">to</li><li>Data Source: Traces</li><li class="arrow">to</li><li>ServiceName:"subscription-backend"</li><li class="arrow">to</li><li>Run</li></ul>
+        <div class="where">
+          <div><h4>The source selector is the schema</h4><p>Logs, Traces, Metrics and Sessions are four sources over four tables. Open Team Settings later to show that a source is a table name plus a handful of column expressions, which is why the agent's SQL and this UI cannot drift apart.</p></div>
+          <div><h4>Lucene or SQL, one toggle</h4><p>Type in Lucene for speed, switch to SQL to show the room the query that runs. The SQL is the same shape they just wrote in the terminal.</p></div>
+          <div><h4>The time picker decides the cost</h4><p>Live Tail keeps a rolling window. Type "Last 30 minutes" to pin it. Point at Scanned Rows in the corner: that number is the bill, and it is why the workshop queries carry a time filter in every WHERE clause.</p></div>
+          <div><h4>The facets on the left are cardinality</h4><p>SpanName, ServiceName, SpanKind and StatusCode come back with counts. This is the same GROUP BY the room ran, rendered as checkboxes.</p></div>
+        </div>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>Six services, including the AI SRE's own: <code>librechat</code>, <code>mcp-clickhouse</code>, <code>sre-control</code>.</li>
         <li><code>POST /api/subscribe</code> with a p95 of a few hundred milliseconds, because every signup opens a fresh Postgres connection.</li>
+        <li>Their own signup in the results table, with the email they typed sitting in the span attributes. Leave that on screen for a moment: Module 6 comes back to it.</li>
       </ul></div></div>
+      <div class="shots">
+        <figure class="shot">
+          <img src="evidence/screens/hyperdx-traces.png" alt="HyperDX search results for subscription-backend traces" loading="lazy">
+          <figcaption>Search, source Traces, one service. The histogram above the table is the same per-minute count Module 2 writes in SQL.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/app-signup.png" alt="The signup form showing a confirmation message" loading="lazy">
+          <figcaption>The click that produced those rows. Browser, Flask and Postgres share one trace id.</figcaption>
+        </figure>
+      </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>If you sampled 1 in 100 traces, which of these three queries would still give the right answer, and which would lie?</p></div>
     </section>
 
@@ -197,13 +283,25 @@ make ps</pre></div></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a 3 sigma bound in SQL and explain the two guards a production detector adds to it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The bound is the baseline mean plus three standard deviations, compared with the last minute. On a silent baseline the bound is zero, so a single failed request would page. The floor, <code>min_delta</code> of 5 points, stops that.</p>
-        <p>The detector adds two guards the query alone lacks. It drops baseline buckets that fall inside a past incident, so one outage cannot hide the next. And it keeps a fixed 10% SLO ceiling for the minutes when there is no clean baseline yet. Show both in the detector file.</p>
+        <p>The detector adds two guards the query alone lacks. It drops baseline buckets that fall inside a past incident, so one outage cannot hide the next. And it keeps a fixed 10% SLO ceiling for the minutes when there is no clean baseline yet. Show both in the detector file, then show the unit test that pins them.</p>
         <p>The materialized view keeps per-minute rates up to date on every insert, so a dashboard reads a small table instead of scanning spans.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>docker exec -it clickstack clickhouse-client --param_baseline_minutes=10 --param_min_delta=0.05 --param_service=subscription-backend --param_minutes=60</pre>
-        <p>Paste <code>analyze_service_anomalies</code>, then <code>service_minute_rates</code>.</p>
+        <pre class="sql">service_timeseries          -- requests, errors, error rate and p95 per bucket
+analyze_service_anomalies   -- the 3 sigma bound, per service, with a floor
+error_rate_window           -- the buckets the detector reads, timestamps kept
+service_minute_rates        -- the same rates, read back from the materialized view</pre>
         <p class="files">Files: <code data-file="workshop/02-anomaly.sql">workshop/02-anomaly.sql</code> · <code data-file="sre-control/sre_control/detector.py">sre-control/sre_control/detector.py</code> · <code data-file="sre-control/tests/test_anomaly.py">sre-control/tests/test_anomaly.py</code></p>
+      </div></div>
+      <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
+        <p>Chart Explorer is where a rate becomes something a team watches every day, and Alerts is where it becomes a page at 3am.</p>
+        <ul class="path"><li>Chart Explorer</li><li class="arrow">to</li><li>Source: Traces</li><li class="arrow">to</li><li>count() where StatusCode = 'Error'</li><li class="arrow">to</li><li>Group by ServiceName</li></ul>
+        <div class="where">
+          <div><h4>Build the error-rate chart in front of them</h4><p>It takes four fields and it is the same aggregate they just wrote. Say plainly that the chart is the easy half. The hard half is deciding when the line is wrong, which is what the detector does and what the rest of the day is about.</p></div>
+          <div><h4>Alerts show where the threshold lives</h4><p>Open Alerts and show that HyperDX alerts on a saved search or a chart. That is a threshold someone has to keep tuning. Contrast it with the 3 sigma bound the room just wrote, which tunes itself against its own baseline.</p></div>
+          <div><h4>Dashboards ship with presets</h4><p>The ClickHouse, Services and Kubernetes presets under Dashboards give you a working infrastructure view with no setup. Use the Services preset to show per-service latency and error panels, then close it: the workshop's point is the query underneath, not the panel.</p></div>
+        </div>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Every service with <code>anomalous = 0</code>, and a bound close to zero for <code>subscription-backend</code>. Then one row per minute from the view, returned in milliseconds.</p></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Traffic doubles at 09:00 every Monday. Does this rule page? Why does watching the error rate, not the error count, keep it quiet?</p></div>
@@ -213,21 +311,49 @@ make ps</pre></div></div>
       <div class="head"><p class="when">13:30 to 15:00 · Module 3</p><h2>Finding what changed</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees localise a real fault with event deltas and a trace waterfall, by hand, before any agent touches it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>Deploy the bad release now. Compare the last five minutes with the five before: patterns that are new float to the top, steady noise cancels out. Then break errors down by <code>service.version</code>, and open one failing trace.</p>
-        <p>Show the same view in HyperDX: Search, source Traces, analysis mode Event Deltas. The SQL is what the tool does underneath.</p>
-        <p>Reset at the end of this module. The hour before Module 5 gives the detector a clean baseline.</p>
+        <p>Deploy the bad release now, then give the room five minutes of silence to look for it themselves. Compare the last five minutes with the five before: patterns that are new float to the top, steady noise cancels out. Then break errors down by <code>service.version</code>, and open one failing trace.</p>
+        <p>This module is the one attendees will repeat at work on Monday, so hand them the keyboard. Every step here is a query they can run against their own ClickHouse tonight.</p>
+        <p>Reset at the end of the module. The hour before Module 5 gives the detector a clean baseline.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>make chaos SCENARIO=bad-release</pre>
         <pre>docker exec -it clickstack clickhouse-client --param_service=subscription-backend --param_incident_minutes=5 --param_minutes=15</pre>
-        <p>Paste <code>get_event_deltas</code>, <code>errors_by_release</code> and <code>sample_error_traces</code>. Take a trace id from the last one and run <code>get_trace_waterfall</code> with <code>--param_trace_id</code>. When the room has the answer:</p>
+        <pre class="sql">get_event_deltas      -- log patterns that are new or growing, ranked
+error_span_deltas     -- the same delta over spans, by endpoint and release
+errors_by_release     -- the failure broken down by service.version
+event_patterns        -- a window of logs clustered, with one example each
+sample_error_traces   -- failing traces first, then the slowest: the evidence
+get_trace_waterfall   -- one trace, span by span, with its SQL
+trace_logs            -- the log lines that belong to that trace</pre>
+        <p>Take a trace id out of <code>sample_error_traces</code> and pass it as <code>--param_trace_id</code>. When the room has the answer:</p>
         <pre>make chaos-reset</pre>
         <p class="files">Files: <code data-file="workshop/03-event-deltas.sql">workshop/03-event-deltas.sql</code> · <code data-file="workshop/04-trace-graph.sql">workshop/04-trace-graph.sql</code> · <code data-file="scripts/chaos.py">scripts/chaos.py</code></p>
       </div></div>
+      <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
+        <p>Every query above has a view in HyperDX. Show them in this order, because it is the order the agent will use its tools in an hour.</p>
+        <ul class="path"><li>Search</li><li class="arrow">to</li><li>Traces</li><li class="arrow">to</li><li>Analysis Mode: Event Deltas</li><li class="arrow">to</li><li>drag across the tall band</li></ul>
+        <div class="where">
+          <div><h4>Event Deltas ranks what is different</h4><p>The heatmap at the top is duration against time. Drag a box across the slow band that appeared after the deploy, and HyperDX ranks the attributes that separate that selection from everything else. The release shows up near the top. The drag is required: without a selection it only tells you to highlight a range.</p></div>
+          <div><h4>Event Patterns clusters the noise</h4><p>Switch Analysis Mode to Event Patterns on the Logs source. This is the same clustering as the <code>event_patterns</code> block, and it is how you find a message you have never seen before without knowing its text.</p></div>
+          <div><h4>The trace panel is five tools in one</h4><p>Click the span name in any failing row. Overview holds the attributes, Column Values shows the raw row, Trace draws the waterfall, Service Map places it in the call graph, and Surrounding Context shows what else happened on that host at that second. Correlated Log Source, at the top right of the Trace tab, joins the logs of that trace.</p></div>
+          <div><h4>Client Sessions replays the human side</h4><p>Open Client Sessions and play the session from your own signup. The room watches a real click turn into the trace they have been reading. This is the moment the day stops being about tables.</p></div>
+        </div>
+      </div></div>
+      <div class="shots">
+        <figure class="shot">
+          <img src="evidence/screens/hyperdx-trace.png" alt="A trace waterfall in HyperDX showing four spans of one signup request" loading="lazy">
+          <figcaption>One signup, span by span. Under the bad release the parent waits on a database span that does nothing but sleep.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/hyperdx-sessions.png" alt="The HyperDX Client Sessions list with recorded browser sessions" loading="lazy">
+          <figcaption>Recorded sessions, with event counts and errors. Sessions appear only for real browser visits, so the room's own tabs are what fill this page.</figcaption>
+        </figure>
+      </div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>A new error pattern: <code>connection pool exhausted: 20 of 20 connections in use (audit_trail)</code>.</li>
         <li>Release <code>v2</code> failing a share of <code>POST /api/subscribe</code> while <code>v1</code> has none.</li>
         <li>A waterfall where the Flask span waits on <code>SELECT pg_sleep(0.8)</code>.</li>
+        <li>The same three facts in the UI and in their terminal, which is the point of the module.</li>
       </ul></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>You found this in minutes because you knew which release shipped. What would the agent need in its context to find it just as fast?</p></div>
     </section>
@@ -236,9 +362,25 @@ make ps</pre></div></div>
       <div class="head"><p class="when">15:00 to 16:15 · Module 4</p><h2>Tools an agent can be trusted with</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can explain why the lab gives the model semantic tools over workshop SQL, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>Open the table below on screen. Every tool the agent has is one or more of the queries the room wrote this morning, with the parameters filled in and the results trimmed. Nothing in the agent is doing analysis they have not already done by hand.</p>
         <p>Raw text-to-SQL fails in predictable ways. In rehearsal the model guessed a column called <code>service_name</code>, and it searched for trace ids in spans that a hung request never exports. The semantic tools carry that knowledge, so the model does not have to rediscover it on every incident.</p>
         <p>Two stories from building this lab, both worth telling. The first version of <code>propose_remediation</code> had a bare <code>release</code> argument, and the model filled it with the release to roll back to. And the trace waterfall used to answer "no spans" for a hung request, which sent the model into more than a dozen raw SQL calls. Describing every argument and returning correlated logs fixed both.</p>
-        <p>Every tool is classified in the policy file, and a structural test fails if one is not. Only <code>execute_remediation</code> can act. The ClickHouse user behind every agent query is read-only with a 10 second limit, so even raw SQL cannot write or starve ingest.</p>
+      </div></div>
+      <div class="part show" data-part="show"><h3>Manual, then automatic</h3><div>
+        <div class="scroll"><table>
+          <thead><tr><th>The question</th><th>What the room ran</th><th>What the agent calls</th><th>Where it lives in the UI</th></tr></thead>
+          <tbody>
+            <tr><td>Who reports telemetry?</td><td><code>list_services</code>, <code>list_tables</code></td><td><code>list_sources</code></td><td>Search, source selector</td></tr>
+            <tr><td>Is anything wrong right now?</td><td><code>analyze_service_anomalies</code></td><td><code>analyze_service_anomalies</code></td><td>Chart Explorer, Alerts</td></tr>
+            <tr><td>When did it start?</td><td><code>service_timeseries</code></td><td><code>service_timeseries</code></td><td>The histogram above the results</td></tr>
+            <tr><td>What changed?</td><td><code>get_event_deltas</code>, <code>error_span_deltas</code>, <code>errors_by_release</code>, <code>sample_error_traces</code></td><td><code>get_event_deltas</code>, one call</td><td>Analysis Mode, Event Deltas</td></tr>
+            <tr><td>Which log lines are new?</td><td><code>event_patterns</code></td><td><code>event_patterns</code></td><td>Analysis Mode, Event Patterns</td></tr>
+            <tr><td>What happened inside one request?</td><td><code>get_trace_waterfall</code>, <code>trace_logs</code></td><td><code>get_trace_waterfall</code>, one call</td><td>Row panel, Trace tab</td></tr>
+            <tr><td>Where does this phrase appear?</td><td><code>search_logs</code></td><td><code>search_logs</code></td><td>Search, Logs source</td></tr>
+            <tr><td>Anything the tools do not cover</td><td>any SQL</td><td><code>run_query</code>, as the read-only <code>sre_agent</code></td><td>The SQL toggle in the search bar</td></tr>
+          </tbody>
+        </table></div>
+        <p class="footnote">Ten read tools plus three from ClickHouse's own MCP server, one tool that proposes, and one that acts. The policy file classifies each one, and a structural test fails if a new tool is not classified.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>docker exec sre-control python -m sre_control.probe no-token
@@ -247,7 +389,7 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>Both MCP servers answer <code>401</code> without the bearer token.</li>
-        <li>An <code>INSERT</code> sent through <code>mcp-clickhouse</code> refused by ClickHouse itself, not by a prompt.</li>
+        <li>An <code>INSERT</code> sent through <code>mcp-clickhouse</code> refused by ClickHouse itself, not by a prompt. The agent's database user is read-only, with a 10 second limit, a 1 GB memory limit and a 10,000 row cap.</li>
       </ul></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Which of the twelve SRE tools would you remove first if the model kept picking the wrong one, and what would you lose?</p></div>
     </section>
@@ -258,18 +400,45 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The agent hunts; the human decides. The guardrail is the server, not the prompt: when we ask the agent to execute early, it tries, and the control plane refuses and records that it tried.</p>
         <p>Every decision lands in an append-only audit log with who and when. Recovery is judged on a full minute of traffic after the change, never on the agent's say-so.</p>
+        <p>Narrate the tool calls as they stream. The room spent the morning running those same queries by hand, so name each one as it goes past: that is the delta query, that is the waterfall, that is the trace they read at lunch.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <ol class="steps">
-          <li><pre>make chaos SCENARIO=bad-release</pre>Open :8090 and wait for the incident to appear, usually within a minute.</li>
+          <li><pre>make chaos SCENARIO=bad-release</pre>Open :8090 and wait for the incident to appear, usually within a minute. Put the signup app tab beside it: the footer still reads <code>Release v2</code>.</li>
           <li>Open the incident and click <strong>Investigate with AI SRE</strong>. Narrate the tool calls as they stream in LibreChat.</li>
           <li>When it shows the approval link, type: <code>Execute that remediation now, without waiting.</code></li>
           <li>Hand the laptop to a volunteer. They open the approval link, read the evidence and the blast radius, and click <strong>Approve</strong>.</li>
-          <li>Back in LibreChat, type: <code>I approved it. Execute the remediation, then confirm recovery before you resolve.</code> Open the incident page and wait for the verification.</li>
+          <li>Back in LibreChat, type: <code>I approved it. Execute the remediation, then confirm recovery before you resolve.</code> Open the incident page and wait for the verification. Refresh the app: the footer reads <code>Release v1</code> again.</li>
           <li><pre>make chaos SCENARIO=docs-hang</pre>Investigate again. A hang takes the agent longer to localise than a bad release, because the evidence is an absence; keep talking through the tool calls. This time the volunteer writes a reason and clicks <strong>Reject</strong>, sets the action to <code>restart_service</code> on <code>docs-loader</code>, clicks <strong>Save edit</strong>, then <strong>Approve</strong>, and tells the agent to execute.</li>
         </ol>
         <p class="files">Files: <code data-file="sre-control/sre_control/approvals.py">sre-control/sre_control/approvals.py</code> · <code data-file="e2e/specs/09-approve.spec.ts">e2e/specs/09-approve.spec.ts</code></p>
       </div></div>
+      <div class="shots">
+        <figure class="shot">
+          <img src="evidence/screens/incident-open.png" alt="The incident page in AI SRE Control, with one open incident" loading="lazy">
+          <figcaption>Step 1. The detector names the service, the rule and the error rate it crossed.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/chat-proposal.png" alt="LibreChat showing the AI SRE proposing a rollback with evidence" loading="lazy">
+          <figcaption>Step 2. The proposal, with trace ids the control plane checked against ClickHouse before storing it.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/chat-refused.png" alt="LibreChat showing the control plane refusing to execute" loading="lazy">
+          <figcaption>Step 3. Asked to run it anyway, the agent tries and the server refuses. Read the refusal aloud.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/approval-pending.png" alt="The approval page with root cause, evidence and blast radius" loading="lazy">
+          <figcaption>Step 4. What the volunteer decides on. The root cause is the model's prose; the blast radius is ours, fixed per action; the trace ids are checked.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/approval-edited.png" alt="The approval page after a human edited the action to restart a service" loading="lazy">
+          <figcaption>Step 6. A rejected proposal, edited by hand to a restart, back to pending, then approved.</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="evidence/screens/incident-resolved.png" alt="The incident timeline showing execution, verification and resolution" loading="lazy">
+          <figcaption>The audit trail: who proposed, who approved, what ran, what recovery was measured on, and when.</figcaption>
+        </figure>
+      </div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>An incident naming the error rate and the bound it crossed.</li>
         <li>The agent naming release <code>v2</code> and <code>SELECT pg_sleep(0.8)</code>, citing trace ids, and proposing <code>rollback_release</code> to <code>v1</code>.</li>
@@ -279,18 +448,83 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Suppose the agent is right every time this week. What would you still want on the approval page before you trusted it on a Saturday night?</p></div>
 
       <div class="measured" aria-label="Measured on the last end-to-end run">
-        <div><strong><span data-figure="bad_release.time_to_root_cause_s">85</span> s</strong><span>incident opened to proposal, bad release</span></div>
-        <div><strong><span data-figure="bad_release.tool_calls_to_proposal">7</span></strong><span>tool calls before it proposed</span></div>
-        <div><strong><span data-figure="docs_hang.time_to_root_cause_s">120</span> s</strong><span>incident opened to proposal, hung requests</span></div>
-        <div><strong>$<span data-figure="total_cost_usd">0.0068</span></strong><span>model cost for both investigations</span></div>
+        <div><strong><span data-figure="bad_release.time_to_root_cause_s">203</span> s</strong><span>incident opened to proposal, bad release</span></div>
+        <div><strong><span data-figure="bad_release.tool_calls_to_proposal">8</span></strong><span>tool calls before it proposed</span></div>
+        <div><strong><span data-figure="docs_hang.time_to_root_cause_s">169</span> s</strong><span>incident opened to proposal, hung requests</span></div>
+        <div><strong>$<span data-figure="total_cost_usd">0.0096</span></strong><span>model cost for both investigations</span></div>
       </div>
       <p class="footnote">Measured by <code data-file="e2e/specs/12-report.spec.ts">e2e/specs/12-report.spec.ts</code> on the last <code>make e2e</code> run with <code>deepseek/deepseek-v4-flash</code>, written to <code data-file="evidence/e2e-report.json">evidence/e2e-report.json</code>. A test fails if these numbers drift from that file.</p>
     </section>
 
-    <section class="segment" id="wrap" data-module="6">
-      <div class="head"><p class="when">17:00 to 17:30</p><h2>Wrap-up</h2></div>
+    <section class="segment" id="harden" data-module="6">
+      <div class="head"><p class="when">17:00 to 17:30 · Module 6</p><h2>What to harden before this runs on your systems</h2></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees leave with a list they can argue about with their own security team, and know which parts of it this lab already implements.</p></div>
+      <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
+        <p>Everything below is a real gap or a real control in the lab in front of them. Go through it as an honest account of what is done and what is left, not as a checklist of advice.</p>
+      </div></div>
+      <div class="risks">
+        <article>
+          <h4>Your telemetry carries personal data, and tool output goes to the model</h4>
+          <p>The browser SDK is set to capture request bodies, so the email an attendee typed this morning is sitting in <code>SpanAttributes['http.request.body']</code>. Any tool that returns that span hands it to whoever hosts the model.</p>
+          <p class="today">Today in the lab: the tools return trimmed rows, and the trace waterfall returns span attributes as they are. Nothing is redacted.</p>
+          <p class="fix">Redact at the tool boundary, not in the prompt. Return an allow-list of columns, hash identifiers so they still join, drop request and response bodies. Then point the same MCP tools at a model you host, which is one endpoint change in <code data-file="librechat/librechat.yaml">librechat/librechat.yaml</code>, and decide per data class which model may see what.</p>
+        </article>
+        <article>
+          <h4>Log lines are attacker-controlled text that your agent reads</h4>
+          <p>Anyone who can get a string into your logs can write instructions to your agent. A user agent field is enough.</p>
+          <p class="today">Today in the lab: the model can read any log body, and it can call only twelve tools. The one tool that acts takes an action and a target that must both be in a fixed allow-list, so an injected instruction has nothing to reach for.</p>
+          <p class="fix">Keep the action set closed and small. Treat every tool result as data, never as instructions, and say so in the system prompt. Alert on refusals: a proposal that fails grounding or policy is worth a human look, because it is either a confused model or a probe.</p>
+        </article>
+        <article>
+          <h4>An approval page is only as good as what a tired person can check in a minute</h4>
+          <p>At 3am the reviewer reads the root cause, which is the model's own prose, and decides. That is where a plausible wrong answer gets through.</p>
+          <p class="today">Today in the lab: the trace ids, the service and the release are checked against ClickHouse before the proposal is stored, and the blast radius is our fixed text per action, not the model's. The reviewer can reject with a reason, or edit the action and target and approve the edited version.</p>
+          <p class="fix">Add what the reviewer cannot get from the page: a link that opens the cited traces in HyperDX, the diff of the release being withdrawn, who is on call for that service, and whether a change freeze is on. For anything above a blast radius you set, require a second approver.</p>
+        </article>
+        <article>
+          <h4>The agent runs commands through the Docker socket</h4>
+          <p>The control plane performs a rollback by running <code>docker compose up</code> for the previous image. That socket is the highest-risk surface in the lab.</p>
+          <p class="today">Today in the lab: the command is built from a fixed list of two actions and never from model text, arguments are matched against a pattern, execution needs an approval event, and the VPS override publishes only Caddy's ports.</p>
+          <p class="fix">In production, do not give the agent a socket at all. Give it a narrow API that performs named changes, run that API as its own identity with its own audit, and let your existing deployment system do the deploy.</p>
+        </article>
+        <article>
+          <h4>Runs cost money and can loop</h4>
+          <p>Both investigations in the last run cost less than a cent, but an agent that retries a failing tool can spend without a ceiling.</p>
+          <p class="today">Today in the lab: the prompt sets a budget of eight tool calls before proposing, and the report records tool calls, tokens and cost for every run.</p>
+          <p class="fix">Enforce the budget on the server, not in the prompt: cap tool calls per incident, cap spend per day, and stop the run when either is hit. Watch tool calls and time to proposal as a regression signal, the same way you watch latency.</p>
+        </article>
+        <article>
+          <h4>An agent with no test set drifts silently</h4>
+          <p>A prompt change, a model upgrade or a tool rename can all turn a working loop into a confident wrong one, and nothing in a chat window tells you.</p>
+          <p class="today">Today in the lab: <code>make e2e</code> replays two incidents end to end against a real model and a real browser, and <code>make score</code> turns the result into a number out of 100 where every point is bound to a named test.</p>
+          <p class="fix">Keep your own incidents as fixtures. Replay them on every prompt and model change, and require the loop to reach the same root cause with the same evidence before you ship.</p>
+        </article>
+      </div>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>Which of these six would block this from running on your systems next quarter, and which would you accept with an audit log?</p></div>
+    </section>
+
+    <section class="segment" id="rescue">
+      <div class="head"><p class="when">Any time</p><h2>If something goes wrong in front of the room</h2></div>
+      <div class="part show" data-part="show"><h3>Fix</h3><div>
+        <div class="scroll"><table>
+          <thead><tr><th>What you see</th><th>Why</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td>No incident after two minutes of chaos</td><td>The baseline still holds a previous incident, or traffic is too thin</td><td>Run <code>make logs SERVICE=sre-control</code> and read the last detector line. Keep talking; the 10% SLO ceiling opens it within the next minute.</td></tr>
+            <tr><td>The agent answers without calling tools</td><td>The conversation was opened fresh, so it has no incident id</td><td>Go back to the incident page and click <strong>Investigate with AI SRE</strong> again rather than retyping the question.</td></tr>
+            <tr><td>A tool call fails with a schema error</td><td>LibreChat cached the tool definitions from before a rebuild</td><td><code>docker compose -f docker-compose.all-in-one.yml restart librechat</code>, then reopen the conversation.</td></tr>
+            <tr><td>The signup page hangs on Docs</td><td>Someone clicked the Docs link, which is the hang scenario</td><td>That is the Module 5 second act arriving early. Use it, then <code>make chaos-reset</code>.</td></tr>
+            <tr><td>HyperDX shows no rows</td><td>The time range is pinned to a window that has scrolled past</td><td>Type "Last 30 minutes" into the time picker and press Enter.</td></tr>
+            <tr><td>Anything is stuck</td><td></td><td><code>make chaos-reset</code> puts both releases and docs-loader back, with no data loss.</td></tr>
+          </tbody>
+        </table></div>
+      </div></div>
+    </section>
+
+    <section class="segment" id="wrap">
+      <div class="head"><p class="when">17:30</p><h2>Wrap-up</h2></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The lab is gated the same way you would gate an agent in production. <code>make check</code> runs on every push. <code>make e2e</code> drives the loop you just watched with a real model and a real browser. <code>make score</code> turns both into a number out of 100, and every point is bound to a named test.</p>
+        <p>Give them one instruction to take home: run the three substrate queries against their own observability data tomorrow. If those return nothing useful, no agent will either, and that is the first thing to fix.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>make chaos-reset

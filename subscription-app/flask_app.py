@@ -81,7 +81,8 @@ def index():
         'service_name': HYPERDX_SERVICE_NAME,
         'endpoint': HYPERDX_ENDPOINT
     }
-    return render_template('index.html', hyperdx_config=hyperdx_config)
+    # The footer shows the running release, so a rollback is visible on the page itself.
+    return render_template('index.html', hyperdx_config=hyperdx_config, app_release=APP_RELEASE)
 
 @app.route('/api/subscribe', methods=['POST'])
 def subscribe():

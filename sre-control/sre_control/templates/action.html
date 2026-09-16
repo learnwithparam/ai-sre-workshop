@@ -1,64 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Approve {{ a.action }} · sre-control{% endblock %}
+{% block title %}{{ phrase(a.action) }} · AI SRE Control{% endblock %}
 {% block main %}
-<p class="mono muted"><a href="/incidents/{{ incident.id }}">{{ incident.id }}</a> · {{ a.action_id }}</p>
-<h1>{{ a.action.replace("_", " ") }} <span class="mono">{{ a.target }}</span></h1>
-<p><span class="pill {{ a.state }}" data-testid="action-state">{{ a.state }}</span>
-   {% if a.verification %}<span class="pill {{ 'resolved' if a.verification == 'passed' else 'failed' }}">verification {{ a.verification }}</span>{% endif %}</p>
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="/">Incidents</a> <span>/</span>
+  <a href="/incidents/{{ incident.id }}">{{ incident.id }}</a> <span>/</span>
+  <span>{{ a.action_id }}</span>
+</nav>
 
-<div class="grid">
-  <div class="panel">
-    <h2 style="margin-top:0">Root cause, as proposed by {{ a.proposed_by }}</h2>
-    <p>{{ a.root_cause }}</p>
-    <table>
-      <tr><th>Service</th><td class="mono">{{ a.service }}</td></tr>
-      <tr><th>Release</th><td class="mono">{{ a.release or "not named" }}</td></tr>
-      <tr><th>Action</th><td class="mono">{{ a.action }}</td></tr>
-      <tr><th>Target</th><td class="mono">{{ a.target }}</td></tr>
-      <tr><th>Parameters</th><td class="mono">{{ a.params or "none" }}</td></tr>
-    </table>
+<div class="stack">
+  <div class="title-row">
+    <h1>{{ phrase(a.action) }}</h1>
+    <span class="chip">{{ a.target }}</span>
+    <span class="pill" data-state="{{ a.state }}" data-testid="action-state">{{ a.state|capitalize }}</span>
+    {% if a.verification %}<span class="pill" data-state="{{ a.verification }}">Verification {{ a.verification }}</span>{% endif %}
   </div>
-  <div class="panel">
-    <h2 style="margin-top:0">Evidence</h2>
-    <p class="muted">Every trace id below was checked against ClickStack before this proposal was stored.</p>
-    <ul class="mono">{% for t in a.trace_ids %}<li>{{ t }}</li>{% endfor %}</ul>
-    <h2>Blast radius</h2>
-    <p>{{ blast_radius }}</p>
+  <p class="lede">Proposed by {% if a.proposed_by == "ai-sre" %}the AI SRE{% else %}{{ a.proposed_by }}{% endif %}
+    for {{ incident.service }}. Read the evidence and the blast radius before you decide.</p>
+</div>
+
+{% if error %}<p class="notice error" style="margin-top: 20px">{{ error }}</p>{% endif %}
+
+<div class="section">
+  <div class="grid">
+    <div class="panel">
+      <h2>Root cause, in the agent's words</h2>
+      <p>{{ a.root_cause }}</p>
+      <table class="facts">
+        <tr><th>Service</th><td class="mono">{{ a.service }}</td></tr>
+        <tr><th>Faulty release</th><td class="mono">{{ a.release or "not named" }}</td></tr>
+        <tr><th>Tool call</th><td class="mono">{{ a.action }}</td></tr>
+        <tr><th>Target</th><td class="mono">{{ a.target }}</td></tr>
+        <tr><th>Parameters</th><td class="mono">{{ a.params or "none" }}</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Evidence</h2>
+      <p class="muted">Every trace id below was checked against ClickStack before this proposal was stored.
+        A proposal citing a trace that does not exist is refused.</p>
+      <ul class="evidence">{% for t in a.trace_ids %}<li>{{ t }}</li>{% endfor %}</ul>
+      <h2>Blast radius</h2>
+      <p>{{ blast_radius }}</p>
+    </div>
   </div>
 </div>
 
 {% if a.state == "pending" %}
-<h2>Decision</h2>
-<div class="grid">
-  <form class="panel" method="post" action="/actions/{{ a.action_id }}/approve">
-    <p style="margin-top:0">Approving lets the AI SRE run exactly this action, once.</p>
-    <button class="btn primary" type="submit">Approve</button>
-  </form>
-  <form class="panel" method="post" action="/actions/{{ a.action_id }}/reject">
-    <label for="reason" style="margin-top:0">Reason</label>
-    <textarea id="reason" name="reason" rows="2" required></textarea>
-    <p><button class="btn danger" type="submit">Reject</button></p>
-  </form>
+<div class="section">
+  <h2>Your decision</h2>
+  <div class="grid">
+    <form class="panel" method="post" action="/actions/{{ a.action_id }}/approve">
+      <h3>Approve</h3>
+      <p class="muted">The AI SRE may then run exactly this action, once. Recovery is checked on a full
+        minute of traffic afterwards.</p>
+      <p><button class="btn primary" type="submit">Approve</button></p>
+    </form>
+    <form class="panel" method="post" action="/actions/{{ a.action_id }}/reject">
+      <h3>Reject</h3>
+      <div class="field">
+        <label for="reason">Reason</label>
+        <textarea id="reason" name="reason" rows="3" required
+                  placeholder="What is wrong with this proposal?"></textarea>
+      </div>
+      <p><button class="btn danger" type="submit">Reject</button></p>
+    </form>
+  </div>
 </div>
 {% endif %}
 
 {% if a.state in ("pending", "rejected") %}
-<h2>Edit the action</h2>
-<form class="panel" method="post" action="/actions/{{ a.action_id }}/edit">
-  <p class="muted" style="margin-top:0">An edit goes back to pending and still needs an approval.</p>
-  <div class="grid">
-    <div><label for="action">Action</label>
-      <select id="action" name="action">{% for name in actions %}<option {% if name == a.action %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
-    <div><label for="target">Target</label>
-      <select id="target" name="target">{% for t in targets %}<option {% if t == a.target %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
-  </div>
-  <p><button class="btn ghost" type="submit">Save edit</button></p>
-</form>
+<div class="section">
+  <h2>Change the action</h2>
+  <form class="panel" method="post" action="/actions/{{ a.action_id }}/edit">
+    <p class="muted">Pick what should happen instead. An edit returns the remediation to pending, so it
+      still needs an approval before it runs.</p>
+    <div class="grid">
+      <div class="field">
+        <label for="action">Action</label>
+        <select id="action" name="action">{% for name in actions %}<option value="{{ name }}" {% if name == a.action %}selected{% endif %}>{{ phrase(name) }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label for="target">Target</label>
+        <select id="target" name="target">{% for t in targets %}<option value="{{ t }}" {% if t == a.target %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      </div>
+    </div>
+    <p><button class="btn ghost" type="submit">Save changes</button></p>
+  </form>
+</div>
 {% endif %}
 
 {% if a.result %}
-<h2>Result</h2>
-<div class="panel"><code>{{ a.result.command }}</code><pre class="mono" style="white-space:pre-wrap">{{ a.result.output }}</pre></div>
+<div class="section">
+  <h2>What ran</h2>
+  <div class="panel">
+    <p class="mono">{{ a.result.command }}</p>
+    <pre class="output">{{ a.result.output }}</pre>
+  </div>
+</div>
 {% endif %}
 {% endblock %}

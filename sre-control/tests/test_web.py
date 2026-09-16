@@ -1,10 +1,48 @@
 """The approval pages: login first, and every decision is recorded against the logged-in human."""
 
+import re
+from html.parser import HTMLParser
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from sre_control.config import load_settings
-from sre_control.web import create_app
+from sre_control.web import create_app, phrase
+
+# Identifiers belong in code, in a chip or in a monospace cell. Anywhere else on the page they are
+# a machine name that leaked into the copy people read.
+MACHINE_NAME = re.compile(r"\b[a-z0-9]+_[a-z0-9_]+\b")
+RAW = {"code", "pre", "time", "title", "style", "script"}
+RAW_CLASSES = ("mono", "chip", "evidence", "crumbs", "lede")
+
+
+class Copy(HTMLParser):
+    """The words a reader sees, leaving out anything deliberately shown as an identifier."""
+
+    def __init__(self):
+        super().__init__()
+        self.words: list[str] = []
+        self._skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        classes = dict(attrs).get("class", "") or ""
+        if self._skip or tag in RAW or any(c in classes for c in RAW_CLASSES):
+            self._skip += 1
+
+    def handle_endtag(self, tag):
+        if self._skip:
+            self._skip -= 1
+
+    def handle_data(self, data):
+        if not self._skip and data.strip():
+            self.words.append(data.strip())
+
+
+def reader_text(html: str) -> str:
+    parser = Copy()
+    parser.feed(html)
+    return " ".join(parser.words)
 
 
 @pytest.fixture
@@ -82,6 +120,28 @@ def test_reject_then_edit_from_the_page(client, rollback, remediations):
     )
     state = remediations.status(rollback.action_id)
     assert (state.state, state.action) == ("pending", "restart_service")
+
+
+def test_every_machine_name_is_phrased():
+    """Whatever the detector, the policy and the audit log can produce reads as words."""
+    import sre_control
+    from sre_control.policy import ACTIONS
+
+    source = "\n".join(p.read_text() for p in Path(sre_control.__file__).parent.glob("*.py"))
+    kinds = set(re.findall(r'"(incident_\w+|remediation_\w+|verification_\w+)"', source))
+    rules = set(re.findall(r'rule="(\w+)"', source))
+    names = set(ACTIONS) | kinds | rules
+    assert len(names) > 10, "found almost no machine names to check"
+    assert [n for n in sorted(names) if "_" in phrase(n)] == []
+    assert [n for n in sorted(names) if not phrase(n)[0].isupper()] == []
+
+
+def test_the_pages_read_as_english(client, rollback, incident):
+    """No page shows a snake_case identifier outside code, a chip or a monospace cell."""
+    login(client)
+    for path in ("/", f"/incidents/{incident.id}", f"/actions/{rollback.action_id}", "/login"):
+        leaked = MACHINE_NAME.findall(reader_text(client.get(path).text))
+        assert leaked == [], f"{path} shows {leaked}"
 
 
 def test_decisions_require_login(client, rollback, remediations):

@@ -1,17 +1,17 @@
 {
   "model": "deepseek/deepseek-v4-flash",
-  "generated_at": "2026-09-15T21:34:36.104Z",
-  "total_cost_usd": 0.0068,
+  "generated_at": "2026-09-16T07:45:41.240Z",
+  "total_cost_usd": 0.0096,
   "bad_release": {
-    "tool_calls_to_proposal": 7,
-    "tool_calls_total": 10,
-    "tokens": 87517,
-    "time_to_root_cause_s": 85
+    "tool_calls_to_proposal": 8,
+    "tool_calls_total": 11,
+    "tokens": 103452,
+    "time_to_root_cause_s": 203
   },
   "docs_hang": {
-    "tool_calls_to_proposal": 11,
+    "tool_calls_to_proposal": 10,
     "tool_calls_total": 13,
-    "tokens": 95057,
-    "time_to_root_cause_s": 120
+    "tokens": 108195,
+    "time_to_root_cause_s": 169
   }
 }

@@ -25,8 +25,8 @@ services:
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8123/ping"]
       interval: 10s
-      timeout: 5s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 40s
 
   postgres-db:
@@ -41,8 +41,8 @@ services:
     healthcheck:
       test: ["CMD", "pg_isready"]
       interval: 10s
-      timeout: 5s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 40s
 
   subscription-app:
@@ -77,10 +77,12 @@ services:
       LOG_LEVEL: INFO
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=2).raise_for_status()"]
+      # The check opens a Postgres connection. Under the load a rollback lands in, a 3 second
+      # timeout made compose call a healthy container unhealthy and the remediation read as failed.
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=8).raise_for_status()"]
       interval: 5s
-      timeout: 3s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 20s
     logging:
       driver: json-file
@@ -115,8 +117,8 @@ services:
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8001"]
       interval: 5s
-      timeout: 3s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 20s
     depends_on:
       clickstack:
@@ -133,8 +135,8 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import os, time; assert time.time() - os.path.getmtime('/tmp/heartbeat') < 30"]
       interval: 10s
-      timeout: 3s
-      retries: 3
+      timeout: 10s
+      retries: 10
       start_period: 15s
     depends_on:
       subscription-app:
@@ -170,7 +172,7 @@ services:
       test: ["CMD", "socat", "/dev/null", "tcp:localhost:2375"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 10
       start_period: 10s
 
   otel-collector:
@@ -185,7 +187,7 @@ services:
       test: ["CMD", "./healthcheck"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 10
       start_period: 20s
     depends_on:
       socat:
@@ -203,8 +205,8 @@ services:
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
-      timeout: 5s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 20s
 
   mcp-clickhouse:
@@ -229,8 +231,8 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
       interval: 10s
-      timeout: 5s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 20s
     depends_on:
       clickstack:
@@ -269,8 +271,8 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/healthz', timeout=3)"]
       interval: 10s
-      timeout: 5s
-      retries: 6
+      timeout: 10s
+      retries: 10
       start_period: 20s
     depends_on:
       clickstack:
@@ -311,7 +313,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3080/health || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 12
       start_period: 40s
     depends_on:

@@ -96,6 +96,17 @@ def test_figures_match_e2e_report():
         assert figures[key].strip() == str(value), key
 
 
+def test_screenshots_come_from_the_e2e_run():
+    """A guide may only show pictures the suite actually takes, and that are on disk now."""
+    referenced = set(re.findall(r'src="evidence/screens/([\w-]+)\.png"', TEACH.read_text()))
+    assert referenced, "teach.html shows no screenshots"
+    captured: set[str] = set()
+    for spec in (ROOT / "e2e/specs").glob("*.spec.ts"):
+        captured |= set(re.findall(r'shot\(page, "([\w-]+)"\)', spec.read_text()))
+    assert sorted(referenced - captured) == [], "not captured by any spec"
+    assert [n for n in sorted(referenced) if not (ROOT / f"evidence/screens/{n}.png").exists()] == []
+
+
 def test_prose_is_clean():
     for name in ("teach.html", "README.md", "AGENTS.md"):
         assert violations((ROOT / name).read_text()) == [], name

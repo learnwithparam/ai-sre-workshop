@@ -200,5 +200,8 @@ class Remediations:
         self.store.append(Event(now, current.incident_id, action_id, kind, "sre-control", evidence))
         if passed:
             self.store.resolve_incident(
-                current.incident_id, actor="sre-control", at=now, note=f"{current.action} verified"
+                current.incident_id,
+                actor="sre-control",
+                at=now,
+                note="Recovery confirmed on a full minute of traffic after the approved change",
             )
