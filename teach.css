@@ -1,0 +1,392 @@
+/* The AI SRE teaching surfaces, as a book.
+ *
+ * Two documents share this file. concepts.html is read start to finish, so its
+ * prose is serif at a reading measure. teach.html is a run sheet, scanned by
+ * somebody standing up in front of a room for a day, so its furniture is sans
+ * and its parts are a table you can find your place in.
+ *
+ * This is the learnwithparam house book system, copied rather than imported
+ * because this is its own repository. Light only, local fonts, hairlines rather
+ * than fills, prose serif and working furniture sans. tests/test_house.py fails
+ * when a value here stops matching the house.
+ *
+ * The print block at the end is not decoration. Six CSS properties silently
+ * destroy the text layer of a Chromium PDF and every one of them is reset there.
+ */
+
+:root {
+	/* House */
+	--paper: #FBFAF8;
+	--card: #FFFFFF;
+	--sunk: #F5F2EC;
+	--ink: #1F1B16;
+	--ink-2: #3D372F;
+	--muted: #5F594F;
+	--faint: #948D80;
+	--rule: #E6E1D8;
+	--rule-2: #F0EDE7;
+	--go: #046C4E;
+	--ask: #A45B08;
+	--no: #9E2A16;
+
+	/* Local to this repository: the one accent, on callout edges and the Run
+	   label. The lab is an observability stack and its own console reads green,
+	   so the accent follows the product rather than the house, which has none. */
+	--accent: #1D7552;
+
+	/* Terminal blocks on screen only. The print block flattens them to paper. */
+	--term-bg: #16201B;
+	--term-ink: #E6EDE9;
+
+	--serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+	--sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+	--measure: 66ch;
+	--measure-wide: 78ch;
+	--r: 3px;
+	color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--serif);
+	font-size: 1.125rem;
+	line-height: 1.65;
+	text-wrap: pretty;
+}
+
+/* The page shell -----------------------------------------------------------
+ *
+ * One column of text with a rail beside it for numbers and timecodes. The rail
+ * is not a navigation: the contents is a page at the front, so it prints with
+ * the book and a facilitator holding paper can still find Module 4. */
+
+.doc {
+	--rail: 5.5rem;
+	--gutter: 1.75rem;
+	max-width: calc(var(--rail) + var(--gutter) + var(--measure) + 4rem);
+	margin-inline: auto;
+	padding-inline: 1.5rem;
+	padding-block: 4rem 6rem;
+}
+
+.chapter, .segment, .before {
+	display: grid;
+	grid-template-columns: var(--rail) minmax(0, 1fr);
+	column-gap: var(--gutter);
+	align-items: start;
+	padding-block: 3.5rem 0;
+	border-top: 1px solid var(--rule);
+}
+.chapter:first-of-type, .segment:first-of-type, .before:first-of-type { border-top: 0; }
+
+/* A concept is an anchor target and a grouping, not a box. Passing its children
+   through to the chapter grid is what lets a figure number sit out in the rail. */
+.concept { display: contents; }
+
+.chapter > *, .concept > *, .segment > *, .before > * { grid-column: 2; min-width: 0; }
+.chapter > .kicker, .chapter > .mark, .concept > .mark,
+.segment > .when, .before > .when { grid-column: 1; }
+
+.chapter > .kicker, .segment > .when, .before > .when, .mark {
+	font-family: var(--mono);
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--faint);
+	text-align: right;
+	margin: 0;
+	padding-top: 0.45em;
+	line-height: 1.4;
+}
+.chapter > .kicker, .segment > .when, .before > .when { grid-row: 1; }
+
+/* Cover --------------------------------------------------------------------- */
+
+.cover { padding-bottom: 3rem; }
+.cover .series { font-family: var(--sans); font-size: 0.9375rem; color: var(--muted); margin: 0 0 1rem; }
+.cover h1 { font-family: var(--serif); font-size: 2.625rem; font-weight: 600; line-height: 1.08; margin: 0 0 1rem; max-width: 22ch; }
+.cover .deck { font-size: 1.3125rem; line-height: 1.5; color: var(--ink-2); margin: 0; max-width: var(--measure); }
+
+.facts, .ports {
+	display: grid;
+	gap: 0.5rem 1rem;
+	margin: 1.5rem 0 0;
+	padding-top: 1rem;
+	border-top: 1px solid var(--rule);
+	font-family: var(--sans);
+	font-size: 0.9375rem;
+	max-width: var(--measure-wide);
+}
+.facts { grid-template-columns: 7rem minmax(0, 1fr); }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+
+/* The four pages the room keeps open all day, as a row of addresses. */
+.ports { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 0.25rem 1rem; }
+.ports div { display: grid; gap: 2px; }
+.ports b { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.ports span { color: var(--muted); }
+
+/* Contents ------------------------------------------------------------------ */
+
+.contents { margin-top: 2rem; padding: 1.5rem 0 2rem; border-top: 1px solid var(--rule); }
+.contents h2 { font-family: var(--sans); font-size: 0.9375rem; font-weight: 600; color: var(--muted); margin: 0 0 1rem; }
+.contents ol { list-style: none; margin: 0; padding: 0; }
+.contents li {
+	display: grid;
+	grid-template-columns: 3.5rem minmax(0, 1fr);
+	gap: 1rem;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--rule-2);
+}
+.contents .no { font-family: var(--mono); font-size: 0.8125rem; font-variant-numeric: tabular-nums; color: var(--faint); padding-top: 0.25em; }
+.contents a { color: var(--ink); text-decoration: none; }
+.contents a:hover, .contents a:focus-visible { text-decoration: underline; text-decoration-color: var(--accent); }
+.contents .what { display: block; font-family: var(--sans); font-size: 0.9375rem; color: var(--muted); }
+
+/* Chapters and concepts ------------------------------------------------------ */
+
+.chapter > h2, .head h2 { font-family: var(--serif); font-size: 1.9375rem; font-weight: 600; line-height: 1.15; margin: 0; max-width: 28ch; }
+.chapter > .lede { font-size: 1.3125rem; line-height: 1.5; color: var(--ink-2); margin: 0.75rem 0 2rem; max-width: var(--measure); }
+
+.chapter > h3, .concept > h3 {
+	font-family: var(--serif);
+	font-size: 1.3125rem;
+	font-weight: 600;
+	line-height: 1.3;
+	margin: 2rem 0 0.75rem;
+	scroll-margin-top: 2rem;
+	max-width: 42ch;
+}
+.chapter > h3 .anchor, .concept > h3 .anchor {
+	font-family: var(--mono);
+	font-size: 0.8125rem;
+	font-weight: 400;
+	color: var(--faint);
+	margin-left: 0.5rem;
+	white-space: nowrap;
+}
+
+p { max-width: var(--measure); }
+.chapter > p, .concept > p { margin: 0 0 1rem; }
+.chapter > ul, .chapter > ol, .concept > ul, .concept > ol { margin: 0 0 1rem; padding-left: 1.1em; max-width: var(--measure); }
+.chapter li, .concept li { margin-bottom: 0.5rem; }
+.chapter li::marker, .concept li::marker { color: var(--faint); }
+
+.because {
+	border-left: 2px solid var(--accent);
+	padding-left: 1rem;
+	color: var(--ink-2);
+	font-size: 0.9375rem;
+	margin: 1rem 0 1.5rem;
+}
+
+/* Run sheet ------------------------------------------------------------------ */
+
+.head { margin-bottom: 1.5rem; }
+
+
+.part {
+	display: grid;
+	grid-template-columns: 6.5rem minmax(0, 1fr);
+	column-gap: 1.5rem;
+	padding: 1rem 0;
+	border-top: 1px solid var(--rule-2);
+}
+.part > h3 { font-family: var(--sans); font-size: 0.9375rem; font-weight: 600; color: var(--muted); margin: 0; padding-top: 0.15em; }
+.part.command > h3 { color: var(--accent); }
+.part.expect > h3 { color: var(--go); }
+.part > div, .part > p { margin: 0; min-width: 0; max-width: var(--measure); }
+.part.goal p { font-size: 1.3125rem; line-height: 1.5; }
+.part.question p { font-style: italic; }
+.part > div > * + * { margin-top: 0.75rem; }
+.part p, .part ul, .part ol, .part pre, .where p, .where h4 { margin-block: 0; }
+.part ul, .part ol, .steps, .plain { padding-left: 1.1em; max-width: var(--measure); }
+.part li { margin-bottom: 0.5rem; }
+.part li::marker { color: var(--faint); }
+
+/* Furniture: looked at rather than read. */
+.talk ul, .sees, .steps, .plain, .path, .where, .files, .ports, table { font-family: var(--sans); font-size: 0.9375rem; }
+.sees { max-width: var(--measure); }
+
+/* A click path through the HyperDX UI, written the way it is clicked. */
+.path { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; list-style: none; padding: 0; margin: 0; }
+.path li { border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; margin: 0; font-family: var(--mono); font-size: 0.8125rem; }
+.path li.arrow { border: 0; color: var(--faint); padding: 2px 0; }
+
+.where { display: grid; gap: 1rem; }
+.where > div { display: grid; gap: 0.25rem; padding-left: 1rem; border-left: 2px solid var(--rule); }
+.where h4 { font-family: var(--sans); font-size: 0.9375rem; font-weight: 600; }
+.where p { color: var(--muted); }
+
+/* What to harden before this runs on your systems. A hairline and a colour, not
+   a tinted box: six red panels down a page read as a warning nobody finishes. */
+.risks { display: grid; gap: 1.5rem; }
+.risks article { display: grid; gap: 0.5rem; padding-left: 1rem; border-left: 2px solid var(--no); }
+.risks h4 { font-family: var(--serif); font-size: 1.125rem; font-weight: 600; margin: 0; }
+.risks p { margin: 0; }
+.risks p.today { color: var(--muted); font-size: 0.9375rem; }
+.risks p.fix { font-size: 0.9375rem; }
+
+/* Numbers the end-to-end run measured. */
+.measured { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--sans); }
+.measured div { display: grid; gap: 0.25rem; }
+.measured strong { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.measured span { font-size: 0.9375rem; color: var(--muted); }
+
+/* Code, tables and figures --------------------------------------------------- */
+
+code, kbd, samp { font-family: var(--mono); font-size: 0.9em; }
+:not(pre) > code { background: var(--sunk); border-radius: var(--r); padding: 0.08em 0.32em; }
+
+pre {
+	margin: 0;
+	background: var(--term-bg);
+	color: var(--term-ink);
+	padding: 0.875rem 1.25rem;
+	border-radius: 6px;
+	overflow-x: auto;
+	font-family: var(--mono);
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	max-width: var(--measure-wide);
+}
+
+table { border-collapse: collapse; width: 100%; max-width: var(--measure-wide); margin: 0 0 1.5rem; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+thead th { background: var(--sunk); border-bottom: 1px solid var(--rule); font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+td code { white-space: nowrap; }
+.scroll { overflow-x: auto; }
+
+.chapter > figure, .concept > figure { grid-column: 1 / -1; }
+figure { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); column-gap: var(--gutter); margin: 1.5rem 0 2rem; }
+figure > svg, figure > img { grid-column: 1 / -1; display: block; width: 100%; height: auto; }
+figure > img { border: 1px solid var(--rule); border-radius: 6px; }
+figcaption { grid-column: 2; font-family: var(--sans); font-size: 0.9375rem; line-height: 1.5; color: var(--muted); margin-top: 0.75rem; max-width: var(--measure); }
+
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.5rem; }
+.shot { display: block; grid-column: auto; margin: 0; }
+.shot img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; }
+.shot figcaption { grid-column: auto; margin-top: 0.5rem; }
+
+.files, .cites { color: var(--muted); font-family: var(--sans); font-size: 0.9375rem; }
+/* A module ends by naming the ideas it taught, and points at the one place each
+   of them is explained. tests/test_concepts.py binds the two directions. */
+.cites { margin: 1.25rem 0 0; padding-top: 0.75rem; border-top: 1px solid var(--rule-2); max-width: var(--measure-wide); }
+.files code { background: transparent; padding: 0; }
+
+/* Diagrams ------------------------------------------------------------------- */
+
+figure.diagram svg { overflow: visible; }
+figure.diagram text { font-family: var(--sans); fill: var(--ink); font-size: 13px; }
+figure.diagram text.title { font-size: 15px; font-weight: 600; }
+figure.diagram text.small { font-size: 12px; }
+figure.diagram text.mono { font-family: var(--mono); }
+figure.diagram text.muted { fill: var(--muted); }
+figure.diagram rect.box { fill: var(--card); stroke: var(--rule); }
+figure.diagram rect.tint { fill: var(--sunk); stroke: var(--rule); }
+figure.diagram rect.solid { fill: var(--ink); stroke: none; }
+figure.diagram text.onsolid { fill: var(--paper); }
+figure.diagram path, figure.diagram line { stroke: var(--muted); fill: none; }
+figure.diagram .accent { stroke: var(--accent); }
+figure.diagram text.accent { fill: var(--accent); stroke: none; }
+figure.diagram .go { stroke: var(--go); } figure.diagram text.go { fill: var(--go); stroke: none; }
+figure.diagram .ask { stroke: var(--ask); } figure.diagram text.ask { fill: var(--ask); stroke: none; }
+figure.diagram .no { stroke: var(--no); } figure.diagram text.no { fill: var(--no); stroke: none; }
+figure.diagram .dashed { stroke-dasharray: 4 4; }
+
+/* Links and footer ----------------------------------------------------------- */
+
+a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 0; grid-column: 1 / -1; }
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 0.9375rem; color: var(--muted); }
+
+/* Narrow screens ------------------------------------------------------------- */
+
+@media (max-width: 48rem) {
+	.doc { --rail: 0px; --gutter: 0px; padding-block: 2rem 4rem; }
+	.chapter, .segment, .before, figure { grid-template-columns: minmax(0, 1fr); }
+	.chapter > *, .concept > *, .segment > *, .before > *, figcaption { grid-column: 1; }
+	.chapter > .kicker, .segment > .when, .before > .when, .mark { text-align: left; padding-top: 0; }
+	.part, .facts { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+	.part > h3 { padding-top: 0; }
+	table { display: block; overflow-x: auto; }
+	.shots { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Print -----------------------------------------------------------------------
+ *
+ * 🔴 Do not simplify anything in this block without reading why it is here.
+ *
+ * A Chromium print-to-PDF fails in a way no visual review catches: every page
+ * looks perfect and the text layer extracts as garbage. Each reset below
+ * neutralises one known cause, and scripts/build_book.mjs reads its own output
+ * back with pdftotext to prove they are still doing it.
+ *
+ *   1  ui-sans-serif and system-ui resolve to SF Pro, which Chromium embeds as
+ *      per-word runs with no space glyph: prose extracts as "onelongtoken"
+ *   2  letter-spacing above about .13em emits one run per character, so a label
+ *      extracts as "M O D U L E". Negative tracking glues instead. normal covers both
+ *   3  font-weight 900 on a variable face glues the run and drops its first character
+ *   4  an element positioned out of flow paints last, so its text lands at the end
+ *      of the stream, detached from the heading it sat under
+ *   5  a negative margin that leaves the containing block drops the first character
+ *      of every run inside it, and only inside it, so whole-document counts stay green
+ *
+ * The page inset lives in @page and nowhere else. A CSS @page margin overrides
+ * the margin option passed to page.pdf(), and padding on a wrapper insets only
+ * the start and end of a block, so page two onward prints flush to the paper.
+ */
+
+@page {
+	size: A4;
+	margin: 18mm 16mm 20mm;
+	@bottom-center { content: counter(page); font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #5F594F; }
+}
+
+/* A title page carries neither a running head nor its own number. */
+@page :first {
+	@top-left { content: ""; }
+	@bottom-center { content: ""; }
+}
+
+@media print {
+	/* Rebound at the root rather than per selector. Listing the selectors that
+	   print in sans is how three of them get missed, and a missed one is a
+	   paragraph that renders perfectly and extracts as one long token. */
+	:root {
+		--serif: Georgia, "Times New Roman", serif;
+		--sans: Helvetica, Arial, sans-serif;
+		--mono: "Courier New", Courier, monospace;
+	}
+	body { font-size: 11.5pt; line-height: 1.5; background: #fff; }
+
+	* { letter-spacing: normal !important; }
+	h1, h2, h3, h4, strong, b, thead th { font-weight: 700 !important; }
+	li { position: static !important; }
+
+	.doc { max-width: none; padding: 0; }
+	.doc > .cover { break-after: page; }
+	.cover { padding-bottom: 0; }
+	.contents { break-after: page; border-top: 0; padding-top: 0; }
+	.chapter { break-before: page; border-top: 0; padding-top: 0; }
+	.segment, .before { break-before: page; border-top: 0; padding-top: 0; }
+	figure, table, .part, .risks article, .where > div { break-inside: avoid; }
+	h1, h2, h3, h4 { break-after: avoid; }
+	p, li { orphans: 2; widows: 2; }
+
+	figure svg { max-height: 92mm; }
+	figure > img, .shot img { max-height: 105mm; width: auto; max-width: 100%; }
+
+	pre { background: #fff; color: #1F1B16; border: 1px solid #E6E1D8; border-radius: 0; }
+
+	a { text-decoration: none; }
+	.doc a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8.5pt; color: #5F594F; word-break: break-all; }
+}

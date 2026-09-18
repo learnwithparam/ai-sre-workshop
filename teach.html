@@ -4,166 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI SRE Run Sheet</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
-<style>
-  :root {
-    --ground: #f2f4f3;
-    --panel: #ffffff;
-    --ink: #16201b;
-    --muted: #56625c;
-    --rule: #d5dbd8;
-    --run: #b45f06;
-    --run-ground: #fbf1e6;
-    --sees: #1d7552;
-    --sees-ground: #e7f3ed;
-    --ask: #3d4f9a;
-    --risk: #9b2f2f;
-    --risk-ground: #fbeeee;
-    --code-ground: #1b2521;
-    --code-ink: #e6ede9;
-    --display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
-    --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
-      --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
-      --risk: #f09b9b; --risk-ground: #2b1618;
-      --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --ground: #0f1512; --panel: #16201b; --ink: #e4eae6; --muted: #9aa8a1; --rule: #2a3631;
-    --run: #e69a3c; --run-ground: #2a2014; --sees: #5cc497; --sees-ground: #13271e; --ask: #9fb0f0;
-    --risk: #f09b9b; --risk-ground: #2b1618;
-    --code-ground: #0a0f0d; --code-ink: #dbe5df; color-scheme: dark;
-  }
-
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.6 var(--body); }
-  .page { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 80px;
-          display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
-  @media (max-width: 860px) { .page { grid-template-columns: 1fr; gap: 24px; } .rail { position: static; } }
-
-  h1, h2, h3 { font-family: var(--display); text-wrap: balance; letter-spacing: -0.005em; margin: 0; }
-  h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 600; line-height: 1.1; }
-  h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.2; }
-  h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-  h4 { font-family: var(--display); font-size: 1.05rem; font-weight: 600; margin: 0; }
-  p { margin: 0; max-width: 68ch; }
-  a { color: inherit; text-underline-offset: 3px; }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--run); outline-offset: 2px; }
-  code, pre, .mono { font-family: var(--mono); font-size: 0.86rem; }
-  :not(pre) > code { background: var(--run-ground); padding: 1px 5px; border-radius: 3px; }
-
-  .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
-  .rail ol { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 2px; }
-  .rail a { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 8px; border-radius: 4px;
-            text-decoration: none; font-size: 0.9rem; }
-  .rail a:hover { background: var(--panel); }
-  .rail time { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
-  .rail li.break { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 8px; font-size: 0.9rem; color: var(--muted); }
-
-  header.intro { display: grid; gap: 16px; padding-bottom: 32px; border-bottom: 1px solid var(--rule); }
-  .eyebrow { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
-  .lede { font-size: 1.1rem; color: var(--ink); }
-
-  .ports { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px;
-           background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin-top: 8px; }
-  .ports div { background: var(--panel); padding: 10px 14px; display: grid; gap: 2px; }
-  .ports b { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
-  .ports span { font-size: 0.85rem; color: var(--muted); }
-
-  main { display: grid; gap: 56px; min-width: 0; }
-  section.before, section.segment { display: grid; gap: 20px; padding-top: 8px; scroll-margin-top: 24px; }
-  .when { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .head { display: grid; gap: 6px; }
-
-  .part { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; align-items: start; }
-  @media (max-width: 560px) { .part { grid-template-columns: 1fr; gap: 6px; } }
-  .part > h3 { padding-top: 3px; }
-  .part.goal p { font-weight: 500; }
-  .part.command > div, .part.expect > div, .part.show > div { display: grid; gap: 10px; min-width: 0; }
-  .part.command h3 { color: var(--run); }
-  .part.expect h3 { color: var(--sees); }
-  .part.question h3 { color: var(--ask); }
-  .part.question p { font-style: italic; }
-  .part.expect ul, .talk ul, .steps, .plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
-  .talk { display: grid; gap: 10px; }
-
-  pre { margin: 0; background: var(--code-ground); color: var(--code-ink); padding: 12px 14px; border-radius: 6px;
-        overflow-x: auto; line-height: 1.5; border-left: 3px solid var(--run); }
-  pre.sql { border-left-color: var(--sees); }
-  .sees { background: var(--sees-ground); border-radius: 6px; padding: 12px 14px; }
-  .files { font-size: 0.85rem; color: var(--muted); }
-  .files code { background: transparent; padding: 0; }
-
-  .steps { counter-reset: none; gap: 12px; }
-  .steps li::marker { font-family: var(--mono); color: var(--run); }
-
-  /* A click path through the HyperDX UI, written the way it is clicked. */
-  .path { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono);
-          font-size: 0.8rem; margin: 0; padding: 0; list-style: none; }
-  .path li { background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 2px 10px; }
-  .path li.arrow { border: 0; background: transparent; color: var(--muted); padding: 2px 0; }
-  .where { display: grid; gap: 14px; }
-  .where > div { display: grid; gap: 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
-
-  figure.shot { margin: 0; display: grid; gap: 8px; }
-  figure.shot img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
-  figure.shot figcaption { font-size: 0.85rem; color: var(--muted); max-width: 68ch; }
-  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-  .scroll { overflow-x: auto; }
-  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
-  td code { white-space: nowrap; }
-
-  .risks { display: grid; gap: 16px; }
-  .risks article { display: grid; gap: 8px; padding: 16px 18px; background: var(--panel);
-                   border: 1px solid var(--rule); border-left: 3px solid var(--risk); border-radius: 6px; }
-  .risks p.today { color: var(--muted); font-size: 0.95rem; }
-  .risks p.fix { background: var(--risk-ground); border-radius: 4px; padding: 8px 12px; font-size: 0.95rem; max-width: none; }
-
-  .measured { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--rule);
-              border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
-  .measured div { background: var(--panel); padding: 14px 16px; display: grid; gap: 4px; }
-  .measured strong { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; }
-  .measured span { font-size: 0.85rem; color: var(--muted); }
-  .footnote { font-size: 0.85rem; color: var(--muted); }
-  hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
-  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-</style>
+<link rel="stylesheet" href="teach.css">
 </head>
 <body>
-<div class="page">
-  <nav class="rail" aria-label="Schedule">
-    <h3>The day</h3>
-    <ol>
-      <li><a href="#before"><time>08:15</time><span>Before the room</span></a></li>
-      <li><a href="#m0"><time>09:00</time><span>Setup</span></a></li>
-      <li><a href="#m1"><time>09:30</time><span>1 · Substrate</span></a></li>
-      <li><a href="#m2"><time>11:00</time><span>2 · 3 sigma</span></a></li>
-      <li class="break"><time>12:30</time><span>Lunch</span></li>
-      <li><a href="#m3"><time>13:30</time><span>3 · What changed</span></a></li>
-      <li><a href="#m4"><time>15:00</time><span>4 · Tools</span></a></li>
-      <li><a href="#m5"><time>16:15</time><span>5 · Live incident</span></a></li>
-      <li><a href="#harden"><time>17:00</time><span>6 · Hardening</span></a></li>
-      <li><a href="#rescue"><time></time><span>If it goes wrong</span></a></li>
-      <li><a href="#wrap"><time>17:30</time><span>Wrap-up</span></a></li>
-    </ol>
-  </nav>
-
-  <main>
-    <header class="intro">
-      <p class="eyebrow">Facilitator guide · Building an AI SRE · one day</p>
+<main class="doc">
+    <header class="cover">
+      <p class="series">Facilitator guide · Building an AI SRE · one day</p>
       <h1>AI SRE Run Sheet</h1>
-      <p class="lede">You run a real incident in front of the room. A bad release breaks signups, a detector
+      <p class="deck">You run a real incident in front of the room. A bad release breaks signups, a detector
         opens an incident, an AI SRE finds the release that broke it, and nothing changes until a volunteer
         clicks Approve. Every module asks the room to answer a question with SQL first, then shows the same
         answer in the ClickStack UI, then hands it to the agent as a tool. Module 5 is the same loop the
@@ -176,8 +24,25 @@
       </div>
     </header>
 
+<nav class="contents" aria-label="Contents">
+<h2>Contents</h2>
+<ol>
+<li><span class="no">01</span><a href="#before">Before the room arrives<span class="what">08:15, alone</span></a></li>
+<li><span class="no">02</span><a href="#m0">Setup and the map of the lab<span class="what">09:00 to 09:30</span></a></li>
+<li><span class="no">03</span><a href="#m1">The data an agent reasons over<span class="what">09:30 to 11:00 · Module 1</span></a></li>
+<li><span class="no">04</span><a href="#m2">Anomaly detection inside the database<span class="what">11:00 to 12:30 · Module 2</span></a></li>
+<li><span class="no">05</span><a href="#m3">Finding what changed<span class="what">13:30 to 15:00 · Module 3</span></a></li>
+<li><span class="no">06</span><a href="#m4">Tools an agent can be trusted with<span class="what">15:00 to 16:15 · Module 4</span></a></li>
+<li><span class="no">07</span><a href="#m5">The live incident, with a human in the loop<span class="what">16:15 to 17:00 · Module 5</span></a></li>
+<li><span class="no">08</span><a href="#harden">What to harden before this runs on your systems<span class="what">17:00 to 17:30 · Module 6</span></a></li>
+<li><span class="no">09</span><a href="#rescue">If something goes wrong in front of the room<span class="what">Any time</span></a></li>
+<li><span class="no">10</span><a href="#wrap">Wrap-up<span class="what">17:30</span></a></li>
+</ol>
+</nav>
+
     <section class="before" id="before">
-      <div class="head"><p class="when">08:15, alone</p><h2>Before the room arrives</h2></div>
+      <p class="when">08:15, alone</p>
+      <div class="head"><h2>Before the room arrives</h2></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre>make up
 make ps</pre>
@@ -204,10 +69,10 @@ make score</pre>
       </div></div>
     </section>
 
-    <hr>
 
     <section class="segment" id="m0" data-module="0">
-      <div class="head"><p class="when">09:00 to 09:30</p><h2>Setup and the map of the lab</h2></div>
+      <p class="when">09:00 to 09:30</p>
+      <div class="head"><h2>Setup and the map of the lab</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Everyone can open the four pages and name what each one is for.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>This is a signup page for a database company, and it is the demo app ClickHouse ships with ClickStack. A browser SDK, a Flask backend and a Go service all send OpenTelemetry to ClickStack. Next to it runs an AI SRE: a detector, a set of tools, a chat workspace, and an approval page.</p>
@@ -232,10 +97,12 @@ make ps</pre>
         </figure>
       </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>What is the smallest piece of evidence that would convince you your own signup reached the database?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-loop" data-concept="loop">the loop</a>, <a href="concepts.html#c-not" data-concept="not">what it is not</a>.</p>
     </section>
 
     <section class="segment" id="m1" data-module="1">
-      <div class="head"><p class="when">09:30 to 11:00 · Module 1</p><h2>The data an agent reasons over</h2></div>
+      <p class="when">09:30 to 11:00 · Module 1</p>
+      <div class="head"><h2>The data an agent reasons over</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can read the ClickStack schema and compute p95 latency per endpoint over every span, unsampled, in one query.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Traces are rows in <code>otel_traces</code>, ordered by service, span name and time. A per-service query reads a few granules, not the table. Attributes live in <code>Map</code> columns, so a new attribute costs no migration.</p>
@@ -276,10 +143,12 @@ latency_percentiles  -- p50, p95, p99 and error rate per endpoint, over every sp
         </figure>
       </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>If you sampled 1 in 100 traces, which of these three queries would still give the right answer, and which would lie?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-signals" data-concept="signals">logs, metrics and traces</a>, <a href="concepts.html#c-wide-event" data-concept="wide-event">wide events</a>, <a href="concepts.html#c-cardinality" data-concept="cardinality">cardinality</a>, <a href="concepts.html#c-sampling" data-concept="sampling">sampling</a>.</p>
     </section>
 
     <section class="segment" id="m2" data-module="2">
-      <div class="head"><p class="when">11:00 to 12:30 · Module 2</p><h2>Anomaly detection inside the database</h2></div>
+      <p class="when">11:00 to 12:30 · Module 2</p>
+      <div class="head"><h2>Anomaly detection inside the database</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a 3 sigma bound in SQL and explain the two guards a production detector adds to it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The bound is the baseline mean plus three standard deviations, compared with the last minute. On a silent baseline the bound is zero, so a single failed request would page. The floor, <code>min_delta</code> of 5 points, stops that.</p>
@@ -305,10 +174,12 @@ service_minute_rates        -- the same rates, read back from the materialized v
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Every service with <code>anomalous = 0</code>, and a bound close to zero for <code>subscription-backend</code>. Then one row per minute from the view, returned in milliseconds.</p></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Traffic doubles at 09:00 every Monday. Does this rule page? Why does watching the error rate, not the error count, keep it quiet?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-sli" data-concept="sli">indicator</a>, <a href="concepts.html#c-slo" data-concept="slo">objective</a>, <a href="concepts.html#c-error-budget" data-concept="error-budget">error budget</a>, <a href="concepts.html#c-burn-rate" data-concept="burn-rate">burn rate</a>, <a href="concepts.html#c-baseline" data-concept="baseline">baseline</a>, <a href="concepts.html#c-three-sigma" data-concept="three-sigma">three sigma</a>, <a href="concepts.html#c-incident-exclusion" data-concept="incident-exclusion">excluding past incidents</a>, <a href="concepts.html#c-symptom-alerting" data-concept="symptom-alerting">symptom based alerting</a>.</p>
     </section>
 
     <section class="segment" id="m3" data-module="3">
-      <div class="head"><p class="when">13:30 to 15:00 · Module 3</p><h2>Finding what changed</h2></div>
+      <p class="when">13:30 to 15:00 · Module 3</p>
+      <div class="head"><h2>Finding what changed</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees localise a real fault with event deltas and a trace waterfall, by hand, before any agent touches it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Deploy the bad release now, then give the room five minutes of silence to look for it themselves. Compare the last five minutes with the five before: patterns that are new float to the top, steady noise cancels out. Then break errors down by <code>service.version</code>, and open one failing trace.</p>
@@ -356,10 +227,12 @@ trace_logs            -- the log lines that belong to that trace</pre>
         <li>The same three facts in the UI and in their terminal, which is the point of the module.</li>
       </ul></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>You found this in minutes because you knew which release shipped. What would the agent need in its context to find it just as fast?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-event-delta" data-concept="event-delta">event deltas</a>, <a href="concepts.html#c-log-pattern" data-concept="log-pattern">log patterns</a>, <a href="concepts.html#c-trace-graph" data-concept="trace-graph">trace waterfall</a>.</p>
     </section>
 
     <section class="segment" id="m4" data-module="4">
-      <div class="head"><p class="when">15:00 to 16:15 · Module 4</p><h2>Tools an agent can be trusted with</h2></div>
+      <p class="when">15:00 to 16:15 · Module 4</p>
+      <div class="head"><h2>Tools an agent can be trusted with</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can explain why the lab gives the model semantic tools over workshop SQL, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Open the table below on screen. Every tool the agent has is one or more of the queries the room wrote this morning, with the parameters filled in and the results trimmed. Nothing in the agent is doing analysis they have not already done by hand.</p>
@@ -392,10 +265,12 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         <li>An <code>INSERT</code> sent through <code>mcp-clickhouse</code> refused by ClickHouse itself, not by a prompt. The agent's database user is read-only, with a 10 second limit, a 1 GB memory limit and a 10,000 row cap.</li>
       </ul></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Which of the twelve SRE tools would you remove first if the model kept picking the wrong one, and what would you lose?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-tool-class" data-concept="tool-class">tool classes</a>, <a href="concepts.html#c-least-privilege" data-concept="least-privilege">least privilege</a>, <a href="concepts.html#c-grounding" data-concept="grounding">grounding</a>, <a href="concepts.html#c-action-list" data-concept="action-list">the action list</a>.</p>
     </section>
 
     <section class="segment" id="m5" data-module="5">
-      <div class="head"><p class="when">16:15 to 17:00 · Module 5</p><h2>The live incident, with a human in the loop</h2></div>
+      <p class="when">16:15 to 17:00 · Module 5</p>
+      <div class="head"><h2>The live incident, with a human in the loop</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>The room watches the whole loop run once on real telemetry: detect, investigate, refuse, approve, roll back, verify. Then a volunteer rejects and edits a proposal.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The agent hunts; the human decides. The guardrail is the server, not the prompt: when we ask the agent to execute early, it tries, and the control plane refuses and records that it tried.</p>
@@ -454,10 +329,12 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         <div><strong>$<span data-figure="total_cost_usd">0.0096</span></strong><span>model cost for both investigations</span></div>
       </div>
       <p class="footnote">Measured by <code data-file="e2e/specs/12-report.spec.ts">e2e/specs/12-report.spec.ts</code> on the last <code>make e2e</code> run with <code>deepseek/deepseek-v4-flash</code>, written to <code data-file="evidence/e2e-report.json">evidence/e2e-report.json</code>. A test fails if these numbers drift from that file.</p>
+      <p class="cites">Concepts: <a href="concepts.html#c-approval-event" data-concept="approval-event">the approval event</a>, <a href="concepts.html#c-audit-log" data-concept="audit-log">the audit log</a>, <a href="concepts.html#c-recovery-check" data-concept="recovery-check">the recovery check</a>, <a href="concepts.html#c-autonomy-level" data-concept="autonomy-level">autonomy levels</a>.</p>
     </section>
 
     <section class="segment" id="harden" data-module="6">
-      <div class="head"><p class="when">17:00 to 17:30 · Module 6</p><h2>What to harden before this runs on your systems</h2></div>
+      <p class="when">17:00 to 17:30 · Module 6</p>
+      <div class="head"><h2>What to harden before this runs on your systems</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees leave with a list they can argue about with their own security team, and know which parts of it this lab already implements.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Everything below is a real gap or a real control in the lab in front of them. Go through it as an honest account of what is done and what is left, not as a checklist of advice.</p>
@@ -501,10 +378,12 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         </article>
       </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Which of these six would block this from running on your systems next quarter, and which would you accept with an audit log?</p></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-prompt-injection" data-concept="prompt-injection">goal hijack</a>, <a href="concepts.html#c-context-poisoning" data-concept="context-poisoning">context poisoning</a>, <a href="concepts.html#c-approval-fatigue" data-concept="approval-fatigue">trust exploitation</a>, <a href="concepts.html#c-excessive-agency" data-concept="excessive-agency">privilege abuse</a>, <a href="concepts.html#c-eval-set" data-concept="eval-set">evaluation sets</a>.</p>
     </section>
 
     <section class="segment" id="rescue">
-      <div class="head"><p class="when">Any time</p><h2>If something goes wrong in front of the room</h2></div>
+      <p class="when">Any time</p>
+      <div class="head"><h2>If something goes wrong in front of the room</h2></div>
       <div class="part show" data-part="show"><h3>Fix</h3><div>
         <div class="scroll"><table>
           <thead><tr><th>What you see</th><th>Why</th><th>What to do</th></tr></thead>
@@ -521,7 +400,8 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
     </section>
 
     <section class="segment" id="wrap">
-      <div class="head"><p class="when">17:30</p><h2>Wrap-up</h2></div>
+      <p class="when">17:30</p>
+      <div class="head"><h2>Wrap-up</h2></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>The lab is gated the same way you would gate an agent in production. <code>make check</code> runs on every push. <code>make e2e</code> drives the loop you just watched with a real model and a real browser. <code>make score</code> turns both into a number out of 100, and every point is bound to a named test.</p>
         <p>Give them one instruction to take home: run the three substrate queries against their own observability data tomorrow. If those return nothing useful, no agent will either, and that is the first thing to fix.</p>
@@ -532,8 +412,8 @@ make score
 make down</pre>
         <p class="files">File: <code data-file="scripts/rubric.py">scripts/rubric.py</code></p>
       </div></div>
+      <p class="cites">Concepts: <a href="concepts.html#c-published" data-concept="published">the published reliability vocabulary</a>, <a href="concepts.html#c-guardrail-source" data-concept="guardrail-source">the named guardrails</a>, <a href="concepts.html#c-risk-source" data-concept="risk-source">the catalogued risks</a>, <a href="concepts.html#c-ours" data-concept="ours">what this lab chose for itself</a>.</p>
     </section>
-  </main>
-</div>
+</main>
 </body>
 </html>

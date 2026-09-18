@@ -10,7 +10,21 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PROSE = ("teach.html", "tests/test_teach.py")
+# `--all` covers every file. The default leaves out prose and the surfaces around it:
+# the stylesheet, the book builder, the PDFs it writes and the tests that read them.
+# `make e2e` loads none of them, so none of them can invalidate a fifteen-minute run.
+PROSE = (
+    "teach.html",
+    "concepts.html",
+    "teach.css",
+    "tests/test_teach.py",
+    "tests/test_concepts.py",
+    "tests/test_book.py",
+    "tests/test_house.py",
+    "scripts/build_book.mjs",
+    "scripts/contents.py",
+    "scripts/pdf_freshness.json",
+)
 
 
 def tree_hash(include_prose: bool) -> str:
@@ -25,7 +39,7 @@ def tree_hash(include_prose: bool) -> str:
     # e2e writes evidence/ itself, so its own stamp cannot include it; the check stamp does.
     measured = ("artifacts/",) if include_prose else ("artifacts/", "evidence/")
     for name in sorted(f for f in files if f and not f.startswith(measured)):
-        if not include_prose and (name.endswith(".md") or name in PROSE):
+        if not include_prose and (name.endswith((".md", ".pdf")) or name in PROSE):
             continue
         path = ROOT / name
         if path.is_file():

@@ -28,7 +28,7 @@ Everything runs in the `clickstack-demo` namespace.
 - The subscription app is reached via `kubectl port-forward` rather than a
   published host port.
 - Credentials come from a Kustomize-generated Secret (`k8s/secret.env`) instead
-  of the repo-root `.env`. This keeps `k8s/` self-contained — kustomize cannot
+  of the repo-root `.env`. This keeps `k8s/` self-contained, because kustomize cannot
   read files above its own directory, so pointing at `../.env` would force
   `--load-restrictor LoadRestrictionsNone` onto every command. It's the same
   four keys, so `cp ../.env secret.env` works if you already ran compose.

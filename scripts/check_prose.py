@@ -1,13 +1,23 @@
 """Fail on em or en dashes and filler words in learner-facing prose.
 
 The word lists copy learnwithparam's house rules (rules 3 and 5), so CI can run them without
-the author's machine. Usage: check_prose.py FILE [FILE...]
+the author's machine.
+
+    check_prose.py                 every tracked markdown and HTML file
+    check_prose.py FILE [FILE...]  only those
+
+With no arguments it checks everything tracked, which is what `make check` runs. It used to
+take a list of three named files, and a rule that only fires on files someone remembered to
+list is a rule that stops firing: concepts.html was written and checked by nothing.
 """
 
 import re
+import subprocess
 import sys
 from html import unescape
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
 
 DASHES = {"—": "em dash", "–": "en dash"}
 WORDS = {
@@ -32,12 +42,29 @@ def violations(text: str) -> list[str]:
     return found
 
 
+def tracked() -> list[str]:
+    """Every tracked or untracked-but-not-ignored prose file, as git sees it."""
+    listed = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split("\n")
+    return [
+        str(ROOT / name) for name in listed if name.endswith((".md", ".html")) and (ROOT / name).is_file()
+    ]
+
+
 def main(paths: list[str]) -> int:
+    paths = paths or tracked()
     failed = 0
     for path in paths:
         for v in violations(Path(path).read_text()):
             print(f"{path}:{v}")
             failed = 1
+    if not failed:
+        print(f"prose clean: {len(paths)} files")
     return failed
 
 

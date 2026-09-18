@@ -1,0 +1,40 @@
+{
+  "$comment": "Every external source the teaching surfaces cite. Each entry carries the date it was last read, because a link that rotted is a citation nobody can check. tests/test_sources.py binds this list to the pages in both directions: a URL on a page that is not here fails, and an entry here that no page cites fails. The reachability check is a separate CI job, because a gate that needs the network cannot live in make check.",
+  "sources": [
+    {
+      "url": "https://sre.google/workbook/implementing-slos/",
+      "title": "Implementing SLOs",
+      "publisher": "Google, The Site Reliability Workbook, chapter 2",
+      "read": "2026-09-18",
+      "supports": "The definitions of indicator, objective and error budget, written as good events over valid events"
+    },
+    {
+      "url": "https://sre.google/workbook/alerting-on-slos/",
+      "title": "Alerting on SLOs",
+      "publisher": "Google, The Site Reliability Workbook, chapter 5",
+      "read": "2026-09-18",
+      "supports": "Burn rate, and multiwindow multi-burn-rate alerting as the approach it recommends over a raw threshold"
+    },
+    {
+      "url": "https://sre.google/resources/practices-and-processes/ai-engineering-reliable-operations/",
+      "title": "AI engineering for reliable operations",
+      "publisher": "Google Site Reliability Engineering",
+      "read": "2026-09-18",
+      "supports": "The five autonomy levels from manual to full, and the guardrails it names: no ambient access and least privilege, circuit breakers, dry run support, and safe-by-default actuation"
+    },
+    {
+      "url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/",
+      "title": "OWASP Top 10 for Agentic Applications",
+      "publisher": "OWASP GenAI Security Project, published 9 December 2025",
+      "read": "2026-09-18",
+      "supports": "The named agentic risks this lab is exposed to: goal hijack, tool misuse, privilege abuse, memory and context poisoning, and human-agent trust exploitation"
+    },
+    {
+      "url": "https://opentelemetry.io/docs/concepts/signals/",
+      "title": "Signals",
+      "publisher": "OpenTelemetry documentation",
+      "read": "2026-09-18",
+      "supports": "Traces, metrics and logs as the signals the substrate is built from"
+    }
+  ]
+}

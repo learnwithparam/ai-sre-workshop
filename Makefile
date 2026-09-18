@@ -8,7 +8,7 @@ COMPOSE_VPS := $(COMPOSE) -f docker-compose.vps.yml
 # sre-control mounts the repo at this same absolute path, so compose paths resolve identically.
 export WORKSHOP_DIR := $(CURDIR)
 
-.PHONY: help env build up down ps logs check e2e score chaos chaos-reset
+.PHONY: help env build up down ps logs check book e2e score chaos chaos-reset
 
 help: ## List every target
 	@grep -E '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-12s\033[0m %s\n", $$1, $$2}'
@@ -42,7 +42,13 @@ check: ## Lint, unit and structural tests (no Docker, no model spend)
 	@uv run --quiet python scripts/tree_hash.py --all > artifacts/check-tree.txt
 	uv run --quiet ruff check .
 	uv run --quiet ruff format --check .
+	uv run --quiet python scripts/check_prose.py
 	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
+
+book: ## Render the bound book, the concepts and the run sheet to PDF, then read them back
+	@cd e2e && npm ci --silent && npx playwright install chromium --only-shell >/dev/null 2>&1 || true
+	@uv run --quiet python scripts/contents.py
+	@node scripts/build_book.mjs
 
 e2e: up ## Full stack, real model, real browser; writes artifacts/playwright.json
 	@mkdir -p artifacts evidence/screens && rm -f artifacts/playwright.json artifacts/run-state.json
