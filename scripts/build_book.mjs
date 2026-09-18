@@ -105,6 +105,7 @@ function compose() {
    the build checks the version before rendering, so a missing head fails rather
    than vanishes. */
 @page { @top-left { content: "AI SRE"; font-family: Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #948D80; } }
+@page :first { @top-left { content: ""; } }
 </style>
 </head>
 <body>
@@ -118,11 +119,11 @@ function compose() {
 <dt>Built by</dt><dd><code>make book</code>, from the same pages the browser serves</dd>
 <dt>Checked by</dt><dd>its own text layer, read back with <code>pdftotext</code> after every build</dd>
 </dl>
+</header>
 
 ${spineContents.replace("<h2>Contents</h2>", "<h2>Part one, the concepts</h2>")}
 
 ${sheetContents.replace("<h2>Contents</h2>", "<h2>Part two, the day</h2>")}
-</header>
 
 ${spine}
 
@@ -183,7 +184,9 @@ for (const [out, job] of Object.entries(PDFS)) {
   await page.goto(pathToFileURL(join(ROOT, job.source)).href, { waitUntil: "networkidle" });
   if (job.source !== GENERATED) {
     await page.addStyleTag({
-      content: `@page { @top-left { content: ${JSON.stringify(job.head)}; font-family: Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #948D80; } }`,
+      content:
+        `@page { @top-left { content: ${JSON.stringify(job.head)}; font-family: Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #948D80; } }\n` +
+        '@page :first { @top-left { content: ""; } }',
     });
   }
   // The inset lives in @page in teach.css and nowhere else. A CSS @page margin

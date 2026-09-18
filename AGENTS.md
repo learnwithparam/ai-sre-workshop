@@ -17,6 +17,10 @@ make down
 
 ## Rules
 
+- **The end-to-end stamp covers what a run loads, and nothing else.** `scripts/tree_hash.py`
+  carries two lists with a reason per entry, the Makefile is stamped recipe by recipe, and
+  `tests/test_gate.py` fails when a tracked path is claimed by neither. Adding a target that cannot
+  reach the stack must not cost a fifteen-minute rerun; a change to a workshop query must.
 - **The score is the definition of done.** Every point in `scripts/rubric.py` is bound to one test,
   and `tests/test_gate.py` fails if the rubric names a test that does not exist. Add the test and
   the rubric line in the same change.

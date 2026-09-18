@@ -3,16 +3,16 @@
     "concepts.html": "d630b958930d01ea",
     "teach.html": "76d977bf71ee6860",
     "teach.css": "bdbbadd194d49e00",
-    "scripts/build_book.mjs": "b78327bd75bb8403"
+    "scripts/build_book.mjs": "1b73f455ad55775a"
   },
   "ai-sre-concepts.pdf": {
     "concepts.html": "d630b958930d01ea",
     "teach.css": "bdbbadd194d49e00",
-    "scripts/build_book.mjs": "b78327bd75bb8403"
+    "scripts/build_book.mjs": "1b73f455ad55775a"
   },
   "ai-sre-run-sheet.pdf": {
     "teach.html": "76d977bf71ee6860",
     "teach.css": "bdbbadd194d49e00",
-    "scripts/build_book.mjs": "b78327bd75bb8403"
+    "scripts/build_book.mjs": "1b73f455ad55775a"
   }
 }
