@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "A runner that executes what the model composed compared with one that builds the command from a named action.",
+  "caption": "Who builds the command decides whether text the agent read can become an order.",
+  "labelWidth": 74,
+  "left": {
+    "title": "Composed",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Chosen from a list",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Model sends",
+      "left": "A command string",
+      "right": "A name and arguments",
+      "changed": true
+    },
+    {
+      "label": "Runner does",
+      "left": "Executes it",
+      "right": "Builds the command",
+      "changed": true
+    },
+    {
+      "label": "A log line",
+      "left": "Becomes an order",
+      "right": "Stays text",
+      "changed": true
+    }
+  ]
+}

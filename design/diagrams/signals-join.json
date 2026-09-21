@@ -1,0 +1,21 @@
+{
+  "shape": "flow",
+  "alt": "A question starts at a log line, follows its trace id to a trace, and ends at the slow span.",
+  "caption": "One store lets a question hop from a log line to the slow step.",
+  "steps": [
+    {
+      "title": "Log line",
+      "note": "carries a trace id"
+    },
+    {
+      "title": "Trace",
+      "note": "spans and timings"
+    },
+    {
+      "title": "Slow span",
+      "tone": "mark",
+      "note": "the cause"
+    }
+  ],
+  "per": 3
+}

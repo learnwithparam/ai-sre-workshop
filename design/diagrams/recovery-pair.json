@@ -1,0 +1,28 @@
+{
+  "shape": "pair",
+  "alt": "What a command that exits zero proves compared with what a recovery check proves.",
+  "caption": "Exit zero proves a command ran. It does not prove signups work.",
+  "labelWidth": 70,
+  "left": {
+    "title": "Command exit",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Recovery check",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Proves",
+      "left": "It ran",
+      "right": "It worked",
+      "changed": true
+    },
+    {
+      "label": "Reads",
+      "left": "An exit code",
+      "right": "Live traffic",
+      "changed": true
+    }
+  ]
+}

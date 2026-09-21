@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "Cause based alerts page on a machine condition and teach the team to ignore the pager. Symptom based alerts page on what users see.",
+  "caption": "What each kind of alert teaches the person who receives it.",
+  "labelWidth": 62,
+  "left": {
+    "title": "Cause",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Symptom",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Pages on",
+      "left": "Processor above 80 percent",
+      "right": "Signups returning errors",
+      "changed": true
+    },
+    {
+      "label": "A user hurt",
+      "left": "Not necessarily",
+      "right": "Always",
+      "changed": true
+    },
+    {
+      "label": "Team learns",
+      "left": "To ignore it",
+      "right": "To act",
+      "changed": true
+    }
+  ]
+}

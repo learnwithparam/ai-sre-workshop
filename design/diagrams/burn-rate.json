@@ -1,0 +1,37 @@
+{
+  "shape": "timeline",
+  "alt": "How long a thirty day budget lasts at four burn rates, from thirty days at rate one down to about seven hours at rate one hundred.",
+  "caption": "How long the whole budget lasts at each rate. Rate 1 is on target. Rate 100 is an outage.",
+  "total": 30,
+  "ticks": 6,
+  "unit": " d",
+  "labelWidth": 60,
+  "rows": [
+    {
+      "label": "Rate 1",
+      "start": 0,
+      "length": 30,
+      "note": "30 days"
+    },
+    {
+      "label": "Rate 2",
+      "start": 0,
+      "length": 15,
+      "note": "15 days"
+    },
+    {
+      "label": "Rate 10",
+      "start": 0,
+      "length": 3,
+      "tone": "wait",
+      "note": "3 days"
+    },
+    {
+      "label": "Rate 100",
+      "start": 0,
+      "length": 0.3,
+      "tone": "mark",
+      "note": "7 hours"
+    }
+  ]
+}

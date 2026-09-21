@@ -1,0 +1,1876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI SRE: attendee workbook</title>
+<meta name="description" content="One explanation of each idea an AI SRE rests on: the telemetry it reads, the maths that opens an incident, the tools it may hold, and the approval that stands between a proposal and production.">
+<link rel="stylesheet" href="design/tokens.css">
+<link rel="stylesheet" href="design/book.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="cover">
+<p class="series">AI SRE · attendee workbook</p>
+<h1>What an AI SRE is, and what has to be true before you run one</h1>
+<p class="deck">This is the explanation of every idea the workshop uses, written once. You will learn what telemetry an agent can reason over and how a detector decides that something is wrong. You will also learn what separates a tool an agent may hold from one it may not, and where a person has to stand in the loop. The facilitator guide carries the timing and the commands for the day, and it points back at these ideas by name.</p>
+<dl class="facts">
+<dt>Read for</dt><dd>engineers and engineering leaders who are deciding how much an agent may do on their systems</dd>
+<dt>Proven by</dt><dd><code>make check</code> and <code>make e2e</code> in this repository, against a real model and a real browser</dd>
+<dt>Printed by</dt><dd><code>make book</code>, which writes the PDF and reads its own text layer back</dd>
+</dl>
+</header>
+
+<nav class="contents" aria-label="Contents">
+<h2>Contents</h2>
+<ol>
+<li><span class="no">01</span><a href="#l-overview">What are we building, and why?<span class="what">Overview</span></a></li>
+<li><span class="no">02</span><a href="#l-substrate">What must the agent be able to see?<span class="what">Module one</span></a></li>
+<li><span class="no">03</span><a href="#l-targets">How do we say what good means?<span class="what">Reliability targets</span></a></li>
+<li><span class="no">04</span><a href="#l-detection">How does the agent know something is wrong?<span class="what">Module two</span></a></li>
+<li><span class="no">05</span><a href="#l-localisation">Once it is wrong, where is the cause?<span class="what">Module three</span></a></li>
+<li><span class="no">06</span><a href="#l-tools">What may the agent actually do?<span class="what">Module four</span></a></li>
+<li><span class="no">07</span><a href="#l-human">Where does the person come in?<span class="what">Module five</span></a></li>
+<li><span class="no">08</span><a href="#l-hardening">How can this go wrong?<span class="what">Module six</span></a></li>
+<li><span class="no">09</span><a href="#l-sources">Where do these ideas come from?<span class="what">Grounding</span></a></li>
+<li><span class="no">10</span><a href="#l-terms">The words this workshop uses<span class="what">Recap</span></a></li>
+</ol>
+</nav>
+
+<section class="chapter" id="l-overview">
+<p class="kicker">Overview</p>
+<h2>What are we building, and why?</h2>
+<p class="lede">Every incident starts with reading. We give the reading to an agent, and keep the decision with a person.</p>
+
+<div class="concept" id="c-loop">
+<div class="lead"><h3>Signups fail at 2am. Who works out why?</h3>
+<p class="hook">Someone must find what changed before anyone can fix it. That search is the slow part.</p>
+<figure class="diagram" data-diagram="loop">
+<svg viewBox="0 0 504 112" role="img" aria-labelledby="t-loop">
+<title id="t-loop">Six steps left to right: detect, investigate, propose, approve, execute, verify. Approve is marked as the place a person stands.</title>
+<defs><marker id="a-loop" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Detect</text>
+<text x="9.5" y="31" font-size="8.5" class="t-muted">statistics</text>
+<rect x="174.2" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="183.2" y="18.5" font-size="11" class="t-ink b">Investigate</text>
+<text x="183.2" y="31" font-size="8.5" class="t-muted">read only</text>
+<path d="M158.2 22.8 H173.2" class="s-muted arrow" marker-end="url(#a-loop)"/>
+<rect x="347.8" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="356.8" y="18.5" font-size="11" class="t-ink b">Propose</text>
+<text x="356.8" y="31" font-size="8.5" class="t-muted">cites evidence</text>
+<path d="M331.8 22.8 H346.8" class="s-muted arrow" marker-end="url(#a-loop)"/>
+<path d="M425.7 44.5 V55.5 H78.3 V65.5" class="s-muted arrow" marker-end="url(#a-loop)"/>
+<rect x="0.5" y="66.5" width="155.7" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="9.5" y="84" font-size="11" class="t-ink b">Approve</text>
+<text x="9.5" y="96.5" font-size="8.5" class="t-ink">a person</text>
+<rect x="174.2" y="66.5" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="183.2" y="84" font-size="11" class="t-ink b">Execute</text>
+<text x="183.2" y="96.5" font-size="8.5" class="t-muted">fixed list</text>
+<path d="M158.2 88.3 H173.2" class="s-muted arrow" marker-end="url(#a-loop)"/>
+<rect x="347.8" y="66.5" width="155.7" height="43.5" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="356.8" y="84" font-size="11" class="t-paper b">Verify</text>
+<text x="356.8" y="96.5" font-size="8.5" class="t-paper">fresh traffic</text>
+<path d="M331.8 88.3 H346.8" class="s-muted arrow" marker-end="url(#a-loop)"/>
+</svg>
+<figcaption><span class="no">Figure 1</span> The agent does the reading. A person makes the call.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So an agent does the searching. It reads the data and writes down its best guess, with proof. A person reads the proof and decides.</p>
+</div>
+<figure class="diagram" data-diagram="loop-stops">
+<svg viewBox="0 0 504 117" role="img" aria-labelledby="t-loop-stops">
+<title id="t-loop-stops">A proposal is refused when it cites telemetry that does not exist, and an action is refused when no approval is on record.</title>
+<defs><marker id="a-loop-stops" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="99.3" height="44" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Agent</text>
+<text x="9.5" y="32.5" font-size="11" class="t-ink b">proposes</text>
+<path d="M101.8 23 H142.8" class="s-muted arrow" marker-end="url(#a-loop-stops)"/>
+<line x1="121.8" y1="8" x2="121.8" y2="38" class="s-fail" stroke-width="3"/>
+<rect x="143.8" y="1" width="99.3" height="44" rx="4" class="f-card s-line"/>
+<text x="152.8" y="18.5" font-size="11" class="t-ink b">Proposal</text>
+<text x="152.8" y="32.5" font-size="11" class="t-ink b">stored</text>
+<path d="M245 23 H260" class="s-muted arrow" marker-end="url(#a-loop-stops)"/>
+<rect x="261" y="1" width="99.3" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="270" y="18.5" font-size="11" class="t-ink b">Person</text>
+<text x="270" y="32.5" font-size="11" class="t-ink b">approves</text>
+<path d="M362.3 23 H403.3" class="s-muted arrow" marker-end="url(#a-loop-stops)"/>
+<line x1="382.3" y1="8" x2="382.3" y2="38" class="s-fail" stroke-width="3"/>
+<rect x="404.3" y="1" width="99.3" height="44" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="413.3" y="18.5" font-size="11" class="t-paper b">Action runs</text>
+<path d="M121.8 40 V70" class="s-fail arrow" marker-end="url(#a-loop-stops)"/>
+<rect x="62.1" y="71" width="119.3" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="71.1" y="88.5" font-size="11" class="t-fail b">Cites nothing real</text>
+<path d="M382.3 40 V70" class="s-fail arrow" marker-end="url(#a-loop-stops)"/>
+<rect x="322.6" y="71" width="119.3" height="44" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="331.6" y="88.5" font-size="11" class="t-fail b">No approval on</text>
+<text x="331.6" y="102.5" font-size="11" class="t-fail b">record</text>
+</svg>
+<figcaption><span class="no">Figure 2</span> Both stops are the server saying no. A log line cannot argue with them.</figcaption>
+</figure>
+<div class="body">
+<p>But an agent can be wrong, and a prompt cannot stop it. So the server does the stopping. It turns away a guess that points at nothing, and it will not run anything until a person has said yes.</p>
+</div>
+<p class="next">That is the job. But people will fear what this agent could become.</p>
+</div>
+
+<div class="concept" id="c-not">
+<div class="lead"><h3>What must this agent never become?</h3>
+<p class="hook">Someone always asks whether the model will take the site down. Better to answer before they ask.</p>
+<figure class="diagram" data-diagram="not">
+<svg viewBox="0 0 504 150" role="img" aria-labelledby="t-not">
+<title id="t-not">The AI SRE on the left, with three things it is not on the right: an operator, a replacement for alerting, and a source of truth.</title>
+<defs><marker id="a-not" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="52.5" width="150" height="43.5" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="9.5" y="70" font-size="11" class="t-paper b">The AI SRE</text>
+<text x="9.5" y="82.5" font-size="8.5" class="t-paper">reads, proposes, waits</text>
+<rect x="194.5" y="1" width="309" height="43.5" rx="4" class="f-card s-line"/>
+<text x="203.5" y="18.5" font-size="11" class="t-ink b">Not an operator</text>
+<text x="203.5" y="31" font-size="8.5" class="t-muted">no credential to act alone</text>
+<path d="M152.5 74.3 H172.5 V22.8 H193.5" class="s-muted arrow" marker-end="url(#a-not)"/>
+<rect x="194.5" y="52.5" width="309" height="43.5" rx="4" class="f-card s-line"/>
+<text x="203.5" y="70" font-size="11" class="t-ink b">Not alerting</text>
+<text x="203.5" y="82.5" font-size="8.5" class="t-muted">plain statistics detect</text>
+<path d="M152.5 74.3 H172.5 V74.3 H193.5" class="s-muted arrow" marker-end="url(#a-not)"/>
+<rect x="194.5" y="104" width="309" height="43.5" rx="4" class="f-card s-line"/>
+<text x="203.5" y="121.5" font-size="11" class="t-ink b">Not a source of truth</text>
+<text x="203.5" y="134" font-size="8.5" class="t-muted">claims are checked first</text>
+<path d="M152.5 74.3 H172.5 V125.8 H193.5" class="s-muted arrow" marker-end="url(#a-not)"/>
+</svg>
+<figcaption><span class="no">Figure 3</span> Each role is closed off by something you can test.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we write a list of nots. Each one is a job people will hand it if nobody says no. Each one also becomes a test you can run.</p>
+</div>
+<p class="next">Nots mean little without good data. First we must decide which signal to open.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-substrate">
+<p class="kicker">Module one</p>
+<h2>What must the agent be able to see?</h2>
+<p class="lede">Every failure in this chapter happens before a model is involved. If SQL cannot answer these questions, no agent can.</p>
+
+<div class="concept" id="c-signals">
+<div class="lead"><h3>Which signal do I open first?</h3>
+<p class="hook">A customer says checkout was slow around noon. You keep logs, metrics and traces, and one of them answers this fastest.</p>
+<figure class="diagram" data-diagram="signals">
+<svg viewBox="0 0 504 100" role="img" aria-labelledby="t-signals">
+<title id="t-signals">Logs, metrics and traces compared by the question each answers and what each costs to keep.</title>
+<defs><marker id="a-signals" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="74" y="13" font-size="9.5" class="t-ink b">Answers</text>
+<text x="290.5" y="13" font-size="9.5" class="t-ink b">Costs</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">Signal</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="75" y="37" font-size="8.5" class="t-ink">What went wrong, once</text>
+<text x="291.5" y="37" font-size="8.5" class="t-ink">The most bytes</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Log</text>
+<line x1="0.5" y1="47" x2="503.5" y2="47" class="s-line"/>
+<text x="75" y="62.5" font-size="8.5" class="t-ink">How much, how often</text>
+<text x="291.5" y="62.5" font-size="8.5" class="t-ink">The least</text>
+<text x="0.5" y="62.5" font-size="9.5" class="t-ink b">Metric</text>
+<line x1="0.5" y1="72.5" x2="503.5" y2="72.5" class="s-line"/>
+<rect x="71" y="74.5" width="214.5" height="21.5" rx="3" class="f-accent s-accent-deep"/>
+<text x="75" y="88" font-size="8.5" class="t-ink">Where the time went</text>
+<text x="291.5" y="88" font-size="8.5" class="t-ink">A tree per request</text>
+<text x="0.5" y="88" font-size="9.5" class="t-ink b">Trace</text>
+<line x1="0.5" y1="98" x2="503.5" y2="98" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 4</span> Only a trace shows the path a request took.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we keep all three. Metrics show that something changed. Logs show what broke. Traces show which step was slow.</p>
+</div>
+<figure class="diagram" data-diagram="signals-join">
+<svg viewBox="0 0 504 47" role="img" aria-labelledby="t-signals-join">
+<title id="t-signals-join">A question starts at a log line, follows its trace id to a trace, and ends at the slow span.</title>
+<defs><marker id="a-signals-join" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Log line</text>
+<text x="9.5" y="31" font-size="8.5" class="t-muted">carries a trace id</text>
+<rect x="174.2" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="183.2" y="18.5" font-size="11" class="t-ink b">Trace</text>
+<text x="183.2" y="31" font-size="8.5" class="t-muted">spans and timings</text>
+<path d="M158.2 22.8 H173.2" class="s-muted arrow" marker-end="url(#a-signals-join)"/>
+<rect x="347.8" y="1" width="155.7" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="356.8" y="18.5" font-size="11" class="t-ink b">Slow span</text>
+<text x="356.8" y="31" font-size="8.5" class="t-ink">the cause</text>
+<path d="M331.8 22.8 H346.8" class="s-muted arrow" marker-end="url(#a-signals-join)"/>
+</svg>
+<figcaption><span class="no">Figure 5</span> One store lets a question hop from a log line to the slow step.</figcaption>
+</figure>
+<div class="body">
+<p>Three tools means three tabs and a lot of guessing. So we store them side by side, and one query can hop between them.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/01-substrate.sql#list_tables"><span class="hl-k">SELECT</span>
+    <span class="hl-k">table</span>,
+    sum(rows) <span class="hl-k">AS</span> rows,
+    formatReadableSize(sum(data_compressed_bytes)) <span class="hl-k">AS</span> compressed,
+    round(sum(data_uncompressed_bytes) / greatest(sum(data_compressed_bytes), <span class="hl-n">1</span>), <span class="hl-n">1</span>) <span class="hl-k">AS</span> ratio
+<span class="hl-k">FROM</span> system.parts
+<span class="hl-k">WHERE</span> database = <span class="hl-s">'default'</span> <span class="hl-k">AND</span> active <span class="hl-k">AND</span> <span class="hl-k">table</span> <span class="hl-k">LIKE</span> <span class="hl-s">'otel_%'</span>
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> <span class="hl-k">table</span>
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> rows <span class="hl-k">DESC</span>
+<span class="hl-k">LIMIT</span> <span class="hl-n">20</span>;</pre>
+<div class="body">
+<p>Run this on your own store. If a signal is missing, fix that first.</p>
+</div>
+<p class="next">Having the logs is not enough. We still cannot say if one release caused the errors.</p>
+</div>
+
+<div class="concept" id="c-wide-event">
+<div class="lead"><h3>Did the errors all come from one release?</h3>
+<p class="hook">Errors doubled at 3am. The answer depends on a choice someone made in a code review last spring.</p>
+<figure class="diagram" data-diagram="wide-event">
+<svg viewBox="0 0 504 115" role="img" aria-labelledby="t-wide-event">
+<title id="t-wide-event">The same failed request recorded as a narrow event and as a wide event. Only the wide one carries release, region and tier.</title>
+<defs><marker id="a-wide-event" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="112" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Narrow</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Outcome</text>
+<text x="71.5" y="39" font-size="9.5" class="t-ink">error</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Release</text>
+<text x="71.5" y="59.5" font-size="9.5" class="t-fail b">missing</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Region</text>
+<text x="71.5" y="80" font-size="9.5" class="t-fail b">missing</text>
+<line x1="9.5" y1="88.5" x2="220" y2="88.5" class="s-line"/>
+<text x="9.5" y="100.5" font-size="9.5" class="t-muted b">Tier</text>
+<text x="71.5" y="100.5" font-size="9.5" class="t-fail b">missing</text>
+<rect x="275" y="1" width="228.5" height="112" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Wide</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Outcome</text>
+<text x="346" y="39" font-size="9.5" class="t-ink">error</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Release</text>
+<text x="346" y="59.5" font-size="9.5" class="t-pass b">v2</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Region</text>
+<text x="346" y="80" font-size="9.5" class="t-pass b">eu-west</text>
+<text x="284" y="100.5" font-size="9.5" class="t-muted b">Tier</text>
+<text x="346" y="100.5" font-size="9.5" class="t-pass b">free</text>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-wide-event)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-wide-event)"/>
+<path d="M235 98.8 H269" class="s-muted arrow" marker-end="url(#a-wide-event)"/>
+</svg>
+<figcaption><span class="no">Figure 6</span> The same failed request, written twice. Only the wide one can be split by release later.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we write one wide record for every request, with every fact we might want later. A fact nobody wrote down is gone, and nobody can add it at 3am.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/04-trace-graph.sql#errors_by_release"><span class="hl-k">SELECT</span>
+    ResourceAttributes[<span class="hl-s">'service.version'</span>] <span class="hl-k">AS</span> release,
+    min(Timestamp) <span class="hl-k">AS</span> first_seen,
+    count() <span class="hl-k">AS</span> requests,
+    countIf(StatusCode = <span class="hl-s">'Error'</span>) <span class="hl-k">AS</span> errors,
+    round(errors / requests, <span class="hl-n">4</span>) <span class="hl-k">AS</span> error_rate,
+    round(quantile(<span class="hl-n">0.95</span>)(Duration) / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> p95_ms
+<span class="hl-k">FROM</span> default.otel_traces
+<span class="hl-k">WHERE</span> ServiceName = {service:String}
+  <span class="hl-k">AND</span> SpanKind = <span class="hl-s">'Server'</span>
+  <span class="hl-k">AND</span> SpanName <span class="hl-k">NOT</span> <span class="hl-k">IN</span> (<span class="hl-s">'GET /health'</span>)
+  <span class="hl-k">AND</span> Timestamp &gt; now() - toIntervalMinute({minutes:UInt32})
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> release
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> first_seen
+<span class="hl-k">LIMIT</span> <span class="hl-n">20</span>;</pre>
+<div class="body">
+<p>Try it on your own system. Split one minute of errors by release. If you cannot, fix that before anything else.</p>
+</div>
+<p class="next">But each extra fact costs money. We cannot afford to record everything.</p>
+</div>
+
+<div class="concept" id="c-cardinality">
+<div class="lead"><h3>Which facts can we afford to record?</h3>
+<p class="hook">Someone adds the user id to every metric so support can find one customer. That month the bill triples.</p>
+<figure class="diagram" data-diagram="cardinality">
+<svg viewBox="0 0 504 156" role="img" aria-labelledby="t-cardinality">
+<title id="t-cardinality">Cost against distinct values. A store that keeps a series per combination climbs steeply. A columnar store stays flat.</title>
+<defs><marker id="a-cardinality" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="10" y="13" font-size="8.5" class="t-muted">Cost</text>
+<line x1="10" y1="22" x2="10" y2="132" class="s-muted"/>
+<line x1="10" y1="132" x2="364" y2="132" class="s-muted"/>
+<line x1="229.5" y1="22" x2="229.5" y2="132" class="s-line" stroke-dasharray="4 4"/>
+<text x="224.5" y="32" font-size="8.5" class="t-muted" text-anchor="end">user id added</text>
+<polyline points="10,118.8 27.7,118.4 45.4,117.3 63.1,115.7 80.8,113.6 98.5,111 116.2,108 133.9,104.5 151.6,100.6 169.3,96.3 187,91.6 204.7,86.5 222.4,81.1 240.1,75.2 257.8,69 275.5,62.4 293.2,55.5 310.9,48.2 328.6,40.5 346.3,32.5 364,24.2" class="s-fail line" fill="none" stroke-width="2"/>
+<polyline points="10,118.8 364,118.8" class="s-pass line" fill="none" stroke-width="2"/>
+<text x="372" y="28.2" font-size="9.5" class="t-fail b">A series per value</text>
+<text x="372" y="122.8" font-size="9.5" class="t-pass b">A column, read once</text>
+<text x="364" y="146" font-size="8.5" class="t-muted" text-anchor="end">Distinct values</text>
+</svg>
+<figcaption><span class="no">Figure 7</span> Cost climbs with the number of different values. The marked line is when someone added the user id.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Count how many different values a fact can take. Status code has a few. User id has millions, and a metric stores each one on its own.</p>
+</div>
+<figure class="diagram" data-diagram="cardinality-ladder">
+<svg viewBox="0 0 504 100" role="img" aria-labelledby="t-cardinality-ladder">
+<title id="t-cardinality-ladder">Three attributes ordered from few distinct values to millions, with what each is good for.</title>
+<defs><marker id="a-cardinality-ladder" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="94" y="13" font-size="9.5" class="t-ink b">Distinct values</text>
+<text x="300.5" y="13" font-size="9.5" class="t-ink b">Good for</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">Attribute</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="95" y="37" font-size="8.5" class="t-ink">A handful</text>
+<text x="301.5" y="37" font-size="8.5" class="t-ink">Charts</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Status code</text>
+<line x1="0.5" y1="47" x2="503.5" y2="47" class="s-line"/>
+<text x="95" y="62.5" font-size="8.5" class="t-ink">Dozens</text>
+<text x="301.5" y="62.5" font-size="8.5" class="t-ink">Blame</text>
+<text x="0.5" y="62.5" font-size="9.5" class="t-ink b">Release</text>
+<line x1="0.5" y1="72.5" x2="503.5" y2="72.5" class="s-line"/>
+<rect x="91" y="74.5" width="204.5" height="21.5" rx="3" class="f-accent s-accent-deep"/>
+<text x="95" y="88" font-size="8.5" class="t-ink">Millions</text>
+<text x="301.5" y="88" font-size="8.5" class="t-ink">One customer</text>
+<text x="0.5" y="88" font-size="9.5" class="t-ink b">User id</text>
+<line x1="0.5" y1="98" x2="503.5" y2="98" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 8</span> The costliest fact is also the one that finds a single broken customer.</figcaption>
+</figure>
+<div class="body">
+<p>So do not drop the fact. Store it where many values are cheap. First ask whether your store bills per value or per column read.</p>
+</div>
+<p class="next">Cost also pushes teams into sampling, and sampling has to throw something away.</p>
+</div>
+
+<div class="concept" id="c-sampling">
+<div class="lead"><h3>What does sampling throw away?</h3>
+<p class="hook">The dashboard says the slowest requests take about a second. A customer sends proof of a page that took forty. Both are true.</p>
+<figure class="diagram" data-diagram="sampling">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-sampling">
+<title id="t-sampling">The same thousand requests kept in full and sampled. Sampling loses the slowest request and reports a much better percentile.</title>
+<defs><marker id="a-sampling" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="17" font-size="11" class="t-ink b">Every span kept</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Requests</text>
+<text x="87.5" y="39" font-size="9.5" class="t-ink">1,000</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Slowest</text>
+<text x="87.5" y="59.5" font-size="9.5" class="t-pass b">40 s</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">p99</text>
+<text x="87.5" y="80" font-size="9.5" class="t-pass b">38 s</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="284" y="17" font-size="11" class="t-muted b">One in ten</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Requests</text>
+<text x="362" y="39" font-size="9.5" class="t-ink">100</text>
+<line x1="284" y1="47.5" x2="494.5" y2="47.5" class="s-line"/>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Slowest</text>
+<text x="362" y="59.5" font-size="9.5" class="t-fail b">missing</text>
+<line x1="284" y1="68" x2="494.5" y2="68" class="s-line"/>
+<text x="284" y="80" font-size="9.5" class="t-muted b">p99</text>
+<text x="362" y="80" font-size="9.5" class="t-fail b">1.2 s</text>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-sampling)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-sampling)"/>
+</svg>
+<figcaption><span class="no">Figure 9</span> Slow requests are rare, so a fixed share drops them first.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Failures are rare, so a random sample loses most of them. What is left describes the requests that worked. So we keep every span, and the number we quote is the real one.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/01-substrate.sql#latency_percentiles"><span class="hl-k">SELECT</span>
+    SpanName <span class="hl-k">AS</span> endpoint,
+    count() <span class="hl-k">AS</span> requests,
+    round(quantile(<span class="hl-n">0.50</span>)(Duration) / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> p50_ms,
+    round(quantile(<span class="hl-n">0.95</span>)(Duration) / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> p95_ms,
+    round(quantile(<span class="hl-n">0.99</span>)(Duration) / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> p99_ms,
+    round(countIf(StatusCode = <span class="hl-s">'Error'</span>) / count(), <span class="hl-n">4</span>) <span class="hl-k">AS</span> error_rate
+<span class="hl-k">FROM</span> default.otel_traces
+<span class="hl-k">WHERE</span> ServiceName = {service:String}
+  <span class="hl-k">AND</span> SpanKind = <span class="hl-s">'Server'</span>
+  <span class="hl-k">AND</span> Timestamp &gt; now() - toIntervalMinute({minutes:UInt32})
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> endpoint
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> requests <span class="hl-k">DESC</span>
+<span class="hl-k">LIMIT</span> <span class="hl-n">50</span>;</pre>
+<div class="body">
+<p>Ask what your sampler keeps when a request fails. If it keeps the same share as everything else, your numbers flatter you.</p>
+</div>
+<p class="next">The data is now sound. But everything can look green while signups fail.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-targets">
+<p class="kicker">Reliability targets</p>
+<h2>How do we say what good means?</h2>
+<p class="lede">These words come from Google's site reliability practice. The rest of the day uses them.</p>
+
+<div class="concept" id="c-sli">
+<div class="lead"><h3>Everything is green but signups fail. What should we measure?</h3>
+<p class="hook">Processors are idle and memory is fine. Signups have failed for an hour, because nothing on the dashboard counts a signup.</p>
+<figure class="diagram" data-diagram="sli">
+<svg viewBox="0 0 504 100" role="img" aria-labelledby="t-sli">
+<title id="t-sli">Three indicators, each defined as a good event over a valid event.</title>
+<defs><marker id="a-sli" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="96" y="13" font-size="9.5" class="t-ink b">Good event</text>
+<text x="301.5" y="13" font-size="9.5" class="t-ink b">Valid event</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">Indicator</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="97" y="37" font-size="8.5" class="t-ink">Returned success</text>
+<text x="302.5" y="37" font-size="8.5" class="t-ink">Any user request</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Availability</text>
+<line x1="0.5" y1="47" x2="503.5" y2="47" class="s-line"/>
+<text x="97" y="62.5" font-size="8.5" class="t-ink">Served under 300 ms</text>
+<text x="302.5" y="62.5" font-size="8.5" class="t-ink">Any user request</text>
+<text x="0.5" y="62.5" font-size="9.5" class="t-ink b">Latency</text>
+<line x1="0.5" y1="72.5" x2="503.5" y2="72.5" class="s-line"/>
+<rect x="93" y="74.5" width="203.5" height="21.5" rx="3" class="f-accent s-accent-deep"/>
+<text x="97" y="88" font-size="8.5" class="t-ink">Data under a minute old</text>
+<text x="302.5" y="88" font-size="8.5" class="t-ink">Any read</text>
+<text x="0.5" y="88" font-size="9.5" class="t-ink b">Freshness</text>
+<line x1="0.5" y1="98" x2="503.5" y2="98" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 10</span> A ratio still makes sense when traffic doubles. A raw count does not.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we measure what the user feels, as good events divided by valid events. This is called an indicator. Leave out events that prove nothing. A health check that always passes quietly improves every number.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/02-anomaly.sql#service_timeseries"><span class="hl-k">SELECT</span>
+    toStartOfInterval(Timestamp, toIntervalSecond({bucket_s:UInt32})) <span class="hl-k">AS</span> bucket,
+    count() <span class="hl-k">AS</span> requests,
+    countIf(StatusCode = <span class="hl-s">'Error'</span>) <span class="hl-k">AS</span> errors,
+    round(errors / requests, <span class="hl-n">4</span>) <span class="hl-k">AS</span> error_rate,
+    round(quantile(<span class="hl-n">0.95</span>)(Duration) / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> p95_ms
+<span class="hl-k">FROM</span> default.otel_traces
+<span class="hl-k">WHERE</span> ServiceName = {service:String}
+  <span class="hl-k">AND</span> SpanKind = <span class="hl-s">'Server'</span>
+  <span class="hl-k">AND</span> SpanName <span class="hl-k">NOT</span> <span class="hl-k">IN</span> (<span class="hl-s">'GET /health'</span>)
+  <span class="hl-k">AND</span> Timestamp &gt; now() - toIntervalMinute({minutes:UInt32})
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> bucket
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> bucket
+<span class="hl-k">LIMIT</span> <span class="hl-n">1000</span>;</pre>
+<div class="body">
+<p>Write yours as one sentence with a top and a bottom. If you cannot, nobody can alert on it.</p>
+</div>
+<p class="next">A number alone settles nothing. We must agree what is good enough for signups.</p>
+</div>
+
+<div class="concept" id="c-slo">
+<div class="lead"><h3>How good is good enough for signups?</h3>
+<p class="hook">Product wants signups to be reliable. Engineering asks how reliable, over what time, measured how. The meeting ends there.</p>
+<figure class="diagram" data-diagram="slo">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-slo">
+<title id="t-slo">A vague wish for reliable signups next to the same wish as an objective: a named indicator, a target and a window.</title>
+<defs><marker id="a-slo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">A wish</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Measure</text>
+<text x="71.5" y="39" font-size="9.5" class="t-fail b">Reliable</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Target</text>
+<text x="71.5" y="59.5" font-size="9.5" class="t-fail b">High</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Window</text>
+<text x="71.5" y="80" font-size="9.5" class="t-fail b">Unsaid</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">An objective</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Measure</text>
+<text x="346" y="39" font-size="9.5" class="t-pass b">Signup success</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Target</text>
+<text x="346" y="59.5" font-size="9.5" class="t-pass b">99.9 percent</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Window</text>
+<text x="346" y="80" font-size="9.5" class="t-pass b">Thirty days</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-slo)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-slo)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-slo)"/>
+</svg>
+<figcaption><span class="no">Figure 11</span> Only the right side can be argued with.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we agree on a target: a number, a window, and the indicator it applies to. This is an objective. If missing it changes nothing, it is only decoration, so also write down what happens when it is missed.</p>
+</div>
+<p class="next">A target draws a line, but says nothing of how much failure we may spend before it.</p>
+</div>
+
+<div class="concept" id="c-error-budget">
+<div class="lead"><h3>How much failure can we spend?</h3>
+<p class="hook">A risky release is proposed on Tuesday. Someone asks if the team can afford it, and there is no number to answer with.</p>
+<figure class="diagram" data-diagram="error-budget">
+<svg viewBox="0 0 504 166" role="img" aria-labelledby="t-error-budget">
+<title id="t-error-budget">Minutes of budget left across a thirty day window. A bad release on day ten takes a large step out of it.</title>
+<defs><marker id="a-error-budget" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<line x1="34" y1="20" x2="34" y2="140" class="s-muted"/>
+<line x1="34" y1="140" x2="498" y2="140" class="s-muted"/>
+<text x="0.5" y="12" font-size="8.5" class="t-muted">Minutes left</text>
+<text x="498" y="154" font-size="8.5" class="t-muted" text-anchor="end">Days into window</text>
+<line x1="34" y1="140" x2="498" y2="140" class="s-fail" stroke-dasharray="4 3" stroke-width="1.25"/>
+<text x="39" y="136" font-size="8.5" class="t-fail b">Budget spent</text>
+<polyline points="34,25.3 95.9,28 157.7,33.3 188.7,73.3 250.5,76 343.3,84 436.1,89.3 498,94.7" class="s-ink line" fill="none" stroke-width="1.75"/>
+<circle cx="188.7" cy="73.3" r="4.5" class="f-accent s-accent-deep" stroke-width="1.5"/>
+<text x="197.7" y="66.3" font-size="9.5" class="t-ink b">Bad release</text>
+</svg>
+<figcaption><span class="no">Figure 12</span> At 99.9 percent over thirty days, about forty three minutes of failure are allowed.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Take one minus the objective, times the window. That is the failure you are allowed, and it is called the error budget. When it is full, ship faster. When it is empty, stop and repair.</p>
+</div>
+<figure class="diagram" data-diagram="error-budget-pair">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-error-budget-pair">
+<title id="t-error-budget-pair">How a release decision goes without a budget and with one.</title>
+<defs><marker id="a-error-budget-pair" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">No budget</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Can we ship?</text>
+<text x="79.5" y="39" font-size="9.5" class="t-fail b">Ask around</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">An outage</text>
+<text x="79.5" y="59.5" font-size="9.5" class="t-fail b">Assign blame</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Reliability</text>
+<text x="79.5" y="80" font-size="9.5" class="t-fail b">A value</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-card s-line"/>
+<text x="284" y="17" font-size="11" class="t-ink b">A budget</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Can we ship?</text>
+<text x="354" y="39" font-size="9.5" class="t-pass b">Check what is left</text>
+<line x1="284" y1="47.5" x2="494.5" y2="47.5" class="s-line"/>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">An outage</text>
+<text x="354" y="59.5" font-size="9.5" class="t-pass b">Spend budget</text>
+<line x1="284" y1="68" x2="494.5" y2="68" class="s-line"/>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Reliability</text>
+<text x="354" y="80" font-size="9.5" class="t-pass b">A quantity</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-error-budget-pair)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-error-budget-pair)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-error-budget-pair)"/>
+</svg>
+<figcaption><span class="no">Figure 13</span> With a budget, the release talk becomes arithmetic that anyone can join.</figcaption>
+</figure>
+<div class="body">
+<p>Work out yours today. It is usually smaller than anyone expects.</p>
+</div>
+<p class="next">A budget can drain slowly or fast. Only a fast drain is worth waking somebody for.</p>
+</div>
+
+<div class="concept" id="c-burn-rate">
+<div class="lead"><h3>When is it worth waking somebody up?</h3>
+<p class="hook">An alert fires for a spike that lasted forty seconds, so the person on call learns to swipe it away. The next one was real.</p>
+<figure class="diagram" data-diagram="burn-rate">
+<svg viewBox="0 0 504 122" role="img" aria-labelledby="t-burn-rate">
+<title id="t-burn-rate">How long a thirty day budget lasts at four burn rates, from thirty days at rate one down to about seven hours at rate one hundred.</title>
+<defs><marker id="a-burn-rate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="0.5" y="18" font-size="9.5" class="t-ink b">Rate 1</text>
+<rect x="66" y="7" width="437" height="14" rx="2" class="f-muted s-muted"/>
+<text x="497" y="18" font-size="8.5" class="t-paper" text-anchor="end">30 days</text>
+<text x="0.5" y="42" font-size="9.5" class="t-ink b">Rate 2</text>
+<rect x="66" y="31" width="218.5" height="14" rx="2" class="f-muted s-muted"/>
+<text x="289.5" y="42" font-size="8.5" class="t-muted">15 days</text>
+<text x="0.5" y="66" font-size="9.5" class="t-ink b">Rate 10</text>
+<rect x="66" y="55" width="43.7" height="14" rx="2" class="f-wait s-wait"/>
+<text x="114.7" y="66" font-size="8.5" class="t-muted">3 days</text>
+<text x="0.5" y="90" font-size="9.5" class="t-ink b">Rate 100</text>
+<rect x="66" y="79" width="4.4" height="14" rx="2" class="f-accent s-accent-deep"/>
+<text x="75.4" y="90" font-size="8.5" class="t-muted">7 hours</text>
+<line x1="66" y1="98" x2="503.5" y2="98" class="s-line"/>
+<line x1="66" y1="98" x2="66" y2="102" class="s-line"/>
+<text x="66" y="113" font-size="8.5" class="t-muted">0 d</text>
+<line x1="138.8" y1="98" x2="138.8" y2="102" class="s-line"/>
+<text x="138.8" y="113" font-size="8.5" class="t-muted" text-anchor="middle">5 d</text>
+<line x1="211.7" y1="98" x2="211.7" y2="102" class="s-line"/>
+<text x="211.7" y="113" font-size="8.5" class="t-muted" text-anchor="middle">10 d</text>
+<line x1="284.5" y1="98" x2="284.5" y2="102" class="s-line"/>
+<text x="284.5" y="113" font-size="8.5" class="t-muted" text-anchor="middle">15 d</text>
+<line x1="357.3" y1="98" x2="357.3" y2="102" class="s-line"/>
+<text x="357.3" y="113" font-size="8.5" class="t-muted" text-anchor="middle">20 d</text>
+<line x1="430.2" y1="98" x2="430.2" y2="102" class="s-line"/>
+<text x="430.2" y="113" font-size="8.5" class="t-muted" text-anchor="middle">25 d</text>
+<line x1="503" y1="98" x2="503" y2="102" class="s-line"/>
+<text x="503" y="113" font-size="8.5" class="t-muted" text-anchor="end">30 d</text>
+</svg>
+<figcaption><span class="no">Figure 14</span> How long the whole budget lasts at each rate. Rate 1 is on target. Rate 100 is an outage.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>A fixed threshold pages for every spike, or for none. So we page by how fast the budget is going. This is the burn rate. It tells the sleeper the one thing they need: how long until it is gone.</p>
+</div>
+<figure class="diagram" data-diagram="burn-rate-windows">
+<svg viewBox="0 0 504 103" role="img" aria-labelledby="t-burn-rate-windows">
+<title id="t-burn-rate-windows">A burn seen in a short window must also show in a long window before it pages. A blip is stopped between them.</title>
+<defs><marker id="a-burn-rate-windows" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="147" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Fast burn</text>
+<text x="9.5" y="31" font-size="8.5" class="t-muted">5 minute window</text>
+<path d="M149.5 22.8 H190.5" class="s-muted arrow" marker-end="url(#a-burn-rate-windows)"/>
+<line x1="169.5" y1="7.8" x2="169.5" y2="37.8" class="s-fail" stroke-width="3"/>
+<rect x="191.5" y="1" width="147" height="43.5" rx="4" class="f-card s-line"/>
+<text x="200.5" y="18.5" font-size="11" class="t-ink b">Sustained</text>
+<text x="200.5" y="31" font-size="8.5" class="t-muted">1 hour window</text>
+<path d="M340.5 22.8 H355.5" class="s-muted arrow" marker-end="url(#a-burn-rate-windows)"/>
+<rect x="356.5" y="1" width="147" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="365.5" y="18.5" font-size="11" class="t-ink b">Page</text>
+<path d="M169.5 39.8 V69.5" class="s-fail arrow" marker-end="url(#a-burn-rate-windows)"/>
+<rect x="94.5" y="70.5" width="150" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="103.5" y="88" font-size="11" class="t-fail b">A blip stays quiet</text>
+</svg>
+<figcaption><span class="no">Figure 15</span> Both windows must agree, so a real burn pages and a blip stays quiet.</figcaption>
+</figure>
+<div class="body">
+<p>The lab uses a simpler cousin, because a workshop needs an incident within a minute. The idea still carries over. Compare with what normal looks like, never with a number typed once.</p>
+</div>
+<p class="next">Both ideas compare against normal. Nobody has yet said what normal should look like.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-detection">
+<p class="kicker">Module two</p>
+<h2>How does the agent know something is wrong?</h2>
+<p class="lede">Detection is arithmetic over a baseline. The hard part is deciding what counts as normal.</p>
+
+<div class="concept" id="c-baseline">
+<div class="lead"><h3>What did normal look like?</h3>
+<p class="hook">A service fails one request in a hundred every day and nobody is paged. One afternoon it is one in ten. The detector must know the difference.</p>
+<figure class="diagram" data-diagram="baseline">
+<svg viewBox="0 0 504 156" role="img" aria-labelledby="t-baseline">
+<title id="t-baseline">Error rate over time. A shaded stretch is the baseline called healthy, and the last minute jumps far above it.</title>
+<defs><marker id="a-baseline" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="34" y="97" width="386.7" height="33" class="f-line band"/>
+<text x="38" y="108" font-size="8.5" class="t-muted">Called healthy</text>
+<line x1="34" y1="20" x2="34" y2="130" class="s-muted"/>
+<line x1="34" y1="130" x2="498" y2="130" class="s-muted"/>
+<text x="0.5" y="12" font-size="8.5" class="t-muted">Error rate</text>
+<text x="498" y="144" font-size="8.5" class="t-muted" text-anchor="end">Time</text>
+<polyline points="34,116.8 72.7,112.4 111.3,119 150,114.6 188.7,109.1 227.3,117.9 266,113.5 304.7,115.7 343.3,111.3 382,116.8 420.7,114.6 459.3,46.4 498,39.8" class="s-ink line" fill="none" stroke-width="1.75"/>
+<circle cx="459.3" cy="46.4" r="4.5" class="f-accent s-accent-deep" stroke-width="1.5"/>
+<text x="450.3" y="39.4" font-size="9.5" class="t-ink b" text-anchor="end">Last minute</text>
+</svg>
+<figcaption><span class="no">Figure 16</span> Every verdict is relative to the shaded stretch. Change it and every verdict changes.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we pick a stretch of time and call it healthy. Too short, and a slow morning looks like an outage. Too long, and a service that has been getting worse for a week looks fine.</p>
+</div>
+<figure class="diagram" data-diagram="baseline-windows">
+<svg viewBox="0 0 504 74" role="img" aria-labelledby="t-baseline-windows">
+<title id="t-baseline-windows">Ten minutes of baseline followed by the last minute, which is the only part compared against it.</title>
+<defs><marker id="a-baseline-windows" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="0.5" y="18" font-size="9.5" class="t-ink b">Baseline</text>
+<rect x="82" y="7" width="382.7" height="14" rx="2" class="f-muted s-muted"/>
+<text x="458.7" y="18" font-size="8.5" class="t-paper" text-anchor="end">called healthy</text>
+<text x="0.5" y="42" font-size="9.5" class="t-ink b">Compared</text>
+<rect x="464.7" y="31" width="38.3" height="14" rx="2" class="f-accent s-accent-deep"/>
+<text x="459.7" y="42" font-size="8.5" class="t-muted" text-anchor="end">last minute</text>
+<line x1="82" y1="50" x2="503.5" y2="50" class="s-line"/>
+<line x1="82" y1="50" x2="82" y2="54" class="s-line"/>
+<text x="82" y="65" font-size="8.5" class="t-muted">0 m</text>
+<line x1="120.3" y1="50" x2="120.3" y2="54" class="s-line"/>
+<text x="120.3" y="65" font-size="8.5" class="t-muted" text-anchor="middle">1 m</text>
+<line x1="158.5" y1="50" x2="158.5" y2="54" class="s-line"/>
+<text x="158.5" y="65" font-size="8.5" class="t-muted" text-anchor="middle">2 m</text>
+<line x1="196.8" y1="50" x2="196.8" y2="54" class="s-line"/>
+<text x="196.8" y="65" font-size="8.5" class="t-muted" text-anchor="middle">3 m</text>
+<line x1="235.1" y1="50" x2="235.1" y2="54" class="s-line"/>
+<text x="235.1" y="65" font-size="8.5" class="t-muted" text-anchor="middle">4 m</text>
+<line x1="273.4" y1="50" x2="273.4" y2="54" class="s-line"/>
+<text x="273.4" y="65" font-size="8.5" class="t-muted" text-anchor="middle">5 m</text>
+<line x1="311.6" y1="50" x2="311.6" y2="54" class="s-line"/>
+<text x="311.6" y="65" font-size="8.5" class="t-muted" text-anchor="middle">6 m</text>
+<line x1="349.9" y1="50" x2="349.9" y2="54" class="s-line"/>
+<text x="349.9" y="65" font-size="8.5" class="t-muted" text-anchor="middle">7 m</text>
+<line x1="388.2" y1="50" x2="388.2" y2="54" class="s-line"/>
+<text x="388.2" y="65" font-size="8.5" class="t-muted" text-anchor="middle">8 m</text>
+<line x1="426.5" y1="50" x2="426.5" y2="54" class="s-line"/>
+<text x="426.5" y="65" font-size="8.5" class="t-muted" text-anchor="middle">9 m</text>
+<line x1="464.7" y1="50" x2="464.7" y2="54" class="s-line"/>
+<text x="464.7" y="65" font-size="8.5" class="t-muted" text-anchor="middle">10 m</text>
+<line x1="503" y1="50" x2="503" y2="54" class="s-line"/>
+<text x="503" y="65" font-size="8.5" class="t-muted" text-anchor="end">11 m</text>
+</svg>
+<figcaption><span class="no">Figure 17</span> The last minute is judged against the ten before it, and is never part of them.</figcaption>
+</figure>
+<div class="body">
+<p>Decide what your detector may call healthy. Write it down where the next person will find it.</p>
+</div>
+<p class="next">Normal is a starting point. Now we must choose how far from it an alert should fire.</p>
+</div>
+
+<div class="concept" id="c-three-sigma">
+<div class="lead"><h3>How far from normal should an alert fire?</h3>
+<p class="hook">Two minutes after the alert, someone asks why 0.041 opened an incident and 0.038 did not. Nobody chose either number.</p>
+<figure class="diagram" data-diagram="three-sigma">
+<svg viewBox="0 0 504 166" role="img" aria-labelledby="t-three-sigma">
+<title id="t-three-sigma">An illustration of a band three deviations wide around the baseline, a fixed ceiling above it, and the minute that crosses the band.</title>
+<defs><marker id="a-three-sigma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="34" y="104" width="464" height="30" class="f-line band"/>
+<text x="38" y="115" font-size="8.5" class="t-muted">Mean plus or minus 3σ</text>
+<line x1="34" y1="20" x2="34" y2="140" class="s-muted"/>
+<line x1="34" y1="140" x2="498" y2="140" class="s-muted"/>
+<text x="0.5" y="12" font-size="8.5" class="t-muted">Error rate</text>
+<text x="498" y="154" font-size="8.5" class="t-muted" text-anchor="end">Time</text>
+<line x1="34" y1="44" x2="498" y2="44" class="s-fail" stroke-dasharray="4 3" stroke-width="1.25"/>
+<text x="498" y="40" font-size="8.5" class="t-fail b" text-anchor="end">Fixed ceiling</text>
+<polyline points="34,122 72.7,118.4 111.3,125.6 150,117.2 188.7,123.2 227.3,113.6 266,120.8 304.7,124.4 343.3,118.4 382,84.8 420.7,66.8 459.3,75.2 498,116" class="s-ink line" fill="none" stroke-width="1.75"/>
+<circle cx="382" cy="84.8" r="4.5" class="f-accent s-accent-deep" stroke-width="1.5"/>
+<text x="373" y="77.8" font-size="9.5" class="t-ink b" text-anchor="end">Opens incident</text>
+</svg>
+<figcaption><span class="no">Figure 18</span> An illustration, not lab data. The dashed ceiling still catches a failure when no clean baseline exists yet.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we draw a band around normal, three standard deviations wide. Ordinary minutes stay inside it, and a real jump leaves it. It is a trigger, not a promise of one in a thousand, because error rates are often not bell shaped.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/02-anomaly.sql#analyze_service_anomalies"><span class="hl-k">WITH</span> buckets <span class="hl-k">AS</span> (
+    <span class="hl-k">SELECT</span>
+        ServiceName <span class="hl-k">AS</span> service,
+        toStartOfInterval(Timestamp, toIntervalSecond(<span class="hl-n">10</span>)) <span class="hl-k">AS</span> bucket,
+        countIf(StatusCode = <span class="hl-s">'Error'</span>) / count() <span class="hl-k">AS</span> error_rate,
+        quantile(<span class="hl-n">0.95</span>)(Duration) / 1e6 <span class="hl-k">AS</span> p95_ms,
+        count() <span class="hl-k">AS</span> requests
+    <span class="hl-k">FROM</span> default.otel_traces
+    <span class="hl-k">WHERE</span> SpanKind = <span class="hl-s">'Server'</span>
+      <span class="hl-k">AND</span> SpanName <span class="hl-k">NOT</span> <span class="hl-k">IN</span> (<span class="hl-s">'GET /health'</span>, <span class="hl-s">'/'</span>)
+      <span class="hl-k">AND</span> Timestamp &gt; now() - toIntervalMinute({baseline_minutes:UInt32} + <span class="hl-n">1</span>)
+    <span class="hl-k">GROUP</span> <span class="hl-k">BY</span> service, bucket
+)
+<span class="hl-k">SELECT</span>
+    service,
+    round(avgIf(error_rate, bucket &lt; now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND), <span class="hl-n">4</span>) <span class="hl-k">AS</span> baseline_mean,
+    round(stddevPopIf(error_rate, bucket &lt; now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND), <span class="hl-n">4</span>) <span class="hl-k">AS</span> baseline_sigma,
+    round(baseline_mean + <span class="hl-n">3</span> * baseline_sigma, <span class="hl-n">4</span>) <span class="hl-k">AS</span> bound,
+    round(avgIf(error_rate, bucket &gt;= now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND), <span class="hl-n">4</span>) <span class="hl-k">AS</span> current_error_rate,
+    round(avgIf(p95_ms, bucket &gt;= now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND), <span class="hl-n">1</span>) <span class="hl-k">AS</span> current_p95_ms,
+    round(avgIf(p95_ms, bucket &lt; now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND), <span class="hl-n">1</span>) <span class="hl-k">AS</span> baseline_p95_ms,
+    sumIf(requests, bucket &gt;= now() - <span class="hl-k">INTERVAL</span> <span class="hl-n">60</span> SECOND) <span class="hl-k">AS</span> current_requests,
+    current_error_rate &gt; bound <span class="hl-k">AND</span> current_error_rate - baseline_mean &gt;= {min_delta:Float64} <span class="hl-k">AS</span> anomalous
+<span class="hl-k">FROM</span> buckets
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> service
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> anomalous <span class="hl-k">DESC</span>, current_error_rate <span class="hl-k">DESC</span>
+<span class="hl-k">LIMIT</span> <span class="hl-n">50</span>;</pre>
+<div class="body">
+<p>Read the query as four choices: a mean, three deviations, a trailing window and a minimum change. Each one can be argued with.</p>
+</div>
+<p class="next">The band is only as good as its baseline. A failure inside it can hide the next one.</p>
+</div>
+
+<div class="concept" id="c-incident-exclusion">
+<div class="lead"><h3>Does the last incident hide the next one?</h3>
+<p class="hook">You run the failure and the detector fires. Ten minutes later you run it again for a colleague, and nothing happens.</p>
+<figure class="diagram" data-diagram="incident-exclusion">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-incident-exclusion">
+<title id="t-incident-exclusion">A baseline that kept the last incident compared with one that dropped it: the first has a raised mean and a wide band and misses the second failure.</title>
+<defs><marker id="a-incident-exclusion" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Kept the incident</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Mean</text>
+<text x="85.5" y="39" font-size="9.5" class="t-fail b">Raised</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Band</text>
+<text x="85.5" y="59.5" font-size="9.5" class="t-fail b">Wide</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Second failure</text>
+<text x="85.5" y="80" font-size="9.5" class="t-fail b">Missed</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Dropped it</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Mean</text>
+<text x="360" y="39" font-size="9.5" class="t-pass b">Normal</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Band</text>
+<text x="360" y="59.5" font-size="9.5" class="t-pass b">Tight</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Second failure</text>
+<text x="360" y="80" font-size="9.5" class="t-pass b">Caught</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-incident-exclusion)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-incident-exclusion)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-incident-exclusion)"/>
+</svg>
+<figcaption><span class="no">Figure 19</span> What one failure does to the next, depending on whether the baseline kept it.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>The first failure raised the mean and widened the band, so the second one sits inside normal. So we drop past incidents from the baseline. Then every failure looks new.</p>
+</div>
+<figure class="diagram" data-diagram="incident-windows">
+<svg viewBox="0 0 504 122" role="img" aria-labelledby="t-incident-windows">
+<title id="t-incident-windows">Healthy stretches are kept in the baseline, the first incident is dropped, and the second incident is seen against what remains.</title>
+<defs><marker id="a-incident-windows" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="0.5" y="18" font-size="9.5" class="t-ink b">Healthy</text>
+<rect x="110" y="7" width="174.7" height="14" rx="2" class="f-muted s-muted"/>
+<text x="289.7" y="18" font-size="8.5" class="t-muted">kept</text>
+<text x="0.5" y="42" font-size="9.5" class="t-ink b">First incident</text>
+<rect x="284.7" y="31" width="43.7" height="14" rx="2" class="f-fail s-fail"/>
+<text x="333.3" y="42" font-size="8.5" class="t-muted">dropped</text>
+<text x="0.5" y="66" font-size="9.5" class="t-ink b">Healthy again</text>
+<rect x="328.3" y="55" width="131" height="14" rx="2" class="f-muted s-muted"/>
+<text x="464.3" y="66" font-size="8.5" class="t-muted">kept</text>
+<text x="0.5" y="90" font-size="9.5" class="t-ink b">Second incident</text>
+<rect x="459.3" y="79" width="43.7" height="14" rx="2" class="f-accent s-accent-deep"/>
+<text x="454.3" y="90" font-size="8.5" class="t-muted" text-anchor="end">seen</text>
+<line x1="110" y1="98" x2="503.5" y2="98" class="s-line"/>
+<line x1="110" y1="98" x2="110" y2="102" class="s-line"/>
+<text x="110" y="113" font-size="8.5" class="t-muted">0 m</text>
+<line x1="175.5" y1="98" x2="175.5" y2="102" class="s-line"/>
+<text x="175.5" y="113" font-size="8.5" class="t-muted" text-anchor="middle">3 m</text>
+<line x1="241" y1="98" x2="241" y2="102" class="s-line"/>
+<text x="241" y="113" font-size="8.5" class="t-muted" text-anchor="middle">6 m</text>
+<line x1="306.5" y1="98" x2="306.5" y2="102" class="s-line"/>
+<text x="306.5" y="113" font-size="8.5" class="t-muted" text-anchor="middle">9 m</text>
+<line x1="372" y1="98" x2="372" y2="102" class="s-line"/>
+<text x="372" y="113" font-size="8.5" class="t-muted" text-anchor="middle">12 m</text>
+<line x1="437.5" y1="98" x2="437.5" y2="102" class="s-line"/>
+<text x="437.5" y="113" font-size="8.5" class="t-muted" text-anchor="middle">15 m</text>
+<line x1="503" y1="98" x2="503" y2="102" class="s-line"/>
+<text x="503" y="113" font-size="8.5" class="t-muted" text-anchor="end">18 m</text>
+</svg>
+<figcaption><span class="no">Figure 20</span> The dropped stretch is why the second failure still stands out.</figcaption>
+</figure>
+<div class="body">
+<p>Check your own detector. Fail the same thing twice and watch the second one.</p>
+</div>
+<p class="next">A detector can be right and still be noisy. Take a page about a busy processor.</p>
+</div>
+
+<div class="concept" id="c-symptom-alerting">
+<div class="lead"><h3>Should we page for a processor at 85 percent?</h3>
+<p class="hook">The pager goes off at four because a processor touched 85 percent. Nothing was wrong. The person on call reads the next alert a little more slowly.</p>
+<figure class="diagram" data-diagram="symptom-alerting">
+<svg viewBox="0 0 504 107" role="img" aria-labelledby="t-symptom-alerting">
+<title id="t-symptom-alerting">Cause based alerts page on a machine condition and teach the team to ignore the pager. Symptom based alerts page on what users see.</title>
+<defs><marker id="a-symptom-alerting" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="104" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Cause</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Pages on</text>
+<text x="71.5" y="39" font-size="9.5" class="t-fail b">Processor above 80 percent</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">A user hurt</text>
+<text x="71.5" y="59.5" font-size="9.5" class="t-fail b">Not necessarily</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Team</text>
+<text x="9.5" y="92.5" font-size="9.5" class="t-muted b">learns</text>
+<text x="71.5" y="80" font-size="9.5" class="t-fail b">To ignore it</text>
+<rect x="275" y="1" width="228.5" height="104" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Symptom</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Pages on</text>
+<text x="346" y="39" font-size="9.5" class="t-pass b">Signups returning errors</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">A user hurt</text>
+<text x="346" y="59.5" font-size="9.5" class="t-pass b">Always</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Team</text>
+<text x="284" y="92.5" font-size="9.5" class="t-muted b">learns</text>
+<text x="346" y="80" font-size="9.5" class="t-pass b">To act</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-symptom-alerting)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-symptom-alerting)"/>
+<path d="M235 84.5 H269" class="s-muted arrow" marker-end="url(#a-symptom-alerting)"/>
+</svg>
+<figcaption><span class="no">Figure 21</span> What each kind of alert teaches the person who receives it.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>A cause that never reaches a user is a page that did not need to happen. Enough of them and a team stops trusting the pager. So we page only for a symptom a customer could screenshot.</p>
+</div>
+<figure class="diagram" data-diagram="symptom-gate">
+<svg viewBox="0 0 504 103" role="img" aria-labelledby="t-symptom-gate">
+<title id="t-symptom-gate">A machine condition only becomes a page once a user is affected. Without that it is stopped.</title>
+<defs><marker id="a-symptom-gate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="147" height="44" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Processor at 85</text>
+<text x="9.5" y="32.5" font-size="11" class="t-ink b">percent</text>
+<path d="M149.5 23 H190.5" class="s-muted arrow" marker-end="url(#a-symptom-gate)"/>
+<line x1="169.5" y1="8" x2="169.5" y2="38" class="s-fail" stroke-width="3"/>
+<rect x="191.5" y="1" width="147" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="200.5" y="18.5" font-size="11" class="t-ink b">Users see errors</text>
+<path d="M340.5 23 H355.5" class="s-muted arrow" marker-end="url(#a-symptom-gate)"/>
+<rect x="356.5" y="1" width="147" height="44" rx="4" class="f-card s-line"/>
+<text x="365.5" y="18.5" font-size="11" class="t-ink b">Page</text>
+<path d="M169.5 40 V70" class="s-fail arrow" marker-end="url(#a-symptom-gate)"/>
+<rect x="94.5" y="71" width="150" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="103.5" y="88.5" font-size="11" class="t-fail b">No user hurt: ticket</text>
+</svg>
+<figcaption><span class="no">Figure 22</span> A page must pass this test. Cause alerts go to a ticket instead.</figcaption>
+</figure>
+<div class="body">
+<p>Keep the cause alerts. Send them to a ticket.</p>
+</div>
+<p class="next">Now something is truly wrong. The failing requests must differ from the good ones somehow.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-localisation">
+<p class="kicker">Module three</p>
+<h2>Once it is wrong, where is the cause?</h2>
+<p class="lede">You know something fails. Now narrow it down to the one thing that sets the failing requests apart.</p>
+
+<div class="concept" id="c-event-delta">
+<div class="lead"><h3>What is different about the failing requests?</h3>
+<p class="hook">Errors are up. Someone asks what the failed requests have in common, and the room goes quiet. There are forty attributes and no obvious place to start.</p>
+<figure class="diagram" data-diagram="event-delta">
+<svg viewBox="0 0 504 115" role="img" aria-labelledby="t-event-delta">
+<title id="t-event-delta">A healthy window and a failing window compared attribute by attribute. Only the release differs.</title>
+<defs><marker id="a-event-delta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="112" rx="4" class="f-card s-line"/>
+<text x="9.5" y="17" font-size="11" class="t-ink b">Healthy window</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Endpoint</text>
+<text x="75.5" y="39" font-size="9.5" class="t-ink">Signup</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Region</text>
+<text x="75.5" y="59.5" font-size="9.5" class="t-ink">Both</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Tier</text>
+<text x="75.5" y="80" font-size="9.5" class="t-ink">Mixed</text>
+<line x1="9.5" y1="88.5" x2="220" y2="88.5" class="s-line"/>
+<text x="9.5" y="100.5" font-size="9.5" class="t-muted b">Release</text>
+<text x="75.5" y="100.5" font-size="9.5" class="t-pass b">v1 and v2</text>
+<rect x="275" y="1" width="228.5" height="112" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Failing window</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Endpoint</text>
+<text x="350" y="39" font-size="9.5" class="t-ink">Signup</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Region</text>
+<text x="350" y="59.5" font-size="9.5" class="t-ink">Both</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Tier</text>
+<text x="350" y="80" font-size="9.5" class="t-ink">Mixed</text>
+<text x="284" y="100.5" font-size="9.5" class="t-muted b">Release</text>
+<text x="350" y="100.5" font-size="9.5" class="t-fail b">v2 only</text>
+<path d="M235 98.8 H269" class="s-muted arrow" marker-end="url(#a-event-delta)"/>
+</svg>
+<figcaption><span class="no">Figure 23</span> The attribute that changed between the windows rises to the top.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Left alone, an engineer picks the attribute they already suspect, and proves themselves right. So we compare every attribute at once between a healthy window and a failing one. The data picks.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/03-event-deltas.sql#error_span_deltas"><span class="hl-k">WITH</span> now() - toIntervalMinute({incident_minutes:UInt32}) <span class="hl-k">AS</span> incident_start
+<span class="hl-k">SELECT</span>
+    SpanName <span class="hl-k">AS</span> endpoint,
+    ResourceAttributes[<span class="hl-s">'service.version'</span>] <span class="hl-k">AS</span> release,
+    StatusMessage <span class="hl-k">AS</span> status_message,
+    countIf(Timestamp &gt;= incident_start <span class="hl-k">AND</span> StatusCode = <span class="hl-s">'Error'</span>) <span class="hl-k">AS</span> incident_errors,
+    countIf(Timestamp &lt; incident_start <span class="hl-k">AND</span> StatusCode = <span class="hl-s">'Error'</span>) <span class="hl-k">AS</span> baseline_errors,
+    countIf(Timestamp &gt;= incident_start) <span class="hl-k">AS</span> incident_requests,
+    <span class="hl-k">any</span>(TraceId) <span class="hl-k">AS</span> example_trace_id
+<span class="hl-k">FROM</span> default.otel_traces
+<span class="hl-k">WHERE</span> ServiceName = {service:String}
+  <span class="hl-k">AND</span> SpanKind = <span class="hl-s">'Server'</span>
+  <span class="hl-k">AND</span> Timestamp &gt;= incident_start - toIntervalMinute({incident_minutes:UInt32})
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> endpoint, release, status_message
+<span class="hl-k">HAVING</span> incident_requests &gt; <span class="hl-n">0</span>
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> incident_errors - baseline_errors <span class="hl-k">DESC</span>, incident_requests <span class="hl-k">DESC</span>
+<span class="hl-k">LIMIT</span> <span class="hl-n">20</span>;</pre>
+<div class="body">
+<p>Ask what your own tool does with forty attributes at 3am. If it needs you to choose one first, it has not answered.</p>
+</div>
+<p class="next">A delta covers the attributes. Ten thousand log messages arrive too, and nobody reads that many.</p>
+</div>
+
+<div class="concept" id="c-log-pattern">
+<div class="lead"><h3>What do ten thousand log messages actually say?</h3>
+<p class="hook">Nobody reads them all. The one that matters hides among the ones that always appear.</p>
+<figure class="diagram" data-diagram="log-pattern">
+<svg viewBox="0 0 504 47" role="img" aria-labelledby="t-log-pattern">
+<title id="t-log-pattern">Raw log lines have their varying parts masked, then group into a short list of patterns with counts.</title>
+<defs><marker id="a-log-pattern" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Raw lines</text>
+<text x="9.5" y="31" font-size="8.5" class="t-muted">different numbers</text>
+<rect x="174.2" y="1" width="155.7" height="43.5" rx="4" class="f-card s-line"/>
+<text x="183.2" y="18.5" font-size="11" class="t-ink b">Masked</text>
+<text x="183.2" y="31" font-size="8.5" class="t-muted">ids and numbers hidden</text>
+<path d="M158.2 22.8 H173.2" class="s-muted arrow" marker-end="url(#a-log-pattern)"/>
+<rect x="347.8" y="1" width="155.7" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="356.8" y="18.5" font-size="11" class="t-ink b">Patterns</text>
+<text x="356.8" y="31" font-size="8.5" class="t-ink">with counts</text>
+<path d="M331.8 22.8 H346.8" class="s-muted arrow" marker-end="url(#a-log-pattern)"/>
+</svg>
+<figcaption><span class="no">Figure 24</span> Hiding the parts that vary makes different lines count as one message.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we hide the parts that vary, like numbers and ids. Lines that were different now count as the same message, and thousands become a handful.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/03-event-deltas.sql#event_patterns"><span class="hl-k">SELECT</span>
+    replaceRegexpAll(
+        replaceRegexpAll(replaceRegexpAll(Body, <span class="hl-s">'\\[[^\\]]*\\]'</span>, <span class="hl-s">'[ts]'</span>), <span class="hl-s">'[0-9a-f]{16,}|\\S+@\\S+'</span>, <span class="hl-s">'&lt;id&gt;'</span>),
+        <span class="hl-s">'\\d+(\\.\\d+)?'</span>, <span class="hl-s">'N'</span>
+    ) <span class="hl-k">AS</span> pattern,
+    count() <span class="hl-k">AS</span> events,
+    groupUniqArray(<span class="hl-n">3</span>)(SeverityText) <span class="hl-k">AS</span> severities,
+    min(Timestamp) <span class="hl-k">AS</span> first_seen,
+    max(Timestamp) <span class="hl-k">AS</span> last_seen,
+    <span class="hl-k">any</span>(Body) <span class="hl-k">AS</span> example
+<span class="hl-k">FROM</span> default.otel_logs
+<span class="hl-k">WHERE</span> ServiceName = {service:String} <span class="hl-k">AND</span> Timestamp &gt; now() - toIntervalMinute({minutes:UInt32})
+<span class="hl-k">GROUP</span> <span class="hl-k">BY</span> pattern
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> events <span class="hl-k">DESC</span>
+<span class="hl-k">LIMIT</span> <span class="hl-n">25</span>;</pre>
+<div class="body">
+<p>The biggest group is usually the same noise as in a healthy hour. Sort by first seen before you sort by count.</p>
+</div>
+<p class="next">Patterns show what was said, not where the time went. One request took nine seconds.</p>
+</div>
+
+<div class="concept" id="c-trace-graph">
+<div class="lead"><h3>Where did the nine seconds go?</h3>
+<p class="hook">A request took nine seconds. The service that answered says it spent two hundred milliseconds. Somebody downstream held the rest, and no log line says who.</p>
+<figure class="diagram" data-diagram="trace-graph">
+<svg viewBox="0 0 504 122" role="img" aria-labelledby="t-trace-graph">
+<title id="t-trace-graph">A waterfall of one nine second request. The browser, the service and the loader all start early, and the loader holds almost all the time.</title>
+<defs><marker id="a-trace-graph" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="0.5" y="18" font-size="9.5" class="t-ink b">Browser</text>
+<rect x="96" y="7" width="407" height="14" rx="2" class="f-muted s-muted"/>
+<text x="0.5" y="42" font-size="9.5" class="t-ink b">Flask</text>
+<rect x="105" y="31" width="388.9" height="14" rx="2" class="f-muted s-muted"/>
+<text x="0.5" y="66" font-size="9.5" class="t-ink b">Docs loader</text>
+<rect x="114.1" y="55" width="370.8" height="14" rx="2" class="f-accent s-accent-deep"/>
+<text x="0.5" y="90" font-size="9.5" class="t-ink b">Postgres</text>
+<rect x="118.6" y="79" width="13.6" height="14" rx="2" class="f-muted s-muted"/>
+<line x1="96" y1="98" x2="503.5" y2="98" class="s-line"/>
+<line x1="96" y1="98" x2="96" y2="102" class="s-line"/>
+<text x="96" y="113" font-size="8.5" class="t-muted">0 s</text>
+<line x1="231.7" y1="98" x2="231.7" y2="102" class="s-line"/>
+<text x="231.7" y="113" font-size="8.5" class="t-muted" text-anchor="middle">3 s</text>
+<line x1="367.3" y1="98" x2="367.3" y2="102" class="s-line"/>
+<text x="367.3" y="113" font-size="8.5" class="t-muted" text-anchor="middle">6 s</text>
+<line x1="503" y1="98" x2="503" y2="102" class="s-line"/>
+<text x="503" y="113" font-size="8.5" class="t-muted" text-anchor="end">9 s</text>
+</svg>
+<figcaption><span class="no">Figure 25</span> The marked bar holds nearly all the time, so the slowness is not in the layers above it.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we draw the request as a waterfall, one bar per step against time. A slow parent with one slow child reads very differently from one with fifty fast ones. Only the waterfall shows which.</p>
+</div>
+<figure class="diagram" data-diagram="trace-hang">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-trace-hang">
+<title id="t-trace-hang">A request that finishes exports its spans and appears in the waterfall. A request that hangs exports none and is visible only in logs.</title>
+<defs><marker id="a-trace-hang" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="17" font-size="11" class="t-ink b">Finishes</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Spans</text>
+<text x="85.5" y="39" font-size="9.5" class="t-pass b">Exported</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Waterfall</text>
+<text x="85.5" y="59.5" font-size="9.5" class="t-pass b">Drawn</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Seen in</text>
+<text x="85.5" y="80" font-size="9.5" class="t-pass b">Traces</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Hangs</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Spans</text>
+<text x="360" y="39" font-size="9.5" class="t-fail b">None</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Waterfall</text>
+<text x="360" y="59.5" font-size="9.5" class="t-fail b">Absent</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Seen in</text>
+<text x="360" y="80" font-size="9.5" class="t-fail b">Logs only</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-trace-hang)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-trace-hang)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-trace-hang)"/>
+</svg>
+<figcaption><span class="no">Figure 26</span> A step that never ends exports nothing. The gap is the clue.</figcaption>
+</figure>
+<div class="body">
+<p>The lab query returns each step with its start and length, which is all a waterfall needs.</p>
+</div>
+<pre data-lang="sql" data-from="workshop/04-trace-graph.sql#get_trace_waterfall"><span class="hl-k">SELECT</span>
+    SpanId <span class="hl-k">AS</span> span_id,
+    ParentSpanId <span class="hl-k">AS</span> parent_span_id,
+    ServiceName <span class="hl-k">AS</span> service,
+    SpanName <span class="hl-k">AS</span> span,
+    SpanKind <span class="hl-k">AS</span> kind,
+    round(dateDiff(<span class="hl-s">'microsecond'</span>, min(Timestamp) <span class="hl-k">OVER</span> (), Timestamp) / 1e3, <span class="hl-n">1</span>) <span class="hl-k">AS</span> start_offset_ms,
+    round(Duration / 1e6, <span class="hl-n">1</span>) <span class="hl-k">AS</span> duration_ms,
+    StatusCode <span class="hl-k">AS</span> status,
+    StatusMessage <span class="hl-k">AS</span> status_message,
+    SpanAttributes[<span class="hl-s">'db.statement'</span>] <span class="hl-k">AS</span> db_statement
+<span class="hl-k">FROM</span> default.otel_traces
+<span class="hl-k">WHERE</span> TraceId = {trace_id:String}
+<span class="hl-k">ORDER</span> <span class="hl-k">BY</span> Timestamp
+<span class="hl-k">LIMIT</span> <span class="hl-n">200</span>;</pre>
+<div class="body">
+<p>A step that never finishes leaves nothing to draw. So teach the agent to ask what should be there and is not.</p>
+</div>
+<p class="next">Now we can find the cause. Next we must decide which tools the agent gets.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-tools">
+<p class="kicker">Module four</p>
+<h2>What may the agent actually do?</h2>
+<p class="lede">This chapter decides whether the rest is safe to run on a real system.</p>
+
+<div class="concept" id="c-tool-class">
+<div class="lead"><h3>Who decides which tools the agent gets?</h3>
+<p class="hook">Someone adds a helpful new tool on a Friday. It reads logs and, six lines further down, it can also restart a container.</p>
+<figure class="diagram" data-diagram="tool-class">
+<svg viewBox="0 0 504 150" role="img" aria-labelledby="t-tool-class">
+<title id="t-tool-class">Every tool has exactly one of three classes: read, propose or action. Only the action class can change a system.</title>
+<defs><marker id="a-tool-class" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="52.5" width="150" height="43.5" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="9.5" y="70" font-size="11" class="t-paper b">Every tool</text>
+<text x="9.5" y="82.5" font-size="8.5" class="t-paper">has one class</text>
+<rect x="194.5" y="1" width="309" height="43.5" rx="4" class="f-card s-line"/>
+<text x="203.5" y="18.5" font-size="11" class="t-ink b">Read</text>
+<text x="203.5" y="31" font-size="8.5" class="t-muted">queries telemetry</text>
+<path d="M152.5 74.3 H172.5 V22.8 H193.5" class="s-muted arrow" marker-end="url(#a-tool-class)"/>
+<rect x="194.5" y="52.5" width="309" height="43.5" rx="4" class="f-card s-line"/>
+<text x="203.5" y="70" font-size="11" class="t-ink b">Propose</text>
+<text x="203.5" y="82.5" font-size="8.5" class="t-muted">stores one proposal</text>
+<path d="M152.5 74.3 H172.5 V74.3 H193.5" class="s-muted arrow" marker-end="url(#a-tool-class)"/>
+<rect x="194.5" y="104" width="309" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="203.5" y="121.5" font-size="11" class="t-ink b">Action</text>
+<text x="203.5" y="134" font-size="8.5" class="t-ink">changes a system</text>
+<path d="M152.5 74.3 H172.5 V125.8 H193.5" class="s-muted arrow" marker-end="url(#a-tool-class)"/>
+</svg>
+<figcaption><span class="no">Figure 27</span> Most tools only read. One proposes, and exactly one can act.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>A sentence in a prompt is a request. A tool that does not exist is a limit. So every tool must declare a class in code: it reads, it proposes, or it acts.</p>
+</div>
+<figure class="diagram" data-diagram="tool-gate">
+<svg viewBox="0 0 504 89" role="img" aria-labelledby="t-tool-gate">
+<title id="t-tool-gate">A new tool must be classified before it registers. A tool with no class stops the server from starting.</title>
+<defs><marker id="a-tool-gate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="147" height="30" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">New tool</text>
+<path d="M149.5 16 H190.5" class="s-muted arrow" marker-end="url(#a-tool-gate)"/>
+<line x1="169.5" y1="1" x2="169.5" y2="31" class="s-fail" stroke-width="3"/>
+<rect x="191.5" y="1" width="147" height="30" rx="4" class="f-accent s-accent-deep"/>
+<text x="200.5" y="18.5" font-size="11" class="t-ink b">Classified</text>
+<path d="M340.5 16 H355.5" class="s-muted arrow" marker-end="url(#a-tool-gate)"/>
+<rect x="356.5" y="1" width="147" height="30" rx="4" class="f-card s-line"/>
+<text x="365.5" y="18.5" font-size="11" class="t-ink b">Registered</text>
+<path d="M169.5 33 V56" class="s-fail arrow" marker-end="url(#a-tool-gate)"/>
+<rect x="94.5" y="57" width="150" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="103.5" y="74.5" font-size="11" class="t-fail b">No class: will not start</text>
+</svg>
+<figcaption><span class="no">Figure 28</span> The forgotten case fails on the day it is written, not later in production.</figcaption>
+</figure>
+<div class="body">
+<p>A tool with no class stops the server from starting, so the mistake shows up the day it is made.</p>
+</div>
+<pre data-lang="python" data-from="sre-control/sre_control/policy.py"><span class="hl-s">"get_remediation_status"</span>: ToolClass.READ,
+<span class="hl-s">"propose_remediation"</span>: ToolClass.PROPOSE,
+<span class="hl-s">"execute_remediation"</span>: ToolClass.ACTION,</pre>
+<div class="body">
+<p>The list lives next to the server, so a reviewer sees it in the same change as the tool.</p>
+</div>
+<p class="next">Even a read tool can run any query, and some queries hurt a database.</p>
+</div>
+
+<div class="concept" id="c-least-privilege">
+<div class="lead"><h3>What stops a query hurting the database?</h3>
+<p class="hook">Handing a model a SQL tool sounds alarming. It is, until you look at the account the query runs as.</p>
+<figure class="diagram" data-diagram="least-privilege">
+<svg viewBox="0 0 504 119" role="img" aria-labelledby="t-least-privilege">
+<title id="t-least-privilege">Nested rings: the database, inside it the agent's account with its limits, and inside that one query.</title>
+<defs><marker id="a-least-privilege" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="503" height="116" rx="4" class="f-card s-line"/>
+<text x="10.5" y="18" font-size="11" class="t-ink b">The database</text>
+<rect x="443.1" y="7" width="50.4" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="468.3" y="19" font-size="8.5" class="t-ink" text-anchor="middle">all tables</text>
+<rect x="399.5" y="7" width="38.6" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="418.8" y="19" font-size="8.5" class="t-ink" text-anchor="middle">ingest</text>
+<rect x="18.5" y="27" width="467" height="80" rx="4" class="f-card s-line"/>
+<text x="28.5" y="44" font-size="11" class="t-ink b">The agent's account</text>
+<rect x="414" y="33" width="61.5" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="444.7" y="45" font-size="8.5" class="t-ink" text-anchor="middle">row capped</text>
+<rect x="344.7" y="33" width="64.3" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="376.8" y="45" font-size="8.5" class="t-ink" text-anchor="middle">time capped</text>
+<rect x="288" y="33" width="51.7" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="313.8" y="45" font-size="8.5" class="t-ink" text-anchor="middle">read only</text>
+<rect x="36.5" y="53" width="431" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="46.5" y="70" font-size="11" class="t-ink b">One query</text>
+</svg>
+<figcaption><span class="no">Figure 29</span> Each ring reaches only what sits inside the one around it. The account draws them, not the model's manners.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So the account is read only, with a time limit and a row limit. The worst a bad query can do is fail. Without limits, it starves the ingest pipeline and the incident gets worse.</p>
+</div>
+<pre data-lang="xml" data-from="config/clickhouse/users.d/sre.xml"><span class="hl-k">&lt;readonly</span>&gt;<span class="hl-n">2</span><span class="hl-k">&lt;/readonly</span>&gt;
+<span class="hl-k">&lt;max_execution_time</span>&gt;<span class="hl-n">10</span><span class="hl-k">&lt;/max_execution_time</span>&gt;
+<span class="hl-k">&lt;max_memory_usage</span>&gt;<span class="hl-n">1000000000</span><span class="hl-k">&lt;/max_memory_usage</span>&gt;
+<span class="hl-k">&lt;max_result_rows</span>&gt;<span class="hl-n">10000</span><span class="hl-k">&lt;/max_result_rows</span>&gt;</pre>
+<div class="body">
+<p>Look up the account your own agent connects as. Read its limits before you read its prompt.</p>
+</div>
+<p class="next">The database is safe, but the story can still be wrong. The agent may cite a trace that does not exist.</p>
+</div>
+
+<div class="concept" id="c-grounding">
+<div class="lead"><h3>What if the agent cites something that does not exist?</h3>
+<p class="hook">The root cause reads perfectly. It names a release, two trace ids and a service, and one of those trace ids is not real.</p>
+<figure class="diagram" data-diagram="grounding">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-grounding">
+<title id="t-grounding">Three things a proposal cites, checked against telemetry. The trace and the service are found and the release was never deployed.</title>
+<defs><marker id="a-grounding" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="17" font-size="11" class="t-ink b">Proposal cites</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Trace</text>
+<text x="65.5" y="39" font-size="9.5" class="t-ink">c3f1</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Service</text>
+<text x="65.5" y="59.5" font-size="9.5" class="t-ink">docs-loader</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">Release</text>
+<text x="65.5" y="80" font-size="9.5" class="t-pass b">v9</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-card s-line"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Telemetry has</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Trace</text>
+<text x="340" y="39" font-size="9.5" class="t-ink">Found</text>
+<line x1="284" y1="47.5" x2="494.5" y2="47.5" class="s-line"/>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Service</text>
+<text x="340" y="59.5" font-size="9.5" class="t-ink">Found</text>
+<line x1="284" y1="68" x2="494.5" y2="68" class="s-line"/>
+<text x="284" y="80" font-size="9.5" class="t-muted b">Release</text>
+<text x="340" y="80" font-size="9.5" class="t-fail b">Never deployed</text>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-grounding)"/>
+</svg>
+<figcaption><span class="no">Figure 30</span> A fluent claim about a release nobody shipped stops here.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>A model can write a fluent cause for an incident it does not understand, and it reads just like a real one. So plain code looks up every id before the proposal is stored.</p>
+</div>
+<pre data-lang="python" data-from="sre-control/sre_control/approvals.py"><span class="hl-k">if</span> <span class="hl-k">not</span> trace_ids:
+    <span class="hl-k">raise</span> Ungrounded(<span class="hl-s">"cite at least one trace id returned by a tool"</span>)
+<span class="hl-k">if</span> <span class="hl-k">not</span> self.telemetry.service_seen(service):
+    <span class="hl-k">raise</span> Ungrounded(f<span class="hl-s">"service {service!r} has no telemetry in {window}"</span>)
+<span class="hl-k">if</span> release <span class="hl-k">and</span> <span class="hl-k">not</span> self.telemetry.release_seen(service, release):
+    <span class="hl-k">raise</span> Ungrounded(f<span class="hl-s">"release {release!r} of {service} has no telemetry in {window}"</span>)
+missing = self.telemetry.missing_trace_ids(trace_ids)
+<span class="hl-k">if</span> missing:
+    <span class="hl-k">raise</span> Ungrounded(f<span class="hl-s">"these trace ids have no spans in {window}: {', '.join(missing)}"</span>)</pre>
+<div class="body">
+<p>Because the check runs first, a tired person never has to be the one who spots it.</p>
+</div>
+<p class="next">A true proposal still has to become an action. Text must never turn into a command.</p>
+</div>
+
+<div class="concept" id="c-action-list">
+<div class="lead"><h3>How do we stop text becoming a command?</h3>
+<p class="hook">A log line the agent reads says, in the middle of an error, to run a cleanup command. The agent is helpful, and the runner does what it is asked.</p>
+<figure class="diagram" data-diagram="action-list">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-action-list">
+<title id="t-action-list">A runner that executes what the model composed compared with one that builds the command from a named action.</title>
+<defs><marker id="a-action-list" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Composed</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Model sends</text>
+<text x="83.5" y="39" font-size="9.5" class="t-fail b">A command string</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Runner does</text>
+<text x="83.5" y="59.5" font-size="9.5" class="t-fail b">Executes it</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">A log line</text>
+<text x="83.5" y="80" font-size="9.5" class="t-fail b">Becomes an order</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Chosen from a list</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Model sends</text>
+<text x="358" y="39" font-size="9.5" class="t-pass b">A name and arguments</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Runner does</text>
+<text x="358" y="59.5" font-size="9.5" class="t-pass b">Builds the command</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">A log line</text>
+<text x="358" y="80" font-size="9.5" class="t-pass b">Stays text</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-action-list)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-action-list)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-action-list)"/>
+</svg>
+<figcaption><span class="no">Figure 31</span> Who builds the command decides whether text the agent read can become an order.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Anyone who can write to your logs can write to the agent's context. So the runner takes a name from a list, plus arguments, and builds the command itself. It never runs a string.</p>
+</div>
+<pre data-lang="python" data-from="sre-control/sre_control/runner.py"><span class="hl-k">def</span> build_command(action: str, target: str, params: dict[str, str], project_dir: str) -&gt; tuple[list, dict]:
+    validate_action(action, target, params)
+    base = [<span class="hl-s">"docker"</span>, <span class="hl-s">"compose"</span>, <span class="hl-s">"--project-directory"</span>, project_dir, <span class="hl-s">"-f"</span>, f<span class="hl-s">"{project_dir}/{COMPOSE_FILE}"</span>]
+    <span class="hl-k">if</span> action == <span class="hl-s">"rollback_release"</span>:
+        <span class="hl-c"># Redeploying the previous release is `up` on the previous image tag, as a deploy system would.</span>
+        <span class="hl-k">return</span> [*base, <span class="hl-s">"up"</span>, <span class="hl-s">"-d"</span>, <span class="hl-s">"--no-deps"</span>, <span class="hl-s">"--wait"</span>, target], {<span class="hl-s">"APP_RELEASE"</span>: params[<span class="hl-s">"release"</span>]}
+    <span class="hl-k">return</span> [*base, <span class="hl-s">"restart"</span>, target], {}
+</pre>
+<div class="body">
+<p>Find any place in your own automation where an outside string ends up in a shell. That is the gap.</p>
+</div>
+<p class="next">The list limits what can run. A person's approval must also be a stored fact.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-human">
+<p class="kicker">Module five</p>
+<h2>Where does the person come in?</h2>
+<p class="lede">Everyone agrees a person should approve production changes. Here is what that has to become in code.</p>
+
+<div class="concept" id="c-approval-event">
+<div class="lead"><h3>What makes approval a stored fact?</h3>
+<p class="hook">Someone tells the agent in a chat window that the fix is fine and to go ahead. Nothing in the system recorded that anyone agreed.</p>
+<figure class="diagram" data-diagram="approval-event">
+<svg viewBox="0 0 504 89" role="img" aria-labelledby="t-approval-event">
+<title id="t-approval-event">A request to execute reaches a stop that looks for an approval row. With no row the action is refused and the refusal is logged.</title>
+<defs><marker id="a-approval-event" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="147" height="30" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Execute requested</text>
+<path d="M149.5 16 H190.5" class="s-muted arrow" marker-end="url(#a-approval-event)"/>
+<line x1="169.5" y1="1" x2="169.5" y2="31" class="s-fail" stroke-width="3"/>
+<rect x="191.5" y="1" width="147" height="30" rx="4" class="f-accent s-accent-deep"/>
+<text x="200.5" y="18.5" font-size="11" class="t-ink b">Approval row</text>
+<path d="M340.5 16 H355.5" class="s-muted arrow" marker-end="url(#a-approval-event)"/>
+<rect x="356.5" y="1" width="147" height="30" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="365.5" y="18.5" font-size="11" class="t-paper b">Action runs</text>
+<path d="M169.5 33 V56" class="s-fail arrow" marker-end="url(#a-approval-event)"/>
+<rect x="94.5" y="57" width="150" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="103.5" y="74.5" font-size="11" class="t-fail b">No row: refused, logged</text>
+</svg>
+<figcaption><span class="no">Figure 32</span> The server answers, whatever the model was asked.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>A request to act is only a request. So the tool that acts looks for a stored row that names a person and one proposal. No row, no action.</p>
+</div>
+<pre data-lang="python" data-from="sre-control/sre_control/approvals.py"><span class="hl-k">if</span> current.state != <span class="hl-s">"approved"</span>:
+    self.store.append(
+        Event(self.clock(), current.incident_id, action_id, <span class="hl-s">"remediation_refused"</span>, executed_by,
+              {<span class="hl-s">"state"</span>: current.state})
+    )  <span class="hl-c"># fmt: skip</span>
+    <span class="hl-k">raise</span> ApprovalRequired(
+        f<span class="hl-s">"{action_id} is {current.state}; a human must approve it at /actions/{action_id} first"</span>
+    )
+result = self.runner.run(current.action, current.target, current.params)</pre>
+<div class="body">
+<p>The refusal is recorded too, so an attempt to skip the person shows up in the same log as everything else.</p>
+</div>
+<p class="next">A stored fact can still be edited. We need one history that stays honest.</p>
+</div>
+
+<div class="concept" id="c-audit-log">
+<div class="lead"><h3>How do we keep one honest history?</h3>
+<p class="hook">Two people disagree about who approved the rollback. One remembers Priya, and the ticket names someone else.</p>
+<figure class="diagram" data-diagram="audit-log">
+<svg viewBox="0 0 504 61" role="img" aria-labelledby="t-audit-log">
+<title id="t-audit-log">Five events are appended in order, and the current state of the incident is read back from those rows.</title>
+<defs><marker id="a-audit-log" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="86.2" height="30" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Opened</text>
+<rect x="104.7" y="1" width="86.2" height="30" rx="4" class="f-card s-line"/>
+<text x="113.7" y="18.5" font-size="11" class="t-ink b">Proposed</text>
+<path d="M88.7 16 H103.7" class="s-muted arrow" marker-end="url(#a-audit-log)"/>
+<rect x="208.9" y="1" width="86.2" height="30" rx="4" class="f-accent s-accent-deep"/>
+<text x="217.9" y="18.5" font-size="11" class="t-ink b">Approved</text>
+<path d="M192.9 16 H207.9" class="s-muted arrow" marker-end="url(#a-audit-log)"/>
+<rect x="313.1" y="1" width="86.2" height="30" rx="4" class="f-card s-line"/>
+<text x="322.1" y="18.5" font-size="11" class="t-ink b">Executed</text>
+<path d="M297.1 16 H312.1" class="s-muted arrow" marker-end="url(#a-audit-log)"/>
+<rect x="417.3" y="1" width="86.2" height="30" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="426.3" y="18.5" font-size="11" class="t-paper b">Resolved</text>
+<path d="M401.3 16 H416.3" class="s-muted arrow" marker-end="url(#a-audit-log)"/>
+<path d="M460.4 32 V43 H43.6 V33" class="s-muted arrow" marker-end="url(#a-audit-log)"/>
+<text x="252" y="54" font-size="8.5" class="t-muted" text-anchor="middle">State is read from these rows</text>
+</svg>
+<figcaption><span class="no">Figure 33</span> Rows are only ever added, so the past cannot be rewritten.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>When a status field is changed in place, the past is whatever the last writer decided. So every step adds a new row, and nothing is ever changed. The state is read from the rows.</p>
+</div>
+<figure class="diagram" data-diagram="audit-pair">
+<svg viewBox="0 0 504 95" role="img" aria-labelledby="t-audit-pair">
+<title id="t-audit-pair">A record that can be edited compared with a log that only grows.</title>
+<defs><marker id="a-audit-pair" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="91.5" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Editable record</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">A change</text>
+<text x="79.5" y="39" font-size="9.5" class="t-fail b">Overwrites</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">The past</text>
+<text x="79.5" y="59.5" font-size="9.5" class="t-fail b">Lost</text>
+<line x1="9.5" y1="68" x2="220" y2="68" class="s-line"/>
+<text x="9.5" y="80" font-size="9.5" class="t-muted b">State</text>
+<text x="79.5" y="80" font-size="9.5" class="t-fail b">Stored twice</text>
+<rect x="275" y="1" width="228.5" height="91.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Append-only log</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">A change</text>
+<text x="354" y="39" font-size="9.5" class="t-pass b">Adds a row</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">The past</text>
+<text x="354" y="59.5" font-size="9.5" class="t-pass b">Kept</text>
+<text x="284" y="80" font-size="9.5" class="t-muted b">State</text>
+<text x="354" y="80" font-size="9.5" class="t-pass b">Derived once</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-audit-pair)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-audit-pair)"/>
+<path d="M235 78.3 H269" class="s-muted arrow" marker-end="url(#a-audit-pair)"/>
+</svg>
+<figcaption><span class="no">Figure 34</span> A row you can update is a history that can disagree with itself.</figcaption>
+</figure>
+<div class="body">
+<p>Ask whether your own tools give one answer to who approved what, or two.</p>
+</div>
+<p class="next">The history says what ran. But a command can finish cleanly while signups still fail, so the incident is not really over.</p>
+</div>
+
+<div class="concept" id="c-recovery-check">
+<div class="lead"><h3>When is the incident really over?</h3>
+<p class="hook">The rollback command printed its last line and exited zero. Everyone relaxed, and the signup page was still throwing errors.</p>
+<figure class="diagram" data-diagram="recovery-check">
+<svg viewBox="0 0 504 47" role="img" aria-labelledby="t-recovery-check">
+<title id="t-recovery-check">An action runs, the same signal that opened the incident is watched on new traffic, and only then does the incident resolve.</title>
+<defs><marker id="a-recovery-check" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="112.3" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Action runs</text>
+<rect x="130.8" y="1" width="112.3" height="43.5" rx="4" class="f-card s-line"/>
+<text x="139.8" y="18.5" font-size="11" class="t-ink b">Wait</text>
+<text x="139.8" y="31" font-size="8.5" class="t-muted">fresh traffic only</text>
+<path d="M114.8 22.8 H129.8" class="s-muted arrow" marker-end="url(#a-recovery-check)"/>
+<rect x="261" y="1" width="112.3" height="43.5" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="270" y="18.5" font-size="11" class="t-paper b">Watch</text>
+<text x="270" y="31" font-size="8.5" class="t-paper">the opening signal</text>
+<path d="M245 22.8 H260" class="s-muted arrow" marker-end="url(#a-recovery-check)"/>
+<rect x="391.3" y="1" width="112.3" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="400.3" y="18.5" font-size="11" class="t-ink b">Resolved</text>
+<path d="M375.3 22.8 H390.3" class="s-muted arrow" marker-end="url(#a-recovery-check)"/>
+</svg>
+<figcaption><span class="no">Figure 35</span> The signal that opened the incident is the one that closes it.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>An exit code says only that the command finished. So we let fresh traffic arrive, then check the same signal that raised the alarm.</p>
+</div>
+<figure class="diagram" data-diagram="recovery-pair">
+<svg viewBox="0 0 504 74" role="img" aria-labelledby="t-recovery-pair">
+<title id="t-recovery-pair">What a command that exits zero proves compared with what a recovery check proves.</title>
+<defs><marker id="a-recovery-pair" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="71" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Command exit</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Proves</text>
+<text x="79.5" y="39" font-size="9.5" class="t-fail b">It ran</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Reads</text>
+<text x="79.5" y="59.5" font-size="9.5" class="t-fail b">An exit code</text>
+<rect x="275" y="1" width="228.5" height="71" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Recovery check</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Proves</text>
+<text x="354" y="39" font-size="9.5" class="t-pass b">It worked</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Reads</text>
+<text x="354" y="59.5" font-size="9.5" class="t-pass b">Live traffic</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-recovery-pair)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-recovery-pair)"/>
+</svg>
+<figcaption><span class="no">Figure 36</span> Exit zero proves a command ran. It does not prove signups work.</figcaption>
+</figure>
+<pre data-lang="python" data-from="sre-control/sre_control/detector.py"><span class="hl-k">if</span> now - executed_at &lt; RECOVERY_WINDOW:
+    continue
+healthy, evidence = self._healthy(incident)
+timed_out = now - executed_at &gt; timedelta(minutes=<span class="hl-n">5</span>)
+<span class="hl-k">if</span> healthy <span class="hl-k">or</span> timed_out:
+    self.remediations.record_verification(action.action_id, passed=healthy, evidence=evidence)
+</pre>
+<div class="body">
+<p>Verify by running it, never by reading it. That is the rule for tests, applied to incidents.</p>
+</div>
+<p class="next">A person decides and the system checks. Some actions deserve more trust in the model than others.</p>
+</div>
+
+<div class="concept" id="c-autonomy-level">
+<div class="lead"><h3>Should we trust the model with everything?</h3>
+<p class="hook">People ask whether you trust the model. It is the wrong question, because the answer for a restart is not the answer for a database.</p>
+<figure class="diagram" data-diagram="autonomy-level">
+<svg viewBox="0 0 504 47" role="img" aria-labelledby="t-autonomy-level">
+<title id="t-autonomy-level">Five levels from manual to fully autonomous, with this lab at the second.</title>
+<defs><marker id="a-autonomy-level" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="86.2" height="43.5" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Level 0</text>
+<text x="9.5" y="31" font-size="8.5" class="t-muted">Manual</text>
+<rect x="104.7" y="1" width="86.2" height="43.5" rx="4" class="f-card s-line"/>
+<text x="113.7" y="18.5" font-size="11" class="t-ink b">Level 1</text>
+<text x="113.7" y="31" font-size="8.5" class="t-muted">Assisted</text>
+<path d="M88.7 22.8 H103.7" class="s-muted arrow" marker-end="url(#a-autonomy-level)"/>
+<rect x="208.9" y="1" width="86.2" height="43.5" rx="4" class="f-accent s-accent-deep"/>
+<text x="217.9" y="18.5" font-size="11" class="t-ink b">Level 2</text>
+<text x="217.9" y="31" font-size="8.5" class="t-ink">Approved</text>
+<path d="M192.9 22.8 H207.9" class="s-muted arrow" marker-end="url(#a-autonomy-level)"/>
+<rect x="313.1" y="1" width="86.2" height="43.5" rx="4" class="f-card s-line"/>
+<text x="322.1" y="18.5" font-size="11" class="t-ink b">Level 3</text>
+<text x="322.1" y="31" font-size="8.5" class="t-muted">Bounded</text>
+<path d="M297.1 22.8 H312.1" class="s-muted arrow" marker-end="url(#a-autonomy-level)"/>
+<rect x="417.3" y="1" width="86.2" height="43.5" rx="4" class="f-card s-line"/>
+<text x="426.3" y="18.5" font-size="11" class="t-ink b">Level 4</text>
+<text x="426.3" y="31" font-size="8.5" class="t-muted">Full</text>
+<path d="M401.3 22.8 H416.3" class="s-muted arrow" marker-end="url(#a-autonomy-level)"/>
+</svg>
+<figcaption><span class="no">Figure 37</span> The lab sits at level two for every action. Moving one up is a choice about damage.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Google's operations practice describes levels from fully manual to fully automatic. So we place each action on the levels by itself, and never the whole agent.</p>
+</div>
+<figure class="diagram" data-diagram="autonomy-actions">
+<svg viewBox="0 0 504 135" role="img" aria-labelledby="t-autonomy-actions">
+<title id="t-autonomy-actions">Three actions compared by how much damage they can do and how easily they are undone.</title>
+<defs><marker id="a-autonomy-actions" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="96" y="13" font-size="9.5" class="t-ink b">Damage</text>
+<text x="301.5" y="13" font-size="9.5" class="t-ink b">Undone</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">Action</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="97" y="37" font-size="8.5" class="t-ink">Seconds of errors</text>
+<text x="302.5" y="37" font-size="8.5" class="t-ink">Nothing to undo</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Restart a</text>
+<text x="0.5" y="49.5" font-size="9.5" class="t-ink b">container</text>
+<line x1="0.5" y1="58.5" x2="503.5" y2="58.5" class="s-line"/>
+<text x="97" y="74" font-size="8.5" class="t-ink">Withdraws new code</text>
+<text x="302.5" y="74" font-size="8.5" class="t-ink">Deploy it again</text>
+<text x="0.5" y="74" font-size="9.5" class="t-ink b">Roll back a</text>
+<text x="0.5" y="86.5" font-size="9.5" class="t-ink b">release</text>
+<line x1="0.5" y1="95.5" x2="503.5" y2="95.5" class="s-line"/>
+<text x="97" y="111" font-size="8.5" class="t-fail b">Data can be lost</text>
+<text x="302.5" y="111" font-size="8.5" class="t-fail b">Often cannot</text>
+<text x="0.5" y="111" font-size="9.5" class="t-ink b">Change a</text>
+<text x="0.5" y="123.5" font-size="9.5" class="t-ink b">database</text>
+<line x1="0.5" y1="132.5" x2="503.5" y2="132.5" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 38</span> The first two rows exist in the lab. The database change is only an illustration.</figcaption>
+</figure>
+<div class="body">
+<p>Ask which actions you would let a new engineer run alone in their first week. Those are your candidates for level three.</p>
+</div>
+<p class="next">Every level assumes honest data. Someone can write to the logs on purpose.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-hardening">
+<p class="kicker">Module six</p>
+<h2>How can this go wrong?</h2>
+<p class="lede">OWASP listed the threats that belong to agents, not models, in December 2025. Several apply to anything that reads production data and can act.</p>
+
+<div class="concept" id="c-prompt-injection">
+<div class="lead"><h3>What if someone writes to the logs on purpose?</h3>
+<p class="hook">A user signs up with a name that is a sentence aimed at whoever reads the logs. The agent reads the logs.</p>
+<figure class="diagram" data-diagram="prompt-injection">
+<svg viewBox="0 0 504 117" role="img" aria-labelledby="t-prompt-injection">
+<title id="t-prompt-injection">A username chosen by an attacker is logged, read by the agent, and turned into an action request that the runner stops because it is not on the list.</title>
+<defs><marker id="a-prompt-injection" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="105.8" height="44" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Chosen</text>
+<text x="9.5" y="32.5" font-size="11" class="t-ink b">username</text>
+<path d="M108.3 23 H123.3" class="s-muted arrow" marker-end="url(#a-prompt-injection)"/>
+<rect x="124.3" y="1" width="105.8" height="44" rx="4" class="f-card s-line"/>
+<text x="133.3" y="18.5" font-size="11" class="t-ink b">Log line</text>
+<path d="M232 23 H247" class="s-muted arrow" marker-end="url(#a-prompt-injection)"/>
+<rect x="248" y="1" width="105.8" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="257" y="18.5" font-size="11" class="t-ink b">Agent reads it</text>
+<path d="M355.8 23 H396.8" class="s-muted arrow" marker-end="url(#a-prompt-injection)"/>
+<line x1="375.8" y1="8" x2="375.8" y2="38" class="s-fail" stroke-width="3"/>
+<rect x="397.8" y="1" width="105.8" height="44" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="406.8" y="18.5" font-size="11" class="t-paper b">Runner</text>
+<path d="M375.8 40 V70" class="s-fail arrow" marker-end="url(#a-prompt-injection)"/>
+<rect x="312.9" y="71" width="125.8" height="44" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="321.9" y="88.5" font-size="11" class="t-fail b">Not on the list:</text>
+<text x="321.9" y="102.5" font-size="11" class="t-fail b">stopped</text>
+</svg>
+<figcaption><span class="no">Figure 39</span> The log line reaches the agent. The list stops it going any further.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>An agent cannot reliably tell an instruction from plain content. OWASP calls this goal hijack, and lists it first. Anyone who can make your system log a string can speak to the agent.</p>
+</div>
+<figure class="diagram" data-diagram="injection-pair">
+<svg viewBox="0 0 504 74" role="img" aria-labelledby="t-injection-pair">
+<title id="t-injection-pair">A rule written as a sentence in the prompt compared with a rule the runner enforces.</title>
+<defs><marker id="a-injection-pair" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="71" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">In the prompt</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">Kept by</text>
+<text x="79.5" y="39" font-size="9.5" class="t-fail b">The model</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Bypassed by</text>
+<text x="79.5" y="59.5" font-size="9.5" class="t-fail b">A better sentence</text>
+<rect x="275" y="1" width="228.5" height="71" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">In the runner</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">Kept by</text>
+<text x="354" y="39" font-size="9.5" class="t-pass b">The code</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Bypassed by</text>
+<text x="354" y="59.5" font-size="9.5" class="t-pass b">A code change</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-injection-pair)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-injection-pair)"/>
+</svg>
+<figcaption><span class="no">Figure 40</span> A sentence can be argued with. A list in code cannot.</figcaption>
+</figure>
+<div class="body">
+<p>So the fix is not a better instruction. The tool that acts takes a name from a list, never a command from text.</p>
+</div>
+<p class="next">A log line lasts one step. A false sentence can also stick in memory.</p>
+</div>
+
+<div class="concept" id="c-context-poisoning">
+<div class="lead"><h3>What if a false sentence sticks in memory?</h3>
+<p class="hook">One wrong sentence gets into the summary of the incident. Twenty minutes later, three steps reason from it as if it were measured.</p>
+<figure class="diagram" data-diagram="context-poisoning">
+<svg viewBox="0 0 504 33" role="img" aria-labelledby="t-context-poisoning">
+<title id="t-context-poisoning">A false sentence enters a summary, and every later step reads that summary as fact.</title>
+<defs><marker id="a-context-poisoning" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="112.3" height="30" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">False sentence</text>
+<rect x="130.8" y="1" width="112.3" height="30" rx="4" class="f-card s-fail" stroke-width="1.5"/>
+<text x="139.8" y="18.5" font-size="11" class="t-fail b">Summary</text>
+<path d="M114.8 16 H129.8" class="s-muted arrow" marker-end="url(#a-context-poisoning)"/>
+<rect x="261" y="1" width="112.3" height="30" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="270" y="18.5" font-size="11" class="t-paper b">Read again</text>
+<path d="M245 16 H260" class="s-muted arrow" marker-end="url(#a-context-poisoning)"/>
+<rect x="391.3" y="1" width="112.3" height="30" rx="4" class="f-accent s-accent-deep"/>
+<text x="400.3" y="18.5" font-size="11" class="t-ink b">Acted on</text>
+<path d="M375.3 16 H390.3" class="s-muted arrow" marker-end="url(#a-context-poisoning)"/>
+</svg>
+<figcaption><span class="no">Figure 41</span> What the agent writes down is what it reads next.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>This is the same attack, stretched over time. Whatever the agent carries between steps is something it will trust.</p>
+</div>
+<figure class="diagram" data-diagram="poison-pair">
+<svg viewBox="0 0 504 74" role="img" aria-labelledby="t-poison-pair">
+<title id="t-poison-pair">A summary as the record compared with a log as the record.</title>
+<defs><marker id="a-poison-pair" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="71" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Summary is the record</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">A false line</text>
+<text x="81.5" y="39" font-size="9.5" class="t-fail b">Becomes fact</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">Fixing it</text>
+<text x="81.5" y="59.5" font-size="9.5" class="t-fail b">Rewrite history</text>
+<rect x="275" y="1" width="228.5" height="71" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">Log is the record</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">A false line</text>
+<text x="356" y="39" font-size="9.5" class="t-pass b">Stays a claim</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">Fixing it</text>
+<text x="356" y="59.5" font-size="9.5" class="t-pass b">Append a row</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-poison-pair)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-poison-pair)"/>
+</svg>
+<figcaption><span class="no">Figure 42</span> With the log as the record, a wrong sentence stays wrong.</figcaption>
+</figure>
+<div class="body">
+<p>So we read state from the append-only log. A wrong sentence then stays a claim and never becomes the record.</p>
+</div>
+<p class="next">The agent may be safe. The tired person who approves is the next weak spot.</p>
+</div>
+
+<div class="concept" id="c-approval-fatigue">
+<div class="lead"><h3>What about the tired person who approves?</h3>
+<p class="hook">It is four in the morning and the page says Approve or Reject. The last nine proposals were right.</p>
+<figure class="diagram" data-diagram="approval-fatigue">
+<svg viewBox="0 0 504 74" role="img" aria-labelledby="t-approval-fatigue">
+<title id="t-approval-fatigue">An approval page with two buttons compared with one that shows evidence.</title>
+<defs><marker id="a-approval-fatigue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="228.5" height="71" rx="4" class="f-paper s-line" stroke-dasharray="3 3"/>
+<text x="9.5" y="17" font-size="11" class="t-muted b">Two buttons</text>
+<text x="9.5" y="39" font-size="9.5" class="t-muted b">You see</text>
+<text x="79.5" y="39" font-size="9.5" class="t-fail b">Approve, Reject</text>
+<line x1="9.5" y1="47.5" x2="220" y2="47.5" class="s-line"/>
+<text x="9.5" y="59.5" font-size="9.5" class="t-muted b">You can</text>
+<text x="79.5" y="59.5" font-size="9.5" class="t-fail b">Trust it</text>
+<rect x="275" y="1" width="228.5" height="71" rx="4" class="f-accent s-accent-deep"/>
+<text x="284" y="17" font-size="11" class="t-ink b">The evidence page</text>
+<text x="284" y="39" font-size="9.5" class="t-muted b">You see</text>
+<text x="354" y="39" font-size="9.5" class="t-pass b">The proof cited</text>
+<text x="284" y="59.5" font-size="9.5" class="t-muted b">You can</text>
+<text x="354" y="59.5" font-size="9.5" class="t-pass b">Disprove it</text>
+<path d="M235 37.3 H269" class="s-muted arrow" marker-end="url(#a-approval-fatigue)"/>
+<path d="M235 57.8 H269" class="s-muted arrow" marker-end="url(#a-approval-fatigue)"/>
+</svg>
+<figcaption><span class="no">Figure 43</span> What is on the page decides whether the approval means anything.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>OWASP calls this trust exploitation. A person approves because approving is what they do. The button is not the safeguard. The proof beside it is.</p>
+</div>
+<figure class="diagram" data-diagram="approval-page">
+<svg viewBox="0 0 504 100" role="img" aria-labelledby="t-approval-page">
+<title id="t-approval-page">What an approval page carries, and what each part lets the reader check.</title>
+<defs><marker id="a-approval-page" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="90" y="13" font-size="9.5" class="t-ink b">Lets you check</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">On the page</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="91" y="37" font-size="8.5" class="t-ink">The cause is real</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Evidence</text>
+<line x1="0.5" y1="47" x2="503.5" y2="47" class="s-line"/>
+<text x="91" y="62.5" font-size="8.5" class="t-ink">The cost is acceptable</text>
+<text x="0.5" y="62.5" font-size="9.5" class="t-ink b">Blast radius</text>
+<line x1="0.5" y1="72.5" x2="503.5" y2="72.5" class="s-line"/>
+<text x="91" y="88" font-size="8.5" class="t-ink">Nothing was invented</text>
+<text x="0.5" y="88" font-size="9.5" class="t-ink b">Telemetry link</text>
+<line x1="0.5" y1="98" x2="503.5" y2="98" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 44</span> The test for your own page: what could a reader disprove in a minute?</figcaption>
+</figure>
+<div class="body">
+<p>Open your own approval screen and time how long it takes to prove the proposal wrong.</p>
+</div>
+<p class="next">Good proof helps the person. But convenience is risky, because it widens the agent's reach.</p>
+</div>
+
+<div class="concept" id="c-excessive-agency">
+<div class="lead"><h3>Why is convenience risky?</h3>
+<p class="hook">Mounting the container socket was the quickest way to let one action restart one service. Nobody wrote down what else it could do.</p>
+<figure class="diagram" data-diagram="excessive-agency">
+<svg viewBox="0 0 504 83" role="img" aria-labelledby="t-excessive-agency">
+<title id="t-excessive-agency">Nested rings: everything a mounted container socket reaches, and inside it the one service the job needs.</title>
+<defs><marker id="a-excessive-agency" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="503" height="80" rx="4" class="f-card s-line"/>
+<text x="10.5" y="18" font-size="11" class="t-ink b">What the socket reaches</text>
+<rect x="423.2" y="7" width="70.3" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="458.4" y="19" font-size="8.5" class="t-ink" text-anchor="middle">start anything</text>
+<rect x="340.3" y="7" width="77.9" height="17" rx="8.5" class="f-paper s-line"/>
+<text x="379.2" y="19" font-size="8.5" class="t-ink" text-anchor="middle">every container</text>
+<rect x="18.5" y="27" width="467" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="28.5" y="44" font-size="11" class="t-ink b">What the job needs</text>
+</svg>
+<figcaption><span class="no">Figure 45</span> Access wider than the job is access the agent has.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>Access that grows past the task is access the agent has. A socket that can restart one container can start any container.</p>
+</div>
+<figure class="diagram" data-diagram="agency-controls">
+<svg viewBox="0 0 504 137" role="img" aria-labelledby="t-agency-controls">
+<title id="t-agency-controls">Four controls and the question each one answers.</title>
+<defs><marker id="a-agency-controls" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<text x="90" y="13" font-size="9.5" class="t-ink b">Answers</text>
+<text x="0.5" y="13" font-size="8.5" class="t-muted">Control</text>
+<line x1="0.5" y1="21.5" x2="503.5" y2="21.5" class="s-ink"/>
+<text x="91" y="37" font-size="8.5" class="t-ink">What can it reach?</text>
+<text x="0.5" y="37" font-size="9.5" class="t-ink b">Least privilege</text>
+<line x1="0.5" y1="47" x2="503.5" y2="47" class="s-line"/>
+<text x="91" y="62.5" font-size="8.5" class="t-ink">When does it stop?</text>
+<text x="0.5" y="62.5" font-size="9.5" class="t-ink b">Circuit breaker</text>
+<line x1="0.5" y1="72.5" x2="503.5" y2="72.5" class="s-line"/>
+<text x="91" y="88" font-size="8.5" class="t-ink">What would happen?</text>
+<text x="0.5" y="88" font-size="9.5" class="t-ink b">Dry run</text>
+<line x1="0.5" y1="98" x2="503.5" y2="98" class="s-line"/>
+<text x="91" y="113.5" font-size="8.5" class="t-ink">Who lent it that?</text>
+<text x="0.5" y="113.5" font-size="9.5" class="t-ink b">No ambient</text>
+<text x="0.5" y="126" font-size="9.5" class="t-ink b">access</text>
+<line x1="0.5" y1="135" x2="503.5" y2="135" class="s-line"/>
+</svg>
+<figcaption><span class="no">Figure 46</span> The same controls, in the words of the operations team.</figcaption>
+</figure>
+<div class="body">
+<p>This lab makes that trade on purpose, and the hardening chapter exists because of it. Copy the design without the hardening and it goes wrong.</p>
+</div>
+<p class="next">Each fix is a guess until it is measured. We cannot know if the agent got better.</p>
+</div>
+
+<div class="concept" id="c-eval-set">
+<div class="lead"><h3>How do we know the agent got better?</h3>
+<p class="hook">Someone improves the prompt on Tuesday. On Wednesday nobody can say whether the agent is better, because nothing was measured.</p>
+<figure class="diagram" data-diagram="eval-set">
+<svg viewBox="0 0 504 47" role="img" aria-labelledby="t-eval-set">
+<title id="t-eval-set">Resolved incidents feed an evaluation set. A change to the agent is replayed against it.</title>
+<defs><marker id="a-eval-set" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<rect x="0.5" y="1" width="112.3" height="44" rx="4" class="f-card s-line"/>
+<text x="9.5" y="18.5" font-size="11" class="t-ink b">Resolved</text>
+<text x="9.5" y="32.5" font-size="11" class="t-ink b">incident</text>
+<rect x="130.8" y="1" width="112.3" height="44" rx="4" class="f-card s-line"/>
+<text x="139.8" y="18.5" font-size="11" class="t-ink b">Evaluation set</text>
+<path d="M114.8 23 H129.8" class="s-muted arrow" marker-end="url(#a-eval-set)"/>
+<rect x="261" y="1" width="112.3" height="44" rx="4" class="f-fill-dark s-fill-dark"/>
+<text x="270" y="18.5" font-size="11" class="t-paper b">Change</text>
+<path d="M245 23 H260" class="s-muted arrow" marker-end="url(#a-eval-set)"/>
+<rect x="391.3" y="1" width="112.3" height="44" rx="4" class="f-accent s-accent-deep"/>
+<text x="400.3" y="18.5" font-size="11" class="t-ink b">Replay</text>
+<path d="M375.3 23 H390.3" class="s-muted arrow" marker-end="url(#a-eval-set)"/>
+</svg>
+<figcaption><span class="no">Figure 47</span> Every resolved incident becomes a test for the next change.</figcaption>
+</figure>
+</div>
+<div class="body">
+<p>So we keep every incident we resolve, with the cause it turned out to have. Before any change to the prompt, model or tools, we replay them. This is an evaluation set.</p>
+</div>
+<figure class="diagram" data-diagram="eval-chart">
+<svg viewBox="0 0 504 156" role="img" aria-labelledby="t-eval-chart">
+<title id="t-eval-chart">Incidents solved in each replay across ten changes. One change makes the score drop, and the replay shows it.</title>
+<defs><marker id="a-eval-chart" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs>
+<line x1="34" y1="20" x2="34" y2="130" class="s-muted"/>
+<line x1="34" y1="130" x2="498" y2="130" class="s-muted"/>
+<text x="0.5" y="12" font-size="8.5" class="t-muted">Solved</text>
+<text x="498" y="144" font-size="8.5" class="t-muted" text-anchor="end">Change</text>
+<polyline points="34,64 126.8,53 219.6,42 266,86 312.4,42 405.2,31 498,31" class="s-ink line" fill="none" stroke-width="1.75"/>
+<circle cx="266" cy="86" r="4.5" class="f-fail s-fail" stroke-width="1.5"/>
+<text x="275" y="100" font-size="9.5" class="t-ink b">Regression</text>
+</svg>
+<figcaption><span class="no">Figure 48</span> The dip is the point. Without the replay, an incident would have found it.</figcaption>
+</figure>
+<div class="body">
+<p>Start today. Every resolved incident is the first test in one.</p>
+</div>
+<p class="next">You have the whole loop. Some ideas are published, and we should say where they come from.</p>
+</div>
+</section>
+
+<section class="chapter" id="l-sources">
+<p class="kicker">Grounding</p>
+<h2>Where do these ideas come from?</h2>
+<p class="lede">Knowing what is published and what is one lab's choice lets you argue with the second kind.</p>
+
+<div class="concept" id="c-published">
+<h3>Which ideas are published, and where did they come from?</h3>
+<div class="body">
+<p>None of this vocabulary was invented here. Indicator, objective and error budget come from <a href="https://sre.google/workbook/implementing-slos/">Implementing SLOs</a> in Google's Site Reliability Workbook. Burn rate comes from <a href="https://sre.google/workbook/alerting-on-slos/">Alerting on SLOs</a>, in the same book.</p>
+<p>The three signals are a standard too. <a href="https://opentelemetry.io/docs/concepts/signals/">OpenTelemetry</a> defines traces, metrics and logs, so these queries work on any vendor's storage.</p>
+</div>
+<p class="next">Those words are old. The guardrails have names too.</p>
+</div>
+
+<div class="concept" id="c-guardrail-source">
+<h3>What names do the guardrails have?</h3>
+<div class="body">
+<p>Google's guidance on <a href="https://sre.google/resources/practices-and-processes/ai-engineering-reliable-operations/">AI engineering for reliable operations</a> names the controls this lab uses. They are least privilege, no ambient access, circuit breakers, dry runs and safe defaults. It also gives the autonomy levels.</p>
+<p>Read their list, then read what the lab enforces. The gap you find is the work left before this runs on your own systems.</p>
+</div>
+<p class="next">Guardrails answer risks. Those risks are written down too.</p>
+</div>
+
+<div class="concept" id="c-risk-source">
+<h3>Where are the risks written down?</h3>
+<div class="body">
+<p>OWASP published its <a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">Top 10 for Agentic Applications</a> in December 2025. It names risks that belong to agents, not to models.</p>
+<p>The hardening chapter uses their names. That lets a security reviewer match this design to a list they already know.</p>
+</div>
+<p class="next">Published names cover most of it. The rest is this lab's own choice.</p>
+</div>
+
+<div class="concept" id="c-ours">
+<h3>What is only this lab's own choice?</h3>
+<div class="body">
+<p>Some choices are only ours. One is the three sigma band, with a fixed ceiling under it. Another is dropping past incidents from the baseline. The last is holding every action at level two.</p>
+<p>They are defensible. They are not standards. Treat them like any design in a repository you did not write. The published material shows the options, and the lab shows what one set of answers costs.</p>
+</div>
+</div>
+</section>
+
+<section class="chapter" id="l-terms">
+<p class="kicker">Recap</p>
+<h2>The words this workshop uses</h2>
+<p class="lede">If you take one page away, take this one. Each word is explained in the chapter it belongs to.</p>
+<div class="scroll">
+<table>
+<thead>
+<tr><th>Term</th><th>What it means here</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#c-wide-event">Wide event</a></td><td>One record per request, with every fact you might group by later</td></tr>
+<tr><td><a href="#c-cardinality">Cardinality</a></td><td>How many different values a fact can take. More values cost more</td></tr>
+<tr><td><a href="#c-sampling">Sampling</a></td><td>Keeping only some traces, which loses the rare ones you need</td></tr>
+<tr><td><a href="#c-sli">Indicator</a></td><td>What a user feels, as good events over valid events</td></tr>
+<tr><td><a href="#c-slo">Objective</a></td><td>The target that indicator must hit, over a stated time</td></tr>
+<tr><td><a href="#c-error-budget">Error budget</a></td><td>The failure the objective allows, as an amount to spend</td></tr>
+<tr><td><a href="#c-burn-rate">Burn rate</a></td><td>How fast the budget is being spent</td></tr>
+<tr><td><a href="#c-baseline">Baseline</a></td><td>The stretch of time you call healthy</td></tr>
+<tr><td><a href="#c-three-sigma">Three sigma</a></td><td>A band around the baseline that ordinary minutes stay inside</td></tr>
+<tr><td><a href="#c-event-delta">Event delta</a></td><td>The facts that differ between a healthy window and a failing one</td></tr>
+<tr><td><a href="#c-trace-graph">Trace waterfall</a></td><td>One request's steps against time, showing where it waited</td></tr>
+<tr><td><a href="#c-tool-class">Tool class</a></td><td>What a tool may do, declared in code, or it cannot register</td></tr>
+<tr><td><a href="#c-grounding">Grounding</a></td><td>Checking that every id a proposal cites is real</td></tr>
+<tr><td><a href="#c-approval-event">Approval event</a></td><td>The stored record of a person saying yes</td></tr>
+<tr><td><a href="#c-recovery-check">Recovery check</a></td><td>Watching the opening signal on fresh traffic before closing</td></tr>
+<tr><td><a href="#c-autonomy-level">Autonomy level</a></td><td>How much runs without a person, chosen per action</td></tr>
+<tr><td><a href="#c-prompt-injection">Goal hijack</a></td><td>An instruction planted where the agent will read it</td></tr>
+<tr><td><a href="#c-eval-set">Evaluation set</a></td><td>Past incidents with known answers, replayed after every change</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer>
+<p>The facilitator guide carries the timing and the commands for the day, and it cites these ideas by name rather than explaining them again. Everything described here is exercised by <code>make e2e</code> against a real model, and scored by <code>make score</code>.</p>
+</footer>
+
+</main>
+</body>
+</html>

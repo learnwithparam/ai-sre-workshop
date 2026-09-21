@@ -1,0 +1,18 @@
+{
+  "shape": "scope",
+  "alt": "Nested rings: everything a mounted container socket reaches, and inside it the one service the job needs.",
+  "caption": "Access wider than the job is access the agent has.",
+  "rings": [
+    {
+      "title": "What the socket reaches",
+      "items": [
+        "every container",
+        "start anything"
+      ]
+    },
+    {
+      "title": "What the job needs",
+      "tone": "mark"
+    }
+  ]
+}

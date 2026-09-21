@@ -1,0 +1,26 @@
+{
+  "shape": "scope",
+  "alt": "Nested rings: the database, inside it the agent's account with its limits, and inside that one query.",
+  "caption": "Each ring reaches only what sits inside the one around it. The account draws them, not the model's manners.",
+  "rings": [
+    {
+      "title": "The database",
+      "items": [
+        "ingest",
+        "all tables"
+      ]
+    },
+    {
+      "title": "The agent's account",
+      "items": [
+        "read only",
+        "time capped",
+        "row capped"
+      ]
+    },
+    {
+      "title": "One query",
+      "tone": "mark"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "A baseline that kept the last incident compared with one that dropped it: the first has a raised mean and a wide band and misses the second failure.",
+  "caption": "What one failure does to the next, depending on whether the baseline kept it.",
+  "labelWidth": 76,
+  "left": {
+    "title": "Kept the incident",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Dropped it",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Mean",
+      "left": "Raised",
+      "right": "Normal",
+      "changed": true
+    },
+    {
+      "label": "Band",
+      "left": "Wide",
+      "right": "Tight",
+      "changed": true
+    },
+    {
+      "label": "Second failure",
+      "left": "Missed",
+      "right": "Caught",
+      "changed": true
+    }
+  ]
+}

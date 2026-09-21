@@ -50,17 +50,24 @@ STAMPED: tuple[tuple[str, str], ...] = (
 
 # What it does not. A change here cannot alter what a recorded run proved.
 NOT_STAMPED: tuple[tuple[str, str], ...] = (
-    ("teach.html", "prose: the facilitator guide"),
-    ("concepts.html", "prose: the concept spine"),
-    ("teach.css", "prose: how both of them look, including in print"),
+    ("guide.html", "prose: the facilitator guide"),
+    ("workbook.html", "prose: the attendee workbook"),
+    (
+        "design/",
+        "how both look in print: the brand tokens, the stylesheet, the fonts, the diagram descriptions",
+    ),
     ("sources.json", "prose: the citations those pages carry"),
     ("tests/", "the unit and structural suite, which `make check` runs and no spec loads"),
     ("scripts/rubric.py", "the scorecard, which reads results rather than producing them"),
     ("scripts/score.py", "the scorer, same"),
     ("scripts/tree_hash.py", "this file: stamping the stamper invalidates every stamp on every edit"),
     ("scripts/check_prose.py", "a `make check` step"),
+    ("scripts/prose-rules.json", "the word lists that step reads"),
     ("scripts/check_links.py", "a scheduled CI job"),
     ("scripts/contents.py", "generates the contents of a teaching page"),
+    ("scripts/diagram.mjs", "draws the figures on the teaching pages"),
+    ("scripts/highlight.mjs", "colours the code blocks on the teaching pages"),
+    ("scripts/tokens.py", "writes design/tokens.css"),
     ("scripts/build_book.mjs", "renders the PDFs"),
     ("scripts/pdf_freshness.json", "what the PDFs were built from"),
     ("evidence/", "written by the run itself, so it cannot be an input to it"),

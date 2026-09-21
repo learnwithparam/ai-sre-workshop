@@ -1,0 +1,35 @@
+{
+  "shape": "pair",
+  "alt": "The same thousand requests kept in full and sampled. Sampling loses the slowest request and reports a much better percentile.",
+  "caption": "Slow requests are rare, so a fixed share drops them first.",
+  "labelWidth": 78,
+  "left": {
+    "title": "Every span kept",
+    "tone": "plain"
+  },
+  "right": {
+    "title": "One in ten",
+    "tone": "quiet"
+  },
+  "rows": [
+    {
+      "label": "Requests",
+      "left": "1,000",
+      "right": "100"
+    },
+    {
+      "label": "Slowest",
+      "left": "40 s",
+      "right": "missing",
+      "changed": true,
+      "flip": true
+    },
+    {
+      "label": "p99",
+      "left": "38 s",
+      "right": "1.2 s",
+      "changed": true,
+      "flip": true
+    }
+  ]
+}

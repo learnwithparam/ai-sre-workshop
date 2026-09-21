@@ -1,0 +1,24 @@
+{
+  "shape": "fan",
+  "alt": "The AI SRE on the left, with three things it is not on the right: an operator, a replacement for alerting, and a source of truth.",
+  "caption": "Each role is closed off by something you can test.",
+  "from": {
+    "title": "The AI SRE",
+    "tone": "dark",
+    "note": "reads, proposes, waits"
+  },
+  "to": [
+    {
+      "title": "Not an operator",
+      "note": "no credential to act alone"
+    },
+    {
+      "title": "Not alerting",
+      "note": "plain statistics detect"
+    },
+    {
+      "title": "Not a source of truth",
+      "note": "claims are checked first"
+    }
+  ]
+}

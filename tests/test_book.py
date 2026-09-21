@@ -14,16 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FRESHNESS = ROOT / "scripts/pdf_freshness.json"
-CSS = ROOT / "teach.css"
+CSS = ROOT / "design/book.css"
 BUILDER = ROOT / "scripts/build_book.mjs"
 
 # Each of these renders perfectly and extracts as garbage. They were isolated one at
 # a time, by experiment, and every one is a property somebody would reasonably add
 # back for the screen.
 TRAPS = {
-    "--sans: Helvetica": "the printed sans stack must not resolve to SF Pro",
-    "--serif: Georgia": "the printed serif stack must embed space glyphs",
-    '--mono: "Courier New"': "the printed mono stack must not be ui-monospace",
+    "overflow: visible !important": "overflow-x on a command clips it on paper, in the text layer too",
     "letter-spacing: normal !important": "tracking both over-splits and glues runs",
     "font-weight: 700 !important": "a variable face at 900 glues its run and drops a character",
     "position: static !important": "a positioned list item paints last and detaches from its heading",

@@ -1,0 +1,36 @@
+{
+  "shape": "matrix",
+  "alt": "Four controls and the question each one answers.",
+  "caption": "The same controls, in the words of the operations team.",
+  "corner": "Control",
+  "labelWidth": 86,
+  "cols": [
+    "Answers"
+  ],
+  "rows": [
+    {
+      "label": "Least privilege",
+      "cells": [
+        "What can it reach?"
+      ]
+    },
+    {
+      "label": "Circuit breaker",
+      "cells": [
+        "When does it stop?"
+      ]
+    },
+    {
+      "label": "Dry run",
+      "cells": [
+        "What would happen?"
+      ]
+    },
+    {
+      "label": "No ambient access",
+      "cells": [
+        "Who lent it that?"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "shape": "gate",
+  "alt": "A new tool must be classified before it registers. A tool with no class stops the server from starting.",
+  "caption": "The forgotten case fails on the day it is written, not later in production.",
+  "path": [
+    {
+      "title": "New tool"
+    },
+    {
+      "title": "Classified",
+      "tone": "mark"
+    },
+    {
+      "title": "Registered"
+    }
+  ],
+  "gates": [
+    {
+      "after": 0,
+      "refuse": "No class: will not start"
+    }
+  ]
+}

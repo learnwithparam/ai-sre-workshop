@@ -1,0 +1,39 @@
+{
+  "shape": "pair",
+  "alt": "The same failed request recorded as a narrow event and as a wide event. Only the wide one carries release, region and tier.",
+  "caption": "The same failed request, written twice. Only the wide one can be split by release later.",
+  "labelWidth": 62,
+  "left": {
+    "title": "Narrow",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Wide",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Outcome",
+      "left": "error",
+      "right": "error"
+    },
+    {
+      "label": "Release",
+      "left": "missing",
+      "right": "v2",
+      "changed": true
+    },
+    {
+      "label": "Region",
+      "left": "missing",
+      "right": "eu-west",
+      "changed": true
+    },
+    {
+      "label": "Tier",
+      "left": "missing",
+      "right": "free",
+      "changed": true
+    }
+  ]
+}

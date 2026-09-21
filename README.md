@@ -123,11 +123,11 @@ for its tools, so a query improved in the workshop improves the agent.
 | Command | What it proves |
 |---|---|
 | `make check` | Lint, unit and structural tests, compose validity for every mode, prose rules. No Docker, no model spend. CI runs it on every push. |
-| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, the signup page at phone width, the HyperDX views the workshop teaches from, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 13 minutes after the stack is up; writes `evidence/e2e-report.json` and the screenshots `teach.html` shows. |
-| `make book` | Renders the bound book, the concepts and the run sheet to PDF, then reads its own text layer back with `pdftotext`. A Chromium PDF can look perfect and extract as gibberish, so the build asserts every canary phrase survives and that no run is welded or split one letter at a time. Needs poppler. |
+| `make e2e` | The full stack with the real model and a real browser: telemetry, workshop SQL, the signup page at phone width, the HyperDX views the workshop teaches from, detection, investigation, refusal, approval, rollback, verification, reject and edit, self-observability, MCP auth. About 13 minutes after the stack is up; writes `evidence/e2e-report.json` and the screenshots `guide.html` shows. |
+| `make book` | Redraws every figure, renders the attendee workbook and the facilitator guide to PDF, then reads them back with `pdftotext`. A Chromium PDF can look perfect and extract as gibberish, so the build asserts every canary phrase and every command line survives, that no run is welded or split one letter at a time, that both fonts are embedded and that no page is mostly empty. Needs poppler. |
 | `make score` | A score out of 100, computed from the latest `check` and `e2e` results. Results from older code count as missing. Below 100 exits 1. |
 
-`concepts.html` explains every idea the workshop rests on, and `teach.html` is the facilitator guide
+`workbook.html` explains every idea the workshop rests on, and `guide.html` is the facilitator guide
 for running the day. The guide cites the concepts by name rather than repeating them, and a
 structural test fails on a dangling citation, on an explanation no module delivers, and on any
 sentence written into both. `make book` prints all of it.

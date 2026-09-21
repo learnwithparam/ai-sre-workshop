@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "A record that can be edited compared with a log that only grows.",
+  "caption": "A row you can update is a history that can disagree with itself.",
+  "labelWidth": 70,
+  "left": {
+    "title": "Editable record",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Append-only log",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "A change",
+      "left": "Overwrites",
+      "right": "Adds a row",
+      "changed": true
+    },
+    {
+      "label": "The past",
+      "left": "Lost",
+      "right": "Kept",
+      "changed": true
+    },
+    {
+      "label": "State",
+      "left": "Stored twice",
+      "right": "Derived once",
+      "changed": true
+    }
+  ]
+}

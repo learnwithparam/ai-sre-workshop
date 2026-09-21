@@ -15,7 +15,9 @@ change before it is called done.
 - Every MCP tool is classified in `sre-control/sre_control/policy.py`; only `execute_remediation` acts, and
   only after a human approval event.
 - The audit log is append-only; state derives from `sre.incident_events`.
-- `concepts.html` holds each idea once; `teach.html` cites them by id (`tests/test_concepts.py`).
+- Two documents, two PDFs: `workbook.html` holds each idea once; `guide.html` cites them by id (`tests/test_concepts.py`).
+- Every figure is drawn by `scripts/diagram.mjs` from `design/diagrams/<id>.json` (`make diagrams`); a concept with no
+  figure needs a reason in `design/diagrams/exempt.json` (`tests/test_diagrams.py`). Colours and type live in `design/BRAND.md`.
 - `make book` records source hashes and `make check` names a stale PDF. Never judge a PDF by eye: resets
-  live in `teach.css` (`tests/test_book.py`) and `make book` reads back with `pdftotext`.
+  live in `design/book.css` (`tests/test_book.py`) and `make book` reads back with `pdftotext`.
 - No em dashes (`scripts/check_prose.py`). Secrets never go on a command line.

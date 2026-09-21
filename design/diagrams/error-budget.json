@@ -1,0 +1,60 @@
+{
+  "shape": "chart",
+  "alt": "Minutes of budget left across a thirty day window. A bad release on day ten takes a large step out of it.",
+  "caption": "At 99.9 percent over thirty days, about forty three minutes of failure are allowed.",
+  "xmax": 30,
+  "ymax": 45,
+  "height": 120,
+  "ylabel": "Minutes left",
+  "xlabel": "Days into window",
+  "lines": [
+    {
+      "y": 0,
+      "label": "Budget spent",
+      "tone": "fail",
+      "side": "left"
+    }
+  ],
+  "series": [
+    [
+      0,
+      43
+    ],
+    [
+      4,
+      42
+    ],
+    [
+      8,
+      40
+    ],
+    [
+      10,
+      25
+    ],
+    [
+      14,
+      24
+    ],
+    [
+      20,
+      21
+    ],
+    [
+      26,
+      19
+    ],
+    [
+      30,
+      17
+    ]
+  ],
+  "points": [
+    {
+      "x": 10,
+      "y": 25,
+      "label": "Bad release",
+      "tone": "mark"
+    }
+  ]
+}

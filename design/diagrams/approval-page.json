@@ -1,0 +1,30 @@
+{
+  "shape": "matrix",
+  "alt": "What an approval page carries, and what each part lets the reader check.",
+  "caption": "The test for your own page: what could a reader disprove in a minute?",
+  "corner": "On the page",
+  "labelWidth": 86,
+  "cols": [
+    "Lets you check"
+  ],
+  "rows": [
+    {
+      "label": "Evidence",
+      "cells": [
+        "The cause is real"
+      ]
+    },
+    {
+      "label": "Blast radius",
+      "cells": [
+        "The cost is acceptable"
+      ]
+    },
+    {
+      "label": "Telemetry link",
+      "cells": [
+        "Nothing was invented"
+      ]
+    }
+  ]
+}

@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SURFACES = ("teach.html", "concepts.html")
+SURFACES = ("guide.html", "workbook.html")
 OPEN = '<nav class="contents" aria-label="Contents">'
 CLOSE = "</nav>"
 

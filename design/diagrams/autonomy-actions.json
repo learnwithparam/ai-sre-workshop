@@ -1,0 +1,40 @@
+{
+  "shape": "matrix",
+  "alt": "Three actions compared by how much damage they can do and how easily they are undone.",
+  "caption": "The first two rows exist in the lab. The database change is only an illustration.",
+  "corner": "Action",
+  "labelWidth": 92,
+  "cols": [
+    "Damage",
+    "Undone"
+  ],
+  "rows": [
+    {
+      "label": "Restart a container",
+      "cells": [
+        "Seconds of errors",
+        "Nothing to undo"
+      ]
+    },
+    {
+      "label": "Roll back a release",
+      "cells": [
+        "Withdraws new code",
+        "Deploy it again"
+      ]
+    },
+    {
+      "label": "Change a database",
+      "cells": [
+        {
+          "text": "Data can be lost",
+          "tone": "fail"
+        },
+        {
+          "text": "Often cannot",
+          "tone": "fail"
+        }
+      ]
+    }
+  ]
+}

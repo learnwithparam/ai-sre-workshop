@@ -1,0 +1,49 @@
+{
+  "shape": "chart",
+  "alt": "Incidents solved in each replay across ten changes. One change makes the score drop, and the replay shows it.",
+  "caption": "The dip is the point. Without the replay, an incident would have found it.",
+  "xmax": 10,
+  "ymax": 10,
+  "height": 110,
+  "ylabel": "Solved",
+  "xlabel": "Change",
+  "series": [
+    [
+      0,
+      6
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      10,
+      9
+    ]
+  ],
+  "points": [
+    {
+      "x": 5,
+      "y": 4,
+      "label": "Regression",
+      "tone": "fail",
+      "below": true
+    }
+  ]
+}

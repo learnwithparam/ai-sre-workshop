@@ -1,0 +1,33 @@
+{
+  "shape": "pair",
+  "alt": "Three things a proposal cites, checked against telemetry. The trace and the service are found and the release was never deployed.",
+  "caption": "A fluent claim about a release nobody shipped stops here.",
+  "labelWidth": 56,
+  "left": {
+    "title": "Proposal cites",
+    "tone": "plain"
+  },
+  "right": {
+    "title": "Telemetry has",
+    "tone": "plain"
+  },
+  "rows": [
+    {
+      "label": "Trace",
+      "left": "c3f1",
+      "right": "Found"
+    },
+    {
+      "label": "Service",
+      "left": "docs-loader",
+      "right": "Found"
+    },
+    {
+      "label": "Release",
+      "left": "v9",
+      "right": "Never deployed",
+      "changed": true,
+      "flip": true
+    }
+  ]
+}

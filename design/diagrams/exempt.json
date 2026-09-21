@@ -1,0 +1,6 @@
+{
+  "published": "The concept says which books define each term. A picture of a citation would only be a list of titles, so the prose is the whole content.",
+  "guardrail-source": "It points at Google's published list of controls for you to read yourself. Redrawing their list here would copy it and could drift from it.",
+  "risk-source": "It names OWASP's list of agentic risks and points at it. A picture would restate their catalogue, and the hardening chapter draws the five that matter.",
+  "ours": "It is a list of this lab's own choices, each drawn in its own concept above. A second picture would repeat them in a smaller size."
+}

@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "How a release decision goes without a budget and with one.",
+  "caption": "With a budget, the release talk becomes arithmetic that anyone can join.",
+  "labelWidth": 70,
+  "left": {
+    "title": "No budget",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "A budget",
+    "tone": "plain"
+  },
+  "rows": [
+    {
+      "label": "Can we ship?",
+      "left": "Ask around",
+      "right": "Check what is left",
+      "changed": true
+    },
+    {
+      "label": "An outage",
+      "left": "Assign blame",
+      "right": "Spend budget",
+      "changed": true
+    },
+    {
+      "label": "Reliability",
+      "left": "A value",
+      "right": "A quantity",
+      "changed": true
+    }
+  ]
+}

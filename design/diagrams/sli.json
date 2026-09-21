@@ -1,0 +1,37 @@
+{
+  "shape": "matrix",
+  "alt": "Three indicators, each defined as a good event over a valid event.",
+  "caption": "A ratio still makes sense when traffic doubles. A raw count does not.",
+  "corner": "Indicator",
+  "labelWidth": 92,
+  "cols": [
+    "Good event",
+    "Valid event"
+  ],
+  "rows": [
+    {
+      "label": "Availability",
+      "cells": [
+        "Returned success",
+        "Any user request"
+      ]
+    },
+    {
+      "label": "Latency",
+      "cells": [
+        "Served under 300 ms",
+        "Any user request"
+      ]
+    },
+    {
+      "label": "Freshness",
+      "cells": [
+        {
+          "text": "Data under a minute old",
+          "tone": "mark"
+        },
+        "Any read"
+      ]
+    }
+  ]
+}

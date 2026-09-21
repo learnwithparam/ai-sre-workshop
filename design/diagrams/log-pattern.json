@@ -1,0 +1,21 @@
+{
+  "shape": "flow",
+  "alt": "Raw log lines have their varying parts masked, then group into a short list of patterns with counts.",
+  "caption": "Hiding the parts that vary makes different lines count as one message.",
+  "steps": [
+    {
+      "title": "Raw lines",
+      "note": "different numbers"
+    },
+    {
+      "title": "Masked",
+      "note": "ids and numbers hidden"
+    },
+    {
+      "title": "Patterns",
+      "tone": "mark",
+      "note": "with counts"
+    }
+  ],
+  "per": 3
+}

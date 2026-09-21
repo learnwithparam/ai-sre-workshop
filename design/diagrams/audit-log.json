@@ -1,0 +1,26 @@
+{
+  "shape": "flow",
+  "alt": "Five events are appended in order, and the current state of the incident is read back from those rows.",
+  "caption": "Rows are only ever added, so the past cannot be rewritten.",
+  "per": 5,
+  "steps": [
+    {
+      "title": "Opened"
+    },
+    {
+      "title": "Proposed"
+    },
+    {
+      "title": "Approved",
+      "tone": "mark"
+    },
+    {
+      "title": "Executed"
+    },
+    {
+      "title": "Resolved",
+      "tone": "dark"
+    }
+  ],
+  "back": "State is read from these rows"
+}

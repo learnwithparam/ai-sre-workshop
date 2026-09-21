@@ -45,7 +45,17 @@ check: ## Lint, unit and structural tests (no Docker, no model spend)
 	uv run --quiet python scripts/check_prose.py
 	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
 
-book: ## Render the bound book, the concepts and the run sheet to PDF, then read them back
+# Declared here, not in the .PHONY line above the first target: that line is inside the e2e stamp,
+# and a target that prints a page must not cost a Docker run to re-certify.
+.PHONY: tokens diagrams
+tokens: ## Regenerate design/tokens.css from design/tokens.json
+	@uv run --quiet python scripts/tokens.py
+
+diagrams: ## Redraw every figure and colour every code block in the workbook and the guide
+	@node scripts/diagram.mjs
+	@node scripts/highlight.mjs
+
+book: diagrams ## Render the workbook and the guide to PDF, then read them back
 	@cd e2e && npm ci --silent && npx playwright install chromium --only-shell >/dev/null 2>&1 || true
 	@uv run --quiet python scripts/contents.py
 	@node scripts/build_book.mjs

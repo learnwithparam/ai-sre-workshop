@@ -1,0 +1,25 @@
+{
+  "shape": "gate",
+  "alt": "A burn seen in a short window must also show in a long window before it pages. A blip is stopped between them.",
+  "caption": "Both windows must agree, so a real burn pages and a blip stays quiet.",
+  "path": [
+    {
+      "title": "Fast burn",
+      "note": "5 minute window"
+    },
+    {
+      "title": "Sustained",
+      "note": "1 hour window"
+    },
+    {
+      "title": "Page",
+      "tone": "mark"
+    }
+  ],
+  "gates": [
+    {
+      "after": 0,
+      "refuse": "A blip stays quiet"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "shape": "timeline",
+  "alt": "Ten minutes of baseline followed by the last minute, which is the only part compared against it.",
+  "caption": "The last minute is judged against the ten before it, and is never part of them.",
+  "total": 11,
+  "ticks": 11,
+  "unit": " m",
+  "labelWidth": 76,
+  "rows": [
+    {
+      "label": "Baseline",
+      "start": 0,
+      "length": 10,
+      "note": "called healthy"
+    },
+    {
+      "label": "Compared",
+      "start": 10,
+      "length": 1,
+      "tone": "mark",
+      "note": "last minute"
+    }
+  ]
+}

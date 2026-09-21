@@ -1,0 +1,23 @@
+{
+  "shape": "flow",
+  "alt": "A false sentence enters a summary, and every later step reads that summary as fact.",
+  "caption": "What the agent writes down is what it reads next.",
+  "per": 4,
+  "steps": [
+    {
+      "title": "False sentence"
+    },
+    {
+      "title": "Summary",
+      "tone": "fail"
+    },
+    {
+      "title": "Read again",
+      "tone": "dark"
+    },
+    {
+      "title": "Acted on",
+      "tone": "mark"
+    }
+  ]
+}

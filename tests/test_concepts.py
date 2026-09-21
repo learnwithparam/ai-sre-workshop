@@ -1,10 +1,10 @@
 """The two teaching surfaces hold one copy of each idea, and each points at the other.
 
-concepts.html is the spine and the only place an explanation is written. teach.html is
-the run sheet: it carries the timing, the talk track and the commands for one day, and
-cites concepts by id rather than restating them.
+workbook.html is the only place an explanation is written. guide.html is the facilitator
+guide: it carries the timing, the talk track and the commands for one day, and cites
+concepts by id rather than restating them.
 
-These tests are the thing that keeps that true. Without them the spine becomes a second
+These tests are the thing that keeps that true. Without them the workbook becomes a second
 copy of the guide, the two disagree, and the room is taught whichever one the facilitator
 happened to open.
 """
@@ -15,8 +15,8 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SPINE = ROOT / "concepts.html"
-SHEET = ROOT / "teach.html"
+SPINE = ROOT / "workbook.html"
+SHEET = ROOT / "guide.html"
 sys.path.insert(0, str(ROOT / "scripts"))
 from contents import contents, sections  # noqa: E402
 
@@ -46,12 +46,12 @@ def shingles(text: str) -> set[str]:
 
 
 def test_the_spine_declares_concepts():
-    assert len(declared()) > 0, "concepts.html declares no concept ids"
+    assert len(declared()) > 0, "workbook.html declares no concept ids"
 
 
 def test_every_cited_concept_is_declared():
     dangling = sorted(cited() - declared())
-    assert dangling == [], f"teach.html cites concepts the spine does not declare: {dangling}"
+    assert dangling == [], f"guide.html cites concepts the workbook does not declare: {dangling}"
 
 
 def test_every_declared_concept_is_taught():

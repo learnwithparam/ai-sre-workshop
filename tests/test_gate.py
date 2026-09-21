@@ -64,6 +64,12 @@ def test_prose_check_is_wired():
     assert "check_prose" in teach_test
     assert (ROOT / "scripts/check_prose.py").exists()
 
+    # The word lists are a committed copy of the house rules. Where the rules exist it must match them.
+    from check_prose import PHRASES, WORDS, rules_stale
+
+    assert WORDS and PHRASES, "scripts/prose-rules.json has no rules, so the check would pass everything"
+    assert rules_stale() is None
+
 
 def test_e2e_cleanup_trap_survives_the_cd():
     # The trap fires after `cd e2e`; a relative script path left v2 deployed after a failed run.
@@ -95,7 +101,7 @@ def test_the_stamp_covers_what_an_e2e_run_loads():
     assert is_stamped("sre-control/sre_control/detector.py"), "the control plane under test is not stamped"
     assert is_stamped("workshop/02-anomaly.sql"), "a query the agent's tools load is not stamped"
     assert is_stamped("e2e/specs/07-bad-release.spec.ts"), "a spec is not stamped"
-    assert not is_stamped("teach.css"), "a print stylesheet cannot change what a run proved"
+    assert not is_stamped("design/book.css"), "a print stylesheet cannot change what a run proved"
     assert not is_stamped("tests/test_book.py"), "a unit test is not loaded by a spec"
     assert not is_stamped("scripts/build_book.mjs"), "the PDF builder is not loaded by a spec"
 

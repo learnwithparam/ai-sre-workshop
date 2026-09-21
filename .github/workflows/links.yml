@@ -12,8 +12,8 @@ on:
   push:
     paths:
       - sources.json
-      - concepts.html
-      - teach.html
+      - workbook.html
+      - guide.html
       - scripts/check_links.py
   workflow_dispatch:
 

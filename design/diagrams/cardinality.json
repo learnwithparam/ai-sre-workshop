@@ -1,0 +1,19 @@
+{
+  "shape": "growth",
+  "alt": "Cost against distinct values. A store that keeps a series per combination climbs steeply. A columnar store stays flat.",
+  "caption": "Cost climbs with the number of different values. The marked line is when someone added the user id.",
+  "ylabel": "Cost",
+  "xlabel": "Distinct values",
+  "mark": {
+    "at": 0.62,
+    "label": "user id added"
+  },
+  "rising": {
+    "label": "A series per value",
+    "tone": "fail"
+  },
+  "flat": {
+    "label": "A column, read once",
+    "tone": "pass"
+  }
+}

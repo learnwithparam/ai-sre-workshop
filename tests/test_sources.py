@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "sources.json"
-SURFACES = ("concepts.html", "teach.html", "README.md")
+SURFACES = ("workbook.html", "guide.html", "README.md")
 
 
 def declared() -> list[dict[str, str]]:

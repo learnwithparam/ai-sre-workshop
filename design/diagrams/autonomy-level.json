@@ -1,0 +1,29 @@
+{
+  "shape": "flow",
+  "alt": "Five levels from manual to fully autonomous, with this lab at the second.",
+  "caption": "The lab sits at level two for every action. Moving one up is a choice about damage.",
+  "per": 5,
+  "steps": [
+    {
+      "title": "Level 0",
+      "note": "Manual"
+    },
+    {
+      "title": "Level 1",
+      "note": "Assisted"
+    },
+    {
+      "title": "Level 2",
+      "tone": "mark",
+      "note": "Approved"
+    },
+    {
+      "title": "Level 3",
+      "note": "Bounded"
+    },
+    {
+      "title": "Level 4",
+      "note": "Full"
+    }
+  ]
+}

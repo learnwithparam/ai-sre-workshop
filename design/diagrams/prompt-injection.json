@@ -1,0 +1,27 @@
+{
+  "shape": "gate",
+  "alt": "A username chosen by an attacker is logged, read by the agent, and turned into an action request that the runner stops because it is not on the list.",
+  "caption": "The log line reaches the agent. The list stops it going any further.",
+  "path": [
+    {
+      "title": "Chosen username"
+    },
+    {
+      "title": "Log line"
+    },
+    {
+      "title": "Agent reads it",
+      "tone": "mark"
+    },
+    {
+      "title": "Runner",
+      "tone": "dark"
+    }
+  ],
+  "gates": [
+    {
+      "after": 2,
+      "refuse": "Not on the list: stopped"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "shape": "pair",
+  "alt": "A rule written as a sentence in the prompt compared with a rule the runner enforces.",
+  "caption": "A sentence can be argued with. A list in code cannot.",
+  "labelWidth": 70,
+  "left": {
+    "title": "In the prompt",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "In the runner",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Kept by",
+      "left": "The model",
+      "right": "The code",
+      "changed": true
+    },
+    {
+      "label": "Bypassed by",
+      "left": "A better sentence",
+      "right": "A code change",
+      "changed": true
+    }
+  ]
+}

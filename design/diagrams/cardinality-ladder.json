@@ -1,0 +1,37 @@
+{
+  "shape": "matrix",
+  "alt": "Three attributes ordered from few distinct values to millions, with what each is good for.",
+  "caption": "The costliest fact is also the one that finds a single broken customer.",
+  "corner": "Attribute",
+  "labelWidth": 90,
+  "cols": [
+    "Distinct values",
+    "Good for"
+  ],
+  "rows": [
+    {
+      "label": "Status code",
+      "cells": [
+        "A handful",
+        "Charts"
+      ]
+    },
+    {
+      "label": "Release",
+      "cells": [
+        "Dozens",
+        "Blame"
+      ]
+    },
+    {
+      "label": "User id",
+      "cells": [
+        {
+          "text": "Millions",
+          "tone": "mark"
+        },
+        "One customer"
+      ]
+    }
+  ]
+}

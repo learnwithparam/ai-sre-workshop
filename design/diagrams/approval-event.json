@@ -1,0 +1,24 @@
+{
+  "shape": "gate",
+  "alt": "A request to execute reaches a stop that looks for an approval row. With no row the action is refused and the refusal is logged.",
+  "caption": "The server answers, whatever the model was asked.",
+  "path": [
+    {
+      "title": "Execute requested"
+    },
+    {
+      "title": "Approval row",
+      "tone": "mark"
+    },
+    {
+      "title": "Action runs",
+      "tone": "dark"
+    }
+  ],
+  "gates": [
+    {
+      "after": 0,
+      "refuse": "No row: refused, logged"
+    }
+  ]
+}

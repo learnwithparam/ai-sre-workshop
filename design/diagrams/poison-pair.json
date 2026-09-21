@@ -1,0 +1,28 @@
+{
+  "shape": "pair",
+  "alt": "A summary as the record compared with a log as the record.",
+  "caption": "With the log as the record, a wrong sentence stays wrong.",
+  "labelWidth": 72,
+  "left": {
+    "title": "Summary is the record",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "Log is the record",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "A false line",
+      "left": "Becomes fact",
+      "right": "Stays a claim",
+      "changed": true
+    },
+    {
+      "label": "Fixing it",
+      "left": "Rewrite history",
+      "right": "Append a row",
+      "changed": true
+    }
+  ]
+}

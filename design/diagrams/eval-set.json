@@ -1,0 +1,22 @@
+{
+  "shape": "flow",
+  "alt": "Resolved incidents feed an evaluation set. A change to the agent is replayed against it.",
+  "caption": "Every resolved incident becomes a test for the next change.",
+  "per": 4,
+  "steps": [
+    {
+      "title": "Resolved incident"
+    },
+    {
+      "title": "Evaluation set"
+    },
+    {
+      "title": "Change",
+      "tone": "dark"
+    },
+    {
+      "title": "Replay",
+      "tone": "mark"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "shape": "pair",
+  "alt": "An approval page with two buttons compared with one that shows evidence.",
+  "caption": "What is on the page decides whether the approval means anything.",
+  "labelWidth": 70,
+  "left": {
+    "title": "Two buttons",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "The evidence page",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "You see",
+      "left": "Approve, Reject",
+      "right": "The proof cited",
+      "changed": true
+    },
+    {
+      "label": "You can",
+      "left": "Trust it",
+      "right": "Disprove it",
+      "changed": true
+    }
+  ]
+}

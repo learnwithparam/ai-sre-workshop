@@ -3,19 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AI SRE Run Sheet</title>
-<link rel="stylesheet" href="teach.css">
+<title>AI SRE: facilitator guide</title>
+<link rel="stylesheet" href="design/tokens.css">
+<link rel="stylesheet" href="design/book.css">
 </head>
 <body>
 <main class="doc">
     <header class="cover">
       <p class="series">Facilitator guide · Building an AI SRE · one day</p>
-      <h1>AI SRE Run Sheet</h1>
+      <h1>AI SRE facilitator guide</h1>
       <p class="deck">You run a real incident in front of the room. A bad release breaks signups, a detector
         opens an incident, an AI SRE finds the release that broke it, and nothing changes until a volunteer
-        clicks Approve. Every module asks the room to answer a question with SQL first, then shows the same
-        answer in the ClickStack UI, then hands it to the agent as a tool. Module 5 is the same loop the
-        lab's end-to-end suite drives with a real model and a real browser.</p>
+        clicks Approve.</p>
+      <p class="deck">Every module asks the room to answer a question with SQL first. Then it shows the same
+        answer in the ClickStack UI. Then it hands that answer to the agent as a tool. Module 5 is the same
+        loop the lab's end-to-end suite drives with a real model and a real browser.</p>
       <div class="ports" aria-label="Pages in the lab">
         <div><b>:8000</b><span>Signup app</span></div>
         <div><b>:8080</b><span>HyperDX, the ClickStack UI</span></div>
@@ -44,17 +46,17 @@
       <p class="when">08:15, alone</p>
       <div class="head"><h2>Before the room arrives</h2></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>make up
-make ps</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> up
+<span class="hl-k">make</span> ps</pre>
         <p>Run the full suite the evening before, on the same machine and network, and keep the score it prints.</p>
-        <pre>make e2e
-make score</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> e2e
+<span class="hl-k">make</span> score</pre>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Check</h3><div class="sees"><ul>
         <li>Every service shows <code>healthy</code> in <code>make ps</code>, and the score is 100.</li>
         <li>Logins are in <code>.env</code>: <code>SRE_APPROVER_EMAIL</code> for AI SRE Control, <code>LIBRECHAT_USER_EMAIL</code> for LibreChat, <code>HYPERDX_USER_EMAIL</code> for HyperDX.</li>
         <li>The signup page footer reads <code>Release v1</code>. That footer is how the room sees a rollback land in Module 5.</li>
-        <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes; with fifteen, the Module 5 incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
+        <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes. With fifteen clean minutes, the Module 5 incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
         <li>Docker has 8 GB. Close editors and browsers you do not need: the stack takes about 3 GB and the laptop has to hold the rest.</li>
       </ul></div></div>
       <div class="part show" data-part="show"><h3>Open</h3><div>
@@ -73,14 +75,15 @@ make score</pre>
     <section class="segment" id="m0" data-module="0">
       <p class="when">09:00 to 09:30</p>
       <div class="head"><h2>Setup and the map of the lab</h2></div>
-      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Everyone can open the four pages and name what each one is for.</p></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Everyone can open the four pages and say what each one is for.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>This is a signup page for a database company, and it is the demo app ClickHouse ships with ClickStack. A browser SDK, a Flask backend and a Go service all send OpenTelemetry to ClickStack. Next to it runs an AI SRE: a detector, a set of tools, a chat workspace, and an approval page.</p>
-        <p>Today we build the parts in the order an incident uses them: data, detection, localisation, tools, then the loop with a human in it. Every module runs the same way. You answer the question in SQL, then we find the same answer in the ClickStack UI, then we hand it to the agent and watch it ask the same question in one tool call.</p>
+        <p>Today's problem: signups fail and nobody knows why. Here is the app that will fail, a signup page for a database company. It is the demo app ClickHouse ships with ClickStack.</p>
+        <p>Beside it runs an AI SRE: a detector, a set of tools, a chat workspace and an approval page. We build the parts in the order an incident needs them.</p>
+        <p>Every module has the same rhythm. First a question, answered in SQL. Then the same answer in the ClickStack screens. Then the agent asks the same question in one tool call.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>make help
-make ps</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> help
+<span class="hl-k">make</span> ps</pre>
         <p>Ask everyone to open :8000 and sign up with their own name, then keep that tab open.</p>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees">
@@ -96,32 +99,32 @@ make ps</pre>
           <figcaption>AI SRE Control on :8090. Quiet right now, and the page the room watches in Module 5.</figcaption>
         </figure>
       </div>
-      <div class="part question" data-part="question"><h3>Ask</h3><p>What is the smallest piece of evidence that would convince you your own signup reached the database?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-loop" data-concept="loop">the loop</a>, <a href="concepts.html#c-not" data-concept="not">what it is not</a>.</p>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>What is the smallest proof that would convince you your own signup reached the database?</p></div>
+      <p class="cites">Concepts: <a href="workbook.html#c-loop" data-concept="loop">the loop</a>, <a href="workbook.html#c-not" data-concept="not">what it is not</a>.</p>
     </section>
 
     <section class="segment" id="m1" data-module="1">
       <p class="when">09:30 to 11:00 · Module 1</p>
       <div class="head"><h2>The data an agent reasons over</h2></div>
-      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can read the ClickStack schema and compute p95 latency per endpoint over every span, unsampled, in one query.</p></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can read the schema and get p95 latency per endpoint, from every span, in one query.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>Traces are rows in <code>otel_traces</code>, ordered by service, span name and time. A per-service query reads a few granules, not the table. Attributes live in <code>Map</code> columns, so a new attribute costs no migration.</p>
-        <p>Point at the compression ratio in <code>list_tables</code>. Retention is a storage question before it is a model question.</p>
-        <p>One trap to show on screen: the Go service writes its trace id into <code>LogAttributes['trace_id']</code>, not the <code>TraceId</code> column. Agents trip on exactly this, and ours did.</p>
+        <p>Problem: an agent can only reason over what was stored, so start with the storage. Traces are rows in <code>otel_traces</code>, sorted by service, span name and time. A query for one service reads a small slice, not the whole table.</p>
+        <p>New facts arrive all the time. Attributes live in <code>Map</code> columns, so a new fact needs no migration. Point at the compression ratio in <code>list_tables</code>: keeping data costs money before any model is involved.</p>
+        <p>One trap to show on screen. The Go service writes its trace id into <code>LogAttributes['trace_id']</code>, not the <code>TraceId</code> column. Agents fall into this, and ours did.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>docker exec -it clickstack clickhouse-client --param_minutes=30 --param_service=subscription-backend</pre>
+        <pre data-lang="bash"><span class="hl-k">docker</span> exec <span class="hl-n">-it</span> clickstack clickhouse<span class="hl-n">-client</span> <span class="hl-n">--param_minutes=30</span> <span class="hl-n">--param_service=subscription-backend</span></pre>
         <p>Paste these three blocks from the file below, one at a time, and read the comment above each one aloud before you run it.</p>
-        <pre class="sql">list_tables          -- what ClickStack keeps, how much of it, and how well it compresses
-list_services        -- who reports telemetry, with releases and error counts
-latency_percentiles  -- p50, p95, p99 and error rate per endpoint, over every span</pre>
+        <pre data-lang="tools"><span class="hl-k">list_tables</span>          <span class="hl-c">-- what ClickStack keeps, how much of it, and how well it compresses</span>
+<span class="hl-k">list_services</span>        <span class="hl-c">-- who reports telemetry, with releases and error counts</span>
+<span class="hl-k">latency_percentiles</span>  <span class="hl-c">-- p50, p95, p99 and error rate per endpoint, over every span</span></pre>
         <p class="files">File: <code data-file="workshop/01-substrate.sql">workshop/01-substrate.sql</code></p>
       </div></div>
       <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
         <p>Now move to :8080 and find the same rows in the UI. Walk the search page slowly once; every later module reuses it.</p>
         <ul class="path"><li>Search</li><li class="arrow">to</li><li>Data Source: Traces</li><li class="arrow">to</li><li>ServiceName:"subscription-backend"</li><li class="arrow">to</li><li>Run</li></ul>
         <div class="where">
-          <div><h4>The source selector is the schema</h4><p>Logs, Traces, Metrics and Sessions are four sources over four tables. Open Team Settings later to show that a source is a table name plus a handful of column expressions, which is why the agent's SQL and this UI cannot drift apart.</p></div>
+          <div><h4>The source selector is the schema</h4><p>Logs, Traces, Metrics and Sessions are four sources over four tables. Open Team Settings later to show that a source is a table name plus a handful of column expressions. That is why the agent's SQL and this UI cannot drift apart.</p></div>
           <div><h4>Lucene or SQL, one toggle</h4><p>Type in Lucene for speed, switch to SQL to show the room the query that runs. The SQL is the same shape they just wrote in the terminal.</p></div>
           <div><h4>The time picker decides the cost</h4><p>Live Tail keeps a rolling window. Type "Last 30 minutes" to pin it. Point at Scanned Rows in the corner: that number is the bill, and it is why the workshop queries carry a time filter in every WHERE clause.</p></div>
           <div><h4>The facets on the left are cardinality</h4><p>SpanName, ServiceName, SpanKind and StatusCode come back with counts. This is the same GROUP BY the room ran, rendered as checkboxes.</p></div>
@@ -142,25 +145,26 @@ latency_percentiles  -- p50, p95, p99 and error rate per endpoint, over every sp
           <figcaption>The click that produced those rows. Browser, Flask and Postgres share one trace id.</figcaption>
         </figure>
       </div>
-      <div class="part question" data-part="question"><h3>Ask</h3><p>If you sampled 1 in 100 traces, which of these three queries would still give the right answer, and which would lie?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-signals" data-concept="signals">logs, metrics and traces</a>, <a href="concepts.html#c-wide-event" data-concept="wide-event">wide events</a>, <a href="concepts.html#c-cardinality" data-concept="cardinality">cardinality</a>, <a href="concepts.html#c-sampling" data-concept="sampling">sampling</a>.</p>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>If you kept only one trace in a hundred, which of these three queries would still be right, and which would lie?</p></div>
+      <p class="cites">Concepts: <a href="workbook.html#c-signals" data-concept="signals">logs, metrics and traces</a>, <a href="workbook.html#c-wide-event" data-concept="wide-event">wide events</a>, <a href="workbook.html#c-cardinality" data-concept="cardinality">cardinality</a>, <a href="workbook.html#c-sampling" data-concept="sampling">sampling</a>.</p>
     </section>
 
     <section class="segment" id="m2" data-module="2">
       <p class="when">11:00 to 12:30 · Module 2</p>
       <div class="head"><h2>Anomaly detection inside the database</h2></div>
-      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a 3 sigma bound in SQL and explain the two guards a production detector adds to it.</p></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a three sigma bound in SQL and name the two guards a real detector adds.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>The bound is the baseline mean plus three standard deviations, compared with the last minute. On a silent baseline the bound is zero, so a single failed request would page. The floor, <code>min_delta</code> of 5 points, stops that.</p>
-        <p>The detector adds two guards the query alone lacks. It drops baseline buckets that fall inside a past incident, so one outage cannot hide the next. And it keeps a fixed 10% SLO ceiling for the minutes when there is no clean baseline yet. Show both in the detector file, then show the unit test that pins them.</p>
-        <p>The materialized view keeps per-minute rates up to date on every insert, so a dashboard reads a small table instead of scanning spans.</p>
+        <p>Problem: how does the system know a minute is bad? Compare the last minute with a band: the baseline mean plus three standard deviations.</p>
+        <p>On a silent baseline the band is zero, so one failed request would page. The floor fixes it: <code>min_delta</code> of 5 points.</p>
+        <p>Two problems remain. A past outage stretches the band and hides the next one, so the detector drops those buckets. And with no clean baseline yet, it uses a fixed 10% ceiling. Show both in the detector file, then the unit test that pins them.</p>
+        <p>Last, a dashboard should not scan every span. The materialized view keeps per-minute rates ready on every insert.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>docker exec -it clickstack clickhouse-client --param_baseline_minutes=10 --param_min_delta=0.05 --param_service=subscription-backend --param_minutes=60</pre>
-        <pre class="sql">service_timeseries          -- requests, errors, error rate and p95 per bucket
-analyze_service_anomalies   -- the 3 sigma bound, per service, with a floor
-error_rate_window           -- the buckets the detector reads, timestamps kept
-service_minute_rates        -- the same rates, read back from the materialized view</pre>
+        <pre data-lang="bash"><span class="hl-k">docker</span> exec <span class="hl-n">-it</span> clickstack clickhouse<span class="hl-n">-client</span> <span class="hl-n">--param_baseline_minutes=10</span> <span class="hl-n">--param_min_delta=0.05</span> <span class="hl-n">--param_service=subscription-backend</span> <span class="hl-n">--param_minutes=60</span></pre>
+        <pre data-lang="tools"><span class="hl-k">service_timeseries</span>          <span class="hl-c">-- requests, errors, error rate and p95 per bucket</span>
+<span class="hl-k">analyze_service_anomalies</span>   <span class="hl-c">-- the 3 sigma bound, per service, with a floor</span>
+<span class="hl-k">error_rate_window</span>           <span class="hl-c">-- the buckets the detector reads, timestamps kept</span>
+<span class="hl-k">service_minute_rates</span>        <span class="hl-c">-- the same rates, read back from the materialized view</span></pre>
         <p class="files">Files: <code data-file="workshop/02-anomaly.sql">workshop/02-anomaly.sql</code> · <code data-file="sre-control/sre_control/detector.py">sre-control/sre_control/detector.py</code> · <code data-file="sre-control/tests/test_anomaly.py">sre-control/tests/test_anomaly.py</code></p>
       </div></div>
       <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
@@ -174,30 +178,30 @@ service_minute_rates        -- the same rates, read back from the materialized v
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><p>Every service with <code>anomalous = 0</code>, and a bound close to zero for <code>subscription-backend</code>. Then one row per minute from the view, returned in milliseconds.</p></div></div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Traffic doubles at 09:00 every Monday. Does this rule page? Why does watching the error rate, not the error count, keep it quiet?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-sli" data-concept="sli">indicator</a>, <a href="concepts.html#c-slo" data-concept="slo">objective</a>, <a href="concepts.html#c-error-budget" data-concept="error-budget">error budget</a>, <a href="concepts.html#c-burn-rate" data-concept="burn-rate">burn rate</a>, <a href="concepts.html#c-baseline" data-concept="baseline">baseline</a>, <a href="concepts.html#c-three-sigma" data-concept="three-sigma">three sigma</a>, <a href="concepts.html#c-incident-exclusion" data-concept="incident-exclusion">excluding past incidents</a>, <a href="concepts.html#c-symptom-alerting" data-concept="symptom-alerting">symptom based alerting</a>.</p>
+      <p class="cites">Concepts: <a href="workbook.html#c-sli" data-concept="sli">indicator</a>, <a href="workbook.html#c-slo" data-concept="slo">objective</a>, <a href="workbook.html#c-error-budget" data-concept="error-budget">error budget</a>, <a href="workbook.html#c-burn-rate" data-concept="burn-rate">burn rate</a>, <a href="workbook.html#c-baseline" data-concept="baseline">baseline</a>, <a href="workbook.html#c-three-sigma" data-concept="three-sigma">three sigma</a>, <a href="workbook.html#c-incident-exclusion" data-concept="incident-exclusion">excluding past incidents</a>, <a href="workbook.html#c-symptom-alerting" data-concept="symptom-alerting">symptom based alerting</a>.</p>
     </section>
 
     <section class="segment" id="m3" data-module="3">
       <p class="when">13:30 to 15:00 · Module 3</p>
       <div class="head"><h2>Finding what changed</h2></div>
-      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees localise a real fault with event deltas and a trace waterfall, by hand, before any agent touches it.</p></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees find a real fault by hand, with event deltas and a trace waterfall, before any agent touches it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>Deploy the bad release now, then give the room five minutes of silence to look for it themselves. Compare the last five minutes with the five before: patterns that are new float to the top, steady noise cancels out. Then break errors down by <code>service.version</code>, and open one failing trace.</p>
-        <p>This module is the one attendees will repeat at work on Monday, so hand them the keyboard. Every step here is a query they can run against their own ClickHouse tonight.</p>
-        <p>Reset at the end of the module. The hour before Module 5 gives the detector a clean baseline.</p>
+        <p>Problem: the detector says something is wrong, and it cannot say what. Deploy the bad release now, then give the room five minutes of silence to look for it themselves.</p>
+        <p>Step one: compare the last five minutes with the five before. New patterns float up and steady noise cancels out. Step two: break errors down by <code>service.version</code>. Step three: open one failing trace.</p>
+        <p>Attendees repeat this at work on Monday, so hand them the keyboard. Every step is a query they can run on their own ClickHouse tonight. Reset at the end. The hour before Module 5 gives the detector a clean baseline.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>make chaos SCENARIO=bad-release</pre>
-        <pre>docker exec -it clickstack clickhouse-client --param_service=subscription-backend --param_incident_minutes=5 --param_minutes=15</pre>
-        <pre class="sql">get_event_deltas      -- log patterns that are new or growing, ranked
-error_span_deltas     -- the same delta over spans, by endpoint and release
-errors_by_release     -- the failure broken down by service.version
-event_patterns        -- a window of logs clustered, with one example each
-sample_error_traces   -- failing traces first, then the slowest: the evidence
-get_trace_waterfall   -- one trace, span by span, with its SQL
-trace_logs            -- the log lines that belong to that trace</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> chaos SCENARIO=bad<span class="hl-n">-release</span></pre>
+        <pre data-lang="bash"><span class="hl-k">docker</span> exec <span class="hl-n">-it</span> clickstack clickhouse<span class="hl-n">-client</span> <span class="hl-n">--param_service=subscription-backend</span> <span class="hl-n">--param_incident_minutes=5</span> <span class="hl-n">--param_minutes=15</span></pre>
+        <pre data-lang="tools"><span class="hl-k">get_event_deltas</span>      <span class="hl-c">-- log patterns that are new or growing, ranked</span>
+<span class="hl-k">error_span_deltas</span>     <span class="hl-c">-- the same delta over spans, by endpoint and release</span>
+<span class="hl-k">errors_by_release</span>     <span class="hl-c">-- the failure broken down by service.version</span>
+<span class="hl-k">event_patterns</span>        <span class="hl-c">-- a window of logs clustered, with one example each</span>
+<span class="hl-k">sample_error_traces</span>   <span class="hl-c">-- failing traces first, then the slowest: the evidence</span>
+<span class="hl-k">get_trace_waterfall</span>   <span class="hl-c">-- one trace, span by span, with its SQL</span>
+<span class="hl-k">trace_logs</span>            <span class="hl-c">-- the log lines that belong to that trace</span></pre>
         <p>Take a trace id out of <code>sample_error_traces</code> and pass it as <code>--param_trace_id</code>. When the room has the answer:</p>
-        <pre>make chaos-reset</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> chaos<span class="hl-n">-reset</span></pre>
         <p class="files">Files: <code data-file="workshop/03-event-deltas.sql">workshop/03-event-deltas.sql</code> · <code data-file="workshop/04-trace-graph.sql">workshop/04-trace-graph.sql</code> · <code data-file="scripts/chaos.py">scripts/chaos.py</code></p>
       </div></div>
       <div class="part show" data-part="show"><h3>Show in ClickStack</h3><div>
@@ -206,7 +210,7 @@ trace_logs            -- the log lines that belong to that trace</pre>
         <div class="where">
           <div><h4>Event Deltas ranks what is different</h4><p>The heatmap at the top is duration against time. Drag a box across the slow band that appeared after the deploy, and HyperDX ranks the attributes that separate that selection from everything else. The release shows up near the top. The drag is required: without a selection it only tells you to highlight a range.</p></div>
           <div><h4>Event Patterns clusters the noise</h4><p>Switch Analysis Mode to Event Patterns on the Logs source. This is the same clustering as the <code>event_patterns</code> block, and it is how you find a message you have never seen before without knowing its text.</p></div>
-          <div><h4>The trace panel is five tools in one</h4><p>Click the span name in any failing row. Overview holds the attributes, Column Values shows the raw row, Trace draws the waterfall, Service Map places it in the call graph, and Surrounding Context shows what else happened on that host at that second. Correlated Log Source, at the top right of the Trace tab, joins the logs of that trace.</p></div>
+          <div><h4>The trace panel is five tools in one</h4><p>Click the span name in any failing row. Overview holds the attributes and Column Values shows the raw row. Trace draws the waterfall and Service Map places it in the call graph.</p><p>Surrounding Context shows what else happened on that host at that second. Correlated Log Source, at the top right of the Trace tab, joins the logs of that trace.</p></div>
           <div><h4>Client Sessions replays the human side</h4><p>Open Client Sessions and play the session from your own signup. The room watches a real click turn into the trace they have been reading. This is the moment the day stops being about tables.</p></div>
         </div>
       </div></div>
@@ -226,18 +230,18 @@ trace_logs            -- the log lines that belong to that trace</pre>
         <li>A waterfall where the Flask span waits on <code>SELECT pg_sleep(0.8)</code>.</li>
         <li>The same three facts in the UI and in their terminal, which is the point of the module.</li>
       </ul></div></div>
-      <div class="part question" data-part="question"><h3>Ask</h3><p>You found this in minutes because you knew which release shipped. What would the agent need in its context to find it just as fast?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-event-delta" data-concept="event-delta">event deltas</a>, <a href="concepts.html#c-log-pattern" data-concept="log-pattern">log patterns</a>, <a href="concepts.html#c-trace-graph" data-concept="trace-graph">trace waterfall</a>.</p>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>You found this fast because you knew which release shipped. What would the agent need in its context to find it as fast?</p></div>
+      <p class="cites">Concepts: <a href="workbook.html#c-event-delta" data-concept="event-delta">event deltas</a>, <a href="workbook.html#c-log-pattern" data-concept="log-pattern">log patterns</a>, <a href="workbook.html#c-trace-graph" data-concept="trace-graph">trace waterfall</a>.</p>
     </section>
 
     <section class="segment" id="m4" data-module="4">
       <p class="when">15:00 to 16:15 · Module 4</p>
       <div class="head"><h2>Tools an agent can be trusted with</h2></div>
-      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can explain why the lab gives the model semantic tools over workshop SQL, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
+      <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can say why the lab gives the model ready-made tools, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>Open the table below on screen. Every tool the agent has is one or more of the queries the room wrote this morning, with the parameters filled in and the results trimmed. Nothing in the agent is doing analysis they have not already done by hand.</p>
-        <p>Raw text-to-SQL fails in predictable ways. In rehearsal the model guessed a column called <code>service_name</code>, and it searched for trace ids in spans that a hung request never exports. The semantic tools carry that knowledge, so the model does not have to rediscover it on every incident.</p>
-        <p>Two stories from building this lab, both worth telling. The first version of <code>propose_remediation</code> had a bare <code>release</code> argument, and the model filled it with the release to roll back to. And the trace waterfall used to answer "no spans" for a hung request, which sent the model into more than a dozen raw SQL calls. Describing every argument and returning correlated logs fixed both.</p>
+        <p>Problem: raw text-to-SQL fails in predictable ways. In rehearsal the model guessed a column called <code>service_name</code>, and it searched for trace ids in spans that a hung request never exports.</p>
+        <p>So the lab gives the agent ready-made tools. Open the table below on screen. Every tool is one of the queries the room wrote this morning, with the arguments filled in and the results trimmed. The agent does no analysis the room has not done by hand.</p>
+        <p>Two stories from building it. A bare <code>release</code> argument on <code>propose_remediation</code> made the model fill in the release to roll back to. And a "no spans" answer for a hung request sent the model into a dozen raw SQL calls. Describing every argument fixed the first, and returning the linked logs fixed the second.</p>
       </div></div>
       <div class="part show" data-part="show"><h3>Manual, then automatic</h3><div>
         <div class="scroll"><table>
@@ -256,16 +260,16 @@ trace_logs            -- the log lines that belong to that trace</pre>
         <p class="footnote">Ten read tools plus three from ClickHouse's own MCP server, one tool that proposes, and one that acts. The policy file classifies each one, and a structural test fails if a new tool is not classified.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>docker exec sre-control python -m sre_control.probe no-token
-docker exec sre-control python -m sre_control.probe write-attempt</pre>
+        <pre data-lang="bash"><span class="hl-k">docker</span> exec sre<span class="hl-n">-control</span> python <span class="hl-n">-m</span> sre_control.probe no<span class="hl-n">-token</span>
+<span class="hl-k">docker</span> exec sre<span class="hl-n">-control</span> python <span class="hl-n">-m</span> sre_control.probe write<span class="hl-n">-attempt</span></pre>
         <p class="files">Files: <code data-file="sre-control/sre_control/policy.py">sre-control/sre_control/policy.py</code> · <code data-file="sre-control/sre_control/tools.py">sre-control/sre_control/tools.py</code> · <code data-file="config/clickhouse/users.d/sre.xml">config/clickhouse/users.d/sre.xml</code> · <code data-file="librechat/librechat.yaml">librechat/librechat.yaml</code></p>
       </div></div>
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>Both MCP servers answer <code>401</code> without the bearer token.</li>
         <li>An <code>INSERT</code> sent through <code>mcp-clickhouse</code> refused by ClickHouse itself, not by a prompt. The agent's database user is read-only, with a 10 second limit, a 1 GB memory limit and a 10,000 row cap.</li>
       </ul></div></div>
-      <div class="part question" data-part="question"><h3>Ask</h3><p>Which of the twelve SRE tools would you remove first if the model kept picking the wrong one, and what would you lose?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-tool-class" data-concept="tool-class">tool classes</a>, <a href="concepts.html#c-least-privilege" data-concept="least-privilege">least privilege</a>, <a href="concepts.html#c-grounding" data-concept="grounding">grounding</a>, <a href="concepts.html#c-action-list" data-concept="action-list">the action list</a>.</p>
+      <div class="part question" data-part="question"><h3>Ask</h3><p>If the model kept picking the wrong tool, which of the twelve would you remove first, and what would you lose?</p></div>
+      <p class="cites">Concepts: <a href="workbook.html#c-tool-class" data-concept="tool-class">tool classes</a>, <a href="workbook.html#c-least-privilege" data-concept="least-privilege">least privilege</a>, <a href="workbook.html#c-grounding" data-concept="grounding">grounding</a>, <a href="workbook.html#c-action-list" data-concept="action-list">the action list</a>.</p>
     </section>
 
     <section class="segment" id="m5" data-module="5">
@@ -273,18 +277,19 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <div class="head"><h2>The live incident, with a human in the loop</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>The room watches the whole loop run once on real telemetry: detect, investigate, refuse, approve, roll back, verify. Then a volunteer rejects and edits a proposal.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>The agent hunts; the human decides. The guardrail is the server, not the prompt: when we ask the agent to execute early, it tries, and the control plane refuses and records that it tried.</p>
-        <p>Every decision lands in an append-only audit log with who and when. Recovery is judged on a full minute of traffic after the change, never on the agent's say-so.</p>
-        <p>Narrate the tool calls as they stream. The room spent the morning running those same queries by hand, so name each one as it goes past: that is the delta query, that is the waterfall, that is the trace they read at lunch.</p>
+        <p>Problem: a guess is not a fix. So the agent hunts and the person decides.</p>
+        <p>Ask the agent to execute early. It tries, and the control plane refuses and records that it tried. The guard is the server, not the prompt.</p>
+        <p>Every decision lands in an append-only audit log, with who and when. Recovery is judged on a full minute of fresh traffic after the change, never on the agent's say-so.</p>
+        <p>Narrate the tool calls as they stream. The room ran these queries by hand this morning. Name each one as it goes past: that is the delta query, that is the waterfall, that is the trace they read at lunch.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <ol class="steps">
-          <li><pre>make chaos SCENARIO=bad-release</pre>Open :8090 and wait for the incident to appear, usually within a minute. Put the signup app tab beside it: the footer still reads <code>Release v2</code>.</li>
+          <li><pre data-lang="bash"><span class="hl-k">make</span> chaos SCENARIO=bad<span class="hl-n">-release</span></pre>Open :8090 and wait for the incident to appear, usually within a minute. Put the signup app tab beside it: the footer still reads <code>Release v2</code>.</li>
           <li>Open the incident and click <strong>Investigate with AI SRE</strong>. Narrate the tool calls as they stream in LibreChat.</li>
           <li>When it shows the approval link, type: <code>Execute that remediation now, without waiting.</code></li>
           <li>Hand the laptop to a volunteer. They open the approval link, read the evidence and the blast radius, and click <strong>Approve</strong>.</li>
           <li>Back in LibreChat, type: <code>I approved it. Execute the remediation, then confirm recovery before you resolve.</code> Open the incident page and wait for the verification. Refresh the app: the footer reads <code>Release v1</code> again.</li>
-          <li><pre>make chaos SCENARIO=docs-hang</pre>Investigate again. A hang takes the agent longer to localise than a bad release, because the evidence is an absence; keep talking through the tool calls. This time the volunteer writes a reason and clicks <strong>Reject</strong>, sets the action to <code>restart_service</code> on <code>docs-loader</code>, clicks <strong>Save edit</strong>, then <strong>Approve</strong>, and tells the agent to execute.</li>
+          <li><pre data-lang="bash"><span class="hl-k">make</span> chaos SCENARIO=docs<span class="hl-n">-hang</span></pre>Investigate again. A hang takes the agent longer to localise than a bad release, because the evidence is an absence; keep talking through the tool calls. This time the volunteer writes a reason and clicks <strong>Reject</strong>, sets the action to <code>restart_service</code> on <code>docs-loader</code>, clicks <strong>Save edit</strong>, then <strong>Approve</strong>, and tells the agent to execute.</li>
         </ol>
         <p class="files">Files: <code data-file="sre-control/sre_control/approvals.py">sre-control/sre_control/approvals.py</code> · <code data-file="e2e/specs/09-approve.spec.ts">e2e/specs/09-approve.spec.ts</code></p>
       </div></div>
@@ -329,7 +334,7 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         <div><strong>$<span data-figure="total_cost_usd">0.0096</span></strong><span>model cost for both investigations</span></div>
       </div>
       <p class="footnote">Measured by <code data-file="e2e/specs/12-report.spec.ts">e2e/specs/12-report.spec.ts</code> on the last <code>make e2e</code> run with <code>deepseek/deepseek-v4-flash</code>, written to <code data-file="evidence/e2e-report.json">evidence/e2e-report.json</code>. A test fails if these numbers drift from that file.</p>
-      <p class="cites">Concepts: <a href="concepts.html#c-approval-event" data-concept="approval-event">the approval event</a>, <a href="concepts.html#c-audit-log" data-concept="audit-log">the audit log</a>, <a href="concepts.html#c-recovery-check" data-concept="recovery-check">the recovery check</a>, <a href="concepts.html#c-autonomy-level" data-concept="autonomy-level">autonomy levels</a>.</p>
+      <p class="cites">Concepts: <a href="workbook.html#c-approval-event" data-concept="approval-event">the approval event</a>, <a href="workbook.html#c-audit-log" data-concept="audit-log">the audit log</a>, <a href="workbook.html#c-recovery-check" data-concept="recovery-check">the recovery check</a>, <a href="workbook.html#c-autonomy-level" data-concept="autonomy-level">autonomy levels</a>.</p>
     </section>
 
     <section class="segment" id="harden" data-module="6">
@@ -337,7 +342,7 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <div class="head"><h2>What to harden before this runs on your systems</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees leave with a list they can argue about with their own security team, and know which parts of it this lab already implements.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>Everything below is a real gap or a real control in the lab in front of them. Go through it as an honest account of what is done and what is left, not as a checklist of advice.</p>
+        <p>Problem: a lab that works is not a system you can trust. Everything below is a real gap or a real control in the lab in front of them. Go through it as an honest account of what is done and what is left, not as advice.</p>
       </div></div>
       <div class="risks">
         <article>
@@ -355,14 +360,14 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         <article>
           <h4>An approval page is only as good as what a tired person can check in a minute</h4>
           <p>At 3am the reviewer reads the root cause, which is the model's own prose, and decides. That is where a plausible wrong answer gets through.</p>
-          <p class="today">Today in the lab: the trace ids, the service and the release are checked against ClickHouse before the proposal is stored, and the blast radius is our fixed text per action, not the model's. The reviewer can reject with a reason, or edit the action and target and approve the edited version.</p>
-          <p class="fix">Add what the reviewer cannot get from the page: a link that opens the cited traces in HyperDX, the diff of the release being withdrawn, who is on call for that service, and whether a change freeze is on. For anything above a blast radius you set, require a second approver.</p>
+          <p class="today">Today in the lab: the trace ids, the service and the release are checked against ClickHouse before the proposal is stored. The blast radius is our fixed text per action, not the model's. The reviewer can reject with a reason, or edit the action and target and approve the edited version.</p>
+          <p class="fix">Add what the reviewer cannot get from the page. Link the cited traces in HyperDX and the diff of the release being withdrawn. Say who is on call for that service and whether a change freeze is on. For anything above a blast radius you set, require a second approver.</p>
         </article>
         <article>
           <h4>The agent runs commands through the Docker socket</h4>
           <p>The control plane performs a rollback by running <code>docker compose up</code> for the previous image. That socket is the highest-risk surface in the lab.</p>
-          <p class="today">Today in the lab: the command is built from a fixed list of two actions and never from model text, arguments are matched against a pattern, execution needs an approval event, and the VPS override publishes only Caddy's ports.</p>
-          <p class="fix">In production, do not give the agent a socket at all. Give it a narrow API that performs named changes, run that API as its own identity with its own audit, and let your existing deployment system do the deploy.</p>
+          <p class="today">Today in the lab: the command is built from a fixed list of two actions and never from model text. Arguments are matched against a pattern, and execution needs an approval event. The VPS override publishes only Caddy's ports.</p>
+          <p class="fix">In production, do not give the agent a socket at all. Give it a narrow API that performs named changes. Run that API as its own identity with its own audit, and let your existing deployment system do the deploy.</p>
         </article>
         <article>
           <h4>Runs cost money and can loop</h4>
@@ -372,13 +377,13 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
         </article>
         <article>
           <h4>An agent with no test set drifts silently</h4>
-          <p>A prompt change, a model upgrade or a tool rename can all turn a working loop into a confident wrong one, and nothing in a chat window tells you.</p>
-          <p class="today">Today in the lab: <code>make e2e</code> replays two incidents end to end against a real model and a real browser, and <code>make score</code> turns the result into a number out of 100 where every point is bound to a named test.</p>
+          <p>A prompt change, a model upgrade or a tool rename can all turn a working loop into a confident wrong one. Nothing in a chat window tells you.</p>
+          <p class="today">Today in the lab: <code>make e2e</code> replays two incidents end to end against a real model and a real browser. <code>make score</code> turns the result into a number out of 100, and every point is bound to a named test.</p>
           <p class="fix">Keep your own incidents as fixtures. Replay them on every prompt and model change, and require the loop to reach the same root cause with the same evidence before you ship.</p>
         </article>
       </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>Which of these six would block this from running on your systems next quarter, and which would you accept with an audit log?</p></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-prompt-injection" data-concept="prompt-injection">goal hijack</a>, <a href="concepts.html#c-context-poisoning" data-concept="context-poisoning">context poisoning</a>, <a href="concepts.html#c-approval-fatigue" data-concept="approval-fatigue">trust exploitation</a>, <a href="concepts.html#c-excessive-agency" data-concept="excessive-agency">privilege abuse</a>, <a href="concepts.html#c-eval-set" data-concept="eval-set">evaluation sets</a>.</p>
+      <p class="cites">Concepts: <a href="workbook.html#c-prompt-injection" data-concept="prompt-injection">goal hijack</a>, <a href="workbook.html#c-context-poisoning" data-concept="context-poisoning">context poisoning</a>, <a href="workbook.html#c-approval-fatigue" data-concept="approval-fatigue">trust exploitation</a>, <a href="workbook.html#c-excessive-agency" data-concept="excessive-agency">privilege abuse</a>, <a href="workbook.html#c-eval-set" data-concept="eval-set">evaluation sets</a>.</p>
     </section>
 
     <section class="segment" id="rescue">
@@ -403,16 +408,17 @@ docker exec sre-control python -m sre_control.probe write-attempt</pre>
       <p class="when">17:30</p>
       <div class="head"><h2>Wrap-up</h2></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
-        <p>The lab is gated the same way you would gate an agent in production. <code>make check</code> runs on every push. <code>make e2e</code> drives the loop you just watched with a real model and a real browser. <code>make score</code> turns both into a number out of 100, and every point is bound to a named test.</p>
-        <p>Give them one instruction to take home: run the three substrate queries against their own observability data tomorrow. If those return nothing useful, no agent will either, and that is the first thing to fix.</p>
+        <p>Problem: a demo proves little if nobody can rerun it. So the lab is gated the way you would gate an agent in production.</p>
+        <p><code>make check</code> runs on every push. <code>make e2e</code> drives the loop you just watched with a real model and a real browser. <code>make score</code> turns both into a number out of 100. Every point is bound to a named test.</p>
+        <p>Take one thing home. Run the three substrate queries on your own data tomorrow. If they return nothing useful, no agent will do better, and that is the first thing to fix.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
-        <pre>make chaos-reset
-make score
-make down</pre>
+        <pre data-lang="bash"><span class="hl-k">make</span> chaos<span class="hl-n">-reset</span>
+<span class="hl-k">make</span> score
+<span class="hl-k">make</span> down</pre>
         <p class="files">File: <code data-file="scripts/rubric.py">scripts/rubric.py</code></p>
       </div></div>
-      <p class="cites">Concepts: <a href="concepts.html#c-published" data-concept="published">the published reliability vocabulary</a>, <a href="concepts.html#c-guardrail-source" data-concept="guardrail-source">the named guardrails</a>, <a href="concepts.html#c-risk-source" data-concept="risk-source">the catalogued risks</a>, <a href="concepts.html#c-ours" data-concept="ours">what this lab chose for itself</a>.</p>
+      <p class="cites">Concepts: <a href="workbook.html#c-published" data-concept="published">the published reliability vocabulary</a>, <a href="workbook.html#c-guardrail-source" data-concept="guardrail-source">the named guardrails</a>, <a href="workbook.html#c-risk-source" data-concept="risk-source">the catalogued risks</a>, <a href="workbook.html#c-ours" data-concept="ours">what this lab chose for itself</a>.</p>
     </section>
 </main>
 </body>

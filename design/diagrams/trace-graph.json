@@ -1,0 +1,32 @@
+{
+  "shape": "timeline",
+  "alt": "A waterfall of one nine second request. The browser, the service and the loader all start early, and the loader holds almost all the time.",
+  "caption": "The marked bar holds nearly all the time, so the slowness is not in the layers above it.",
+  "total": 9,
+  "ticks": 3,
+  "unit": " s",
+  "labelWidth": 90,
+  "rows": [
+    {
+      "label": "Browser",
+      "start": 0,
+      "length": 9
+    },
+    {
+      "label": "Flask",
+      "start": 0.2,
+      "length": 8.6
+    },
+    {
+      "label": "Docs loader",
+      "start": 0.4,
+      "length": 8.2,
+      "tone": "mark"
+    },
+    {
+      "label": "Postgres",
+      "start": 0.5,
+      "length": 0.3
+    }
+  ]
+}

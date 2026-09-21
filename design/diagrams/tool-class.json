@@ -1,0 +1,25 @@
+{
+  "shape": "fan",
+  "alt": "Every tool has exactly one of three classes: read, propose or action. Only the action class can change a system.",
+  "caption": "Most tools only read. One proposes, and exactly one can act.",
+  "from": {
+    "title": "Every tool",
+    "tone": "dark",
+    "note": "has one class"
+  },
+  "to": [
+    {
+      "title": "Read",
+      "note": "queries telemetry"
+    },
+    {
+      "title": "Propose",
+      "note": "stores one proposal"
+    },
+    {
+      "title": "Action",
+      "tone": "mark",
+      "note": "changes a system"
+    }
+  ]
+}

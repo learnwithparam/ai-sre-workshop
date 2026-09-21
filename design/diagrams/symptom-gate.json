@@ -1,0 +1,23 @@
+{
+  "shape": "gate",
+  "alt": "A machine condition only becomes a page once a user is affected. Without that it is stopped.",
+  "caption": "A page must pass this test. Cause alerts go to a ticket instead.",
+  "path": [
+    {
+      "title": "Processor at 85 percent"
+    },
+    {
+      "title": "Users see errors",
+      "tone": "mark"
+    },
+    {
+      "title": "Page"
+    }
+  ],
+  "gates": [
+    {
+      "after": 0,
+      "refuse": "No user hurt: ticket"
+    }
+  ]
+}

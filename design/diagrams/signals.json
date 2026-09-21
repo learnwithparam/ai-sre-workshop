@@ -1,0 +1,37 @@
+{
+  "shape": "matrix",
+  "alt": "Logs, metrics and traces compared by the question each answers and what each costs to keep.",
+  "caption": "Only a trace shows the path a request took.",
+  "corner": "Signal",
+  "labelWidth": 70,
+  "cols": [
+    "Answers",
+    "Costs"
+  ],
+  "rows": [
+    {
+      "label": "Log",
+      "cells": [
+        "What went wrong, once",
+        "The most bytes"
+      ]
+    },
+    {
+      "label": "Metric",
+      "cells": [
+        "How much, how often",
+        "The least"
+      ]
+    },
+    {
+      "label": "Trace",
+      "cells": [
+        {
+          "text": "Where the time went",
+          "tone": "mark"
+        },
+        "A tree per request"
+      ]
+    }
+  ]
+}

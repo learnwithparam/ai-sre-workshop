@@ -1,0 +1,34 @@
+{
+  "shape": "flow",
+  "alt": "Six steps left to right: detect, investigate, propose, approve, execute, verify. Approve is marked as the place a person stands.",
+  "caption": "The agent does the reading. A person makes the call.",
+  "steps": [
+    {
+      "title": "Detect",
+      "note": "statistics"
+    },
+    {
+      "title": "Investigate",
+      "note": "read only"
+    },
+    {
+      "title": "Propose",
+      "note": "cites evidence"
+    },
+    {
+      "title": "Approve",
+      "tone": "mark",
+      "note": "a person"
+    },
+    {
+      "title": "Execute",
+      "note": "fixed list"
+    },
+    {
+      "title": "Verify",
+      "tone": "dark",
+      "note": "fresh traffic"
+    }
+  ],
+  "per": 3
+}

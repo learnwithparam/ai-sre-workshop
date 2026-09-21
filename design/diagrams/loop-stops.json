@@ -1,0 +1,31 @@
+{
+  "shape": "gate",
+  "alt": "A proposal is refused when it cites telemetry that does not exist, and an action is refused when no approval is on record.",
+  "caption": "Both stops are the server saying no. A log line cannot argue with them.",
+  "path": [
+    {
+      "title": "Agent proposes"
+    },
+    {
+      "title": "Proposal stored"
+    },
+    {
+      "title": "Person approves",
+      "tone": "mark"
+    },
+    {
+      "title": "Action runs",
+      "tone": "dark"
+    }
+  ],
+  "gates": [
+    {
+      "after": 0,
+      "refuse": "Cites nothing real"
+    },
+    {
+      "after": 2,
+      "refuse": "No approval on record"
+    }
+  ]
+}

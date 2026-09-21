@@ -1,0 +1,24 @@
+{
+  "shape": "flow",
+  "alt": "An action runs, the same signal that opened the incident is watched on new traffic, and only then does the incident resolve.",
+  "caption": "The signal that opened the incident is the one that closes it.",
+  "per": 4,
+  "steps": [
+    {
+      "title": "Action runs"
+    },
+    {
+      "title": "Wait",
+      "note": "fresh traffic only"
+    },
+    {
+      "title": "Watch",
+      "tone": "dark",
+      "note": "the opening signal"
+    },
+    {
+      "title": "Resolved",
+      "tone": "mark"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "shape": "pair",
+  "alt": "A healthy window and a failing window compared attribute by attribute. Only the release differs.",
+  "caption": "The attribute that changed between the windows rises to the top.",
+  "labelWidth": 66,
+  "left": {
+    "title": "Healthy window",
+    "tone": "plain"
+  },
+  "right": {
+    "title": "Failing window",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Endpoint",
+      "left": "Signup",
+      "right": "Signup"
+    },
+    {
+      "label": "Region",
+      "left": "Both",
+      "right": "Both"
+    },
+    {
+      "label": "Tier",
+      "left": "Mixed",
+      "right": "Mixed"
+    },
+    {
+      "label": "Release",
+      "left": "v1 and v2",
+      "right": "v2 only",
+      "changed": true,
+      "flip": true
+    }
+  ]
+}

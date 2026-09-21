@@ -1,4 +1,4 @@
-"""Phase 8: teach.html is complete, every command in it is real, and its figures are measured."""
+"""Phase 8: guide.html is complete, every command in it is real, and its figures are measured."""
 
 import json
 import re
@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TEACH = ROOT / "teach.html"
+TEACH = ROOT / "guide.html"
 REPORT = ROOT / "evidence/e2e-report.json"
 sys.path.insert(0, str(ROOT / "scripts"))
 from check_prose import violations  # noqa: E402
@@ -71,10 +71,10 @@ def test_named_targets_and_files_exist():
     text = TEACH.read_text()
     targets = set(re.findall(r"^([a-z][a-z0-9-]*):", (ROOT / "Makefile").read_text(), flags=re.M))
     named = set(re.findall(r"\bmake ([a-z][a-z0-9-]*)", text))
-    assert named, "teach.html names no make targets"
+    assert named, "guide.html names no make targets"
     assert named <= targets, f"unknown targets: {named - targets}"
     files = set(re.findall(r'data-file="([^"]+)"', text))
-    assert files, "teach.html cites no files"
+    assert files, "guide.html cites no files"
     assert [f for f in files if not (ROOT / f).exists()] == []
 
 
@@ -99,7 +99,7 @@ def test_figures_match_e2e_report():
 def test_screenshots_come_from_the_e2e_run():
     """A guide may only show pictures the suite actually takes, and that are on disk now."""
     referenced = set(re.findall(r'src="evidence/screens/([\w-]+)\.png"', TEACH.read_text()))
-    assert referenced, "teach.html shows no screenshots"
+    assert referenced, "guide.html shows no screenshots"
     captured: set[str] = set()
     for spec in (ROOT / "e2e/specs").glob("*.spec.ts"):
         captured |= set(re.findall(r'shot\(page, "([\w-]+)"\)', spec.read_text()))
@@ -108,5 +108,5 @@ def test_screenshots_come_from_the_e2e_run():
 
 
 def test_prose_is_clean():
-    for name in ("teach.html", "README.md", "AGENTS.md"):
+    for name in ("workbook.html", "guide.html", "README.md", "AGENTS.md"):
         assert violations((ROOT / name).read_text()) == [], name

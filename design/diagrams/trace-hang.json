@@ -1,0 +1,37 @@
+{
+  "shape": "pair",
+  "alt": "A request that finishes exports its spans and appears in the waterfall. A request that hangs exports none and is visible only in logs.",
+  "caption": "A step that never ends exports nothing. The gap is the clue.",
+  "labelWidth": 76,
+  "left": {
+    "title": "Finishes",
+    "tone": "plain"
+  },
+  "right": {
+    "title": "Hangs",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Spans",
+      "left": "Exported",
+      "right": "None",
+      "changed": true,
+      "flip": true
+    },
+    {
+      "label": "Waterfall",
+      "left": "Drawn",
+      "right": "Absent",
+      "changed": true,
+      "flip": true
+    },
+    {
+      "label": "Seen in",
+      "left": "Traces",
+      "right": "Logs only",
+      "changed": true,
+      "flip": true
+    }
+  ]
+}

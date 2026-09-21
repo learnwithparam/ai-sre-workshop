@@ -1,0 +1,37 @@
+{
+  "shape": "timeline",
+  "alt": "Healthy stretches are kept in the baseline, the first incident is dropped, and the second incident is seen against what remains.",
+  "caption": "The dropped stretch is why the second failure still stands out.",
+  "total": 18,
+  "ticks": 6,
+  "unit": " m",
+  "labelWidth": 104,
+  "rows": [
+    {
+      "label": "Healthy",
+      "start": 0,
+      "length": 8,
+      "note": "kept"
+    },
+    {
+      "label": "First incident",
+      "start": 8,
+      "length": 2,
+      "tone": "fail",
+      "note": "dropped"
+    },
+    {
+      "label": "Healthy again",
+      "start": 10,
+      "length": 6,
+      "note": "kept"
+    },
+    {
+      "label": "Second incident",
+      "start": 16,
+      "length": 2,
+      "tone": "mark",
+      "note": "seen"
+    }
+  ]
+}

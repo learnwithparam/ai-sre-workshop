@@ -1,0 +1,34 @@
+{
+  "shape": "pair",
+  "alt": "A vague wish for reliable signups next to the same wish as an objective: a named indicator, a target and a window.",
+  "caption": "Only the right side can be argued with.",
+  "labelWidth": 62,
+  "left": {
+    "title": "A wish",
+    "tone": "quiet"
+  },
+  "right": {
+    "title": "An objective",
+    "tone": "mark"
+  },
+  "rows": [
+    {
+      "label": "Measure",
+      "left": "Reliable",
+      "right": "Signup success",
+      "changed": true
+    },
+    {
+      "label": "Target",
+      "left": "High",
+      "right": "99.9 percent",
+      "changed": true
+    },
+    {
+      "label": "Window",
+      "left": "Unsaid",
+      "right": "Thirty days",
+      "changed": true
+    }
+  ]
+}
