@@ -80,3 +80,25 @@ def test_the_page_inset_is_declared_in_one_place():
 def test_the_builder_refuses_a_chromium_without_margin_boxes():
     # Without them the book prints with no page numbers and nothing says so.
     assert "MARGIN_BOXES_FROM = 131" in BUILDER.read_text()
+
+
+def test_blocks_keep_a_gap_and_the_build_measures_it():
+    # A reset `pre { margin: 0 }` left code welded to the next paragraph. The rule
+    # gives every stacked block a gap; `make book` measures it in a browser.
+    css = CSS.read_text()
+    stacked = r"\.doc pre:not\(:last-child\), \.doc table:not\(:last-child\)"
+    assert re.search(stacked + r"\s*\{\s*margin-bottom", css)
+    assert re.search(r"\.doc figure\.diagram\s*\{\s*margin: var\(--space-4\) 0", css)
+    build = BUILDER.read_text()
+    assert re.search(r"MIN_GAP_MM = \d", build)
+    fails = re.search(r"if \(tight\.length\) problems\.push", build)
+    assert fails, "the gap is measured but never fails the build"
+
+
+def test_the_pre_commit_hook_rebuilds_the_pdfs_it_stages():
+    hook = ROOT / ".githooks/pre-commit"
+    assert hook.stat().st_mode & 0o111, "an unexecutable hook is skipped without a word"
+    body = hook.read_text()
+    assert "scripts/pdf_freshness.json" in body and "make book" in body
+    for pdf in re.findall(r'^  "([\w.-]+\.pdf)":', BUILDER.read_text(), flags=re.M):
+        assert pdf in body, f"{pdf} is rebuilt but never staged"

@@ -15,6 +15,7 @@
  *   over-split  letter-spacing from about .13em emits one run per character
  *   clipped     a command that runs off the page is cut in the text layer too
  *   fonts       Inter and Inconsolata are embedded, not quietly replaced
+ *   tight       a code block, table or figure with less than MIN_GAP_MM before what follows it
  *   empty       a page that is mostly white, outside the cover, the contents and
  *               the last page of each document
  *   canaries    catch the rest, including corruptions local to one element
@@ -41,6 +42,9 @@ const MIN_FILL = 0.55;
 const PAGE_H_PT = 841.89;
 const TOP_PT = (16 / 25.4) * 72;
 const BOTTOM_PT = (18 / 25.4) * 72;
+
+/** The least space, in millimetres, between a code block, table or figure and what follows it. */
+const MIN_GAP_MM = 5;
 
 const FONTS = readdirSync(join(ROOT, "design/fonts"))
   .filter((f) => f.endsWith(".woff2"))
@@ -169,6 +173,24 @@ function emptyPages(path, fill, opens) {
   return short;
 }
 
+/** Every block that sits closer than MIN_GAP_MM to its next sibling, named by its nearest heading. Blocks side by side are not stacked, so they are skipped. */
+async function tightGaps(page) {
+  await page.emulateMedia({ media: "print" });
+  return page.evaluate((minMm) => {
+    const min = (minMm * 96) / 25.4;
+    const found = [];
+    for (const el of document.querySelectorAll("pre, table, figure")) {
+      const next = el.nextElementSibling;
+      if (!next) continue;
+      const gap = next.getBoundingClientRect().top - el.getBoundingClientRect().bottom;
+      if (gap < -2 || gap >= min) continue;
+      const heading = [...document.querySelectorAll("h2, h3")].filter((h) => h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
+      found.push(`${el.tagName.toLowerCase()} under "${heading?.textContent?.trim().slice(0, 40) ?? "?"}" leaves ${((gap * 25.4) / 96).toFixed(1)} mm`);
+    }
+    return found;
+  }, MIN_GAP_MM);
+}
+
 const { chromium } = await import(pathToFileURL(join(ROOT, "e2e/node_modules/playwright/index.mjs")).href);
 const browser = await chromium.launch();
 const version = Number(browser.version().split(".")[0]);
@@ -206,6 +228,9 @@ for (const [out, job] of Object.entries(PDFS)) {
   });
   if (broken.length) problems.push(`${out}: ${broken.length} image(s) did not load, first: ${broken[0]}`);
   const opens = (await page.$$eval(".opens", (els) => els.map((el) => el.textContent ?? ""))).map((t) => bare(t).slice(0, 24)).filter(Boolean);
+
+  const tight = await tightGaps(page);
+  if (tight.length) problems.push(`${out}: ${tight.length} block(s) sit under ${MIN_GAP_MM} mm from what follows. First: ${tight[0]}`);
 
   const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: "0", bottom: "0", left: "0", right: "0" } });
   writeFileSync(join(ROOT, out), pdf);

@@ -78,6 +78,7 @@ NOT_STAMPED: tuple[tuple[str, str], ...] = (
     ("docker-compose.yml", "the modular compose file, which no target passes to docker"),
     ("load-generator/", "an optional profile the e2e target never starts"),
     (".github/", "CI configuration"),
+    (".githooks/", "the pre-commit hook that rebuilds the PDFs"),
     ("architecture.png", "an illustration"),
     ("LICENSE", "not code"),
     (".gitignore", "not code"),

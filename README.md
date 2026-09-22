@@ -24,9 +24,9 @@ browser.
 | `otel-collector` and `socat` | Container CPU and memory stats from the Docker socket | none |
 | `load-generator` | Optional browser traffic (Locust and Chromium, 1.3 GB), under the `browser-load` profile | none |
 
-The browser, Flask, Go, LibreChat, both MCP servers and sre-control all report to ClickStack, so
-you can follow one trace from a click on the page to the database write, and you can watch the AI
-SRE's own model calls and tool calls in the same place.
+The browser, Flask, Go, LibreChat, both MCP servers and sre-control all report to ClickStack. You can
+follow one trace from a click on the page to the database write. The AI SRE's own model calls and tool
+calls show up in the same place.
 
 ## Your machine needs Docker with about 8 GB of memory
 
@@ -97,10 +97,9 @@ The second scenario, `make chaos SCENARIO=docs-hang`, hangs requests inside docs
 | `propose_remediation` | stores a pending proposal | sre-control |
 | `execute_remediation` | runs `rollback_release` or `restart_service`, only after a human approval | sre-control |
 
-`sre_agent` is read-only in ClickHouse itself (`readonly=2`, a 10 second limit, a 1 GB memory
-limit, 10,000 result rows), so even raw SQL from the model cannot write or starve ingest. The
-policy lives in `sre-control/sre_control/policy.py`, and a structural test fails if a tool is not
-classified.
+`sre_agent` is read-only in ClickHouse itself: `readonly=2`, a 10 second limit, a 1 GB memory limit and
+10,000 result rows. Even raw SQL from the model cannot write or starve ingest. The policy lives in
+`sre-control/sre_control/policy.py`. A structural test fails if a tool is not classified.
 
 To roll back a release, sre-control runs `docker compose up` for the previous image through the
 host's Docker socket, the same command an operator would type. It builds that command from a fixed
@@ -127,10 +126,10 @@ for its tools, so a query improved in the workshop improves the agent.
 | `make book` | Redraws every figure, renders the attendee workbook and the facilitator guide to PDF, then reads them back with `pdftotext`. A Chromium PDF can look perfect and extract as gibberish, so the build asserts every canary phrase and every command line survives, that no run is welded or split one letter at a time, that both fonts are embedded and that no page is mostly empty. Needs poppler. |
 | `make score` | A score out of 100, computed from the latest `check` and `e2e` results. Results from older code count as missing. Below 100 exits 1. |
 
-`workbook.html` explains every idea the workshop rests on, and `guide.html` is the facilitator guide
-for running the day. The guide cites the concepts by name rather than repeating them, and a
-structural test fails on a dangling citation, on an explanation no module delivers, and on any
-sentence written into both. `make book` prints all of it.
+`workbook.html` explains every idea the workshop rests on. `guide.html` is the facilitator guide for
+running the day. The guide cites the concepts by name and never repeats them. A structural test fails
+on a dangling citation, on an explanation no session delivers, and on any sentence written into both.
+`make book` prints both documents.
 
 ## Run it on a VPS
 
@@ -143,10 +142,10 @@ make env
 make up-vps
 ```
 
-Registration is off in LibreChat, sre-control requires the approver login, and HyperDX uses its
-own accounts. `make check` verifies this layer structurally: the override is valid, only Caddy
-publishes ports, and the e2e suite builds its browser URLs from `PUBLIC_DOMAIN`. It has not yet been
-run against a live server.
+Registration is off in LibreChat. sre-control requires the approver login. HyperDX uses its own
+accounts. `make check` verifies this layer structurally: the override is valid, only Caddy publishes
+ports, and the e2e suite builds its browser URLs from `PUBLIC_DOMAIN`. It has not yet been run against
+a live server.
 
 ## Where this came from
 

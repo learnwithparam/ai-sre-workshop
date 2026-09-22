@@ -16,7 +16,7 @@
         opens an incident, an AI SRE finds the release that broke it, and nothing changes until a volunteer
         clicks Approve.</p>
       <p class="deck">Every module asks the room to answer a question with SQL first. Then it shows the same
-        answer in the ClickStack UI. Then it hands that answer to the agent as a tool. Module 5 is the same
+        answer in the ClickStack UI. Then it hands that answer to the agent as a tool. The live incident is the same
         loop the lab's end-to-end suite drives with a real model and a real browser.</p>
       <div class="ports" aria-label="Pages in the lab">
         <div><b>:8000</b><span>Signup app</span></div>
@@ -31,12 +31,12 @@
 <ol>
 <li><span class="no">01</span><a href="#before">Before the room arrives<span class="what">08:15, alone</span></a></li>
 <li><span class="no">02</span><a href="#m0">Setup and the map of the lab<span class="what">09:00 to 09:30</span></a></li>
-<li><span class="no">03</span><a href="#m1">The data an agent reasons over<span class="what">09:30 to 11:00 · Module 1</span></a></li>
-<li><span class="no">04</span><a href="#m2">Anomaly detection inside the database<span class="what">11:00 to 12:30 · Module 2</span></a></li>
-<li><span class="no">05</span><a href="#m3">Finding what changed<span class="what">13:30 to 15:00 · Module 3</span></a></li>
-<li><span class="no">06</span><a href="#m4">Tools an agent can be trusted with<span class="what">15:00 to 16:15 · Module 4</span></a></li>
-<li><span class="no">07</span><a href="#m5">The live incident, with a human in the loop<span class="what">16:15 to 17:00 · Module 5</span></a></li>
-<li><span class="no">08</span><a href="#harden">What to harden before this runs on your systems<span class="what">17:00 to 17:30 · Module 6</span></a></li>
+<li><span class="no">03</span><a href="#m1">The data an agent reasons over<span class="what">09:30 to 11:00</span></a></li>
+<li><span class="no">04</span><a href="#m2">Anomaly detection inside the database<span class="what">11:00 to 12:30</span></a></li>
+<li><span class="no">05</span><a href="#m3">Finding what changed<span class="what">13:30 to 15:00</span></a></li>
+<li><span class="no">06</span><a href="#m4">Tools an agent can be trusted with<span class="what">15:00 to 16:15</span></a></li>
+<li><span class="no">07</span><a href="#m5">The live incident, with a human in the loop<span class="what">16:15 to 17:00</span></a></li>
+<li><span class="no">08</span><a href="#harden">What to harden before this runs on your systems<span class="what">17:00 to 17:30</span></a></li>
 <li><span class="no">09</span><a href="#rescue">If something goes wrong in front of the room<span class="what">Any time</span></a></li>
 <li><span class="no">10</span><a href="#wrap">Wrap-up<span class="what">17:30</span></a></li>
 </ol>
@@ -55,8 +55,8 @@
       <div class="part expect" data-part="expect"><h3>Check</h3><div class="sees"><ul>
         <li>Every service shows <code>healthy</code> in <code>make ps</code>, and the score is 100.</li>
         <li>Logins are in <code>.env</code>: <code>SRE_APPROVER_EMAIL</code> for AI SRE Control, <code>LIBRECHAT_USER_EMAIL</code> for LibreChat, <code>HYPERDX_USER_EMAIL</code> for HyperDX.</li>
-        <li>The signup page footer reads <code>Release v1</code>. That footer is how the room sees a rollback land in Module 5.</li>
-        <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes. With fifteen clean minutes, the Module 5 incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
+        <li>The signup page footer reads <code>Release v1</code>. That footer is how the room sees a rollback land during the live incident.</li>
+        <li>No incident is open on :8090. The detector trusts its 3 sigma bound only after two clean minutes. With fifteen clean minutes, the live incident opens on the bound rather than on the fixed 10% SLO ceiling.</li>
         <li>Docker has 8 GB. Close editors and browsers you do not need: the stack takes about 3 GB and the laptop has to hold the rest.</li>
       </ul></div></div>
       <div class="part show" data-part="show"><h3>Open</h3><div>
@@ -96,7 +96,7 @@
         </figure>
         <figure class="shot">
           <img src="evidence/screens/console-incidents.png" alt="The Incidents list in AI SRE Control, dark console with state pills" loading="lazy">
-          <figcaption>AI SRE Control on :8090. Quiet right now, and the page the room watches in Module 5.</figcaption>
+          <figcaption>AI SRE Control on :8090. Quiet right now, and the page the room watches during the live incident.</figcaption>
         </figure>
       </div>
       <div class="part question" data-part="question"><h3>Ask</h3><p>What is the smallest proof that would convince you your own signup reached the database?</p></div>
@@ -104,7 +104,7 @@
     </section>
 
     <section class="segment" id="m1" data-module="1">
-      <p class="when">09:30 to 11:00 · Module 1</p>
+      <p class="when">09:30 to 11:00</p>
       <div class="head"><h2>The data an agent reasons over</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can read the schema and get p95 latency per endpoint, from every span, in one query.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
@@ -133,12 +133,12 @@
       <div class="part expect" data-part="expect"><h3>Room sees</h3><div class="sees"><ul>
         <li>Six services, including the AI SRE's own: <code>librechat</code>, <code>mcp-clickhouse</code>, <code>sre-control</code>.</li>
         <li><code>POST /api/subscribe</code> with a p95 of a few hundred milliseconds, because every signup opens a fresh Postgres connection.</li>
-        <li>Their own signup in the results table, with the email they typed sitting in the span attributes. Leave that on screen for a moment: Module 6 comes back to it.</li>
+        <li>Their own signup in the results table, with the email they typed sitting in the span attributes. Leave that on screen for a moment: The hardening section comes back to it.</li>
       </ul></div></div>
       <div class="shots">
         <figure class="shot">
           <img src="evidence/screens/hyperdx-traces.png" alt="HyperDX search results for subscription-backend traces" loading="lazy">
-          <figcaption>Search, source Traces, one service. The histogram above the table is the same per-minute count Module 2 writes in SQL.</figcaption>
+          <figcaption>Search, source Traces, one service. The histogram above the table is the same per-minute count the anomaly detection section writes in SQL.</figcaption>
         </figure>
         <figure class="shot">
           <img src="evidence/screens/app-signup.png" alt="The signup form showing a confirmation message" loading="lazy">
@@ -150,7 +150,7 @@
     </section>
 
     <section class="segment" id="m2" data-module="2">
-      <p class="when">11:00 to 12:30 · Module 2</p>
+      <p class="when">11:00 to 12:30</p>
       <div class="head"><h2>Anomaly detection inside the database</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can write a three sigma bound in SQL and name the two guards a real detector adds.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
@@ -182,13 +182,13 @@
     </section>
 
     <section class="segment" id="m3" data-module="3">
-      <p class="when">13:30 to 15:00 · Module 3</p>
+      <p class="when">13:30 to 15:00</p>
       <div class="head"><h2>Finding what changed</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees find a real fault by hand, with event deltas and a trace waterfall, before any agent touches it.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Problem: the detector says something is wrong, and it cannot say what. Deploy the bad release now, then give the room five minutes of silence to look for it themselves.</p>
         <p>Step one: compare the last five minutes with the five before. New patterns float up and steady noise cancels out. Step two: break errors down by <code>service.version</code>. Step three: open one failing trace.</p>
-        <p>Attendees repeat this at work on Monday, so hand them the keyboard. Every step is a query they can run on their own ClickHouse tonight. Reset at the end. The hour before Module 5 gives the detector a clean baseline.</p>
+        <p>Attendees repeat this at work on Monday, so hand them the keyboard. Every step is a query they can run on their own ClickHouse tonight. Reset at the end. The hour before the live incident gives the detector a clean baseline.</p>
       </div></div>
       <div class="part command" data-part="command"><h3>Run</h3><div>
         <pre data-lang="bash"><span class="hl-k">make</span> chaos SCENARIO=bad<span class="hl-n">-release</span></pre>
@@ -235,7 +235,7 @@
     </section>
 
     <section class="segment" id="m4" data-module="4">
-      <p class="when">15:00 to 16:15 · Module 4</p>
+      <p class="when">15:00 to 16:15</p>
       <div class="head"><h2>Tools an agent can be trusted with</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees can say why the lab gives the model ready-made tools, a read-only SQL escape hatch, and exactly one tool that can act.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
@@ -273,12 +273,12 @@
     </section>
 
     <section class="segment" id="m5" data-module="5">
-      <p class="when">16:15 to 17:00 · Module 5</p>
+      <p class="when">16:15 to 17:00</p>
       <div class="head"><h2>The live incident, with a human in the loop</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>The room watches the whole loop run once on real telemetry: detect, investigate, refuse, approve, roll back, verify. Then a volunteer rejects and edits a proposal.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
         <p>Problem: a guess is not a fix. So the agent hunts and the person decides.</p>
-        <p>Ask the agent to execute early. It tries, and the control plane refuses and records that it tried. The guard is the server, not the prompt.</p>
+        <p>Ask the agent to execute early. It tries, and the control plane refuses and records that it tried. The guardrail is the server, not the prompt.</p>
         <p>Every decision lands in an append-only audit log, with who and when. Recovery is judged on a full minute of fresh traffic after the change, never on the agent's say-so.</p>
         <p>Narrate the tool calls as they stream. The room ran these queries by hand this morning. Name each one as it goes past: that is the delta query, that is the waterfall, that is the trace they read at lunch.</p>
       </div></div>
@@ -338,7 +338,7 @@
     </section>
 
     <section class="segment" id="harden" data-module="6">
-      <p class="when">17:00 to 17:30 · Module 6</p>
+      <p class="when">17:00 to 17:30</p>
       <div class="head"><h2>What to harden before this runs on your systems</h2></div>
       <div class="part goal" data-part="goal"><h3>Goal</h3><p>Attendees leave with a list they can argue about with their own security team, and know which parts of it this lab already implements.</p></div>
       <div class="part talk" data-part="talk"><h3>Say</h3><div class="talk">
@@ -396,7 +396,7 @@
             <tr><td>No incident after two minutes of chaos</td><td>The baseline still holds a previous incident, or traffic is too thin</td><td>Run <code>make logs SERVICE=sre-control</code> and read the last detector line. Keep talking; the 10% SLO ceiling opens it within the next minute.</td></tr>
             <tr><td>The agent answers without calling tools</td><td>The conversation was opened fresh, so it has no incident id</td><td>Go back to the incident page and click <strong>Investigate with AI SRE</strong> again rather than retyping the question.</td></tr>
             <tr><td>A tool call fails with a schema error</td><td>LibreChat cached the tool definitions from before a rebuild</td><td><code>docker compose -f docker-compose.all-in-one.yml restart librechat</code>, then reopen the conversation.</td></tr>
-            <tr><td>The signup page hangs on Docs</td><td>Someone clicked the Docs link, which is the hang scenario</td><td>That is the Module 5 second act arriving early. Use it, then <code>make chaos-reset</code>.</td></tr>
+            <tr><td>The signup page hangs on Docs</td><td>Someone clicked the Docs link, which starts the hang scenario</td><td>The hang scenario is arriving before its turn. Use it, then <code>make chaos-reset</code>.</td></tr>
             <tr><td>HyperDX shows no rows</td><td>The time range is pinned to a window that has scrolled past</td><td>Type "Last 30 minutes" into the time picker and press Enter.</td></tr>
             <tr><td>Anything is stuck</td><td></td><td><code>make chaos-reset</code> puts both releases and docs-loader back, with no data loss.</td></tr>
           </tbody>

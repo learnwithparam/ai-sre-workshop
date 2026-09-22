@@ -3,8 +3,11 @@
 Lab for the learnwithparam AI SRE workshop. It runs live in front of a room, so `make e2e` proves every
 change before it is called done.
 
-`make up` · `make check` (lint, prose, unit, structural; no Docker, no model; CI runs it) · `make book` ·
-`make e2e` (real stack, model and browser, about 15 minutes) · `make score` (below 100 exits 1) · `make down`.
+- `make up` starts the stack. `make down` stops it.
+- `make check` runs lint, prose, unit and structural tests. It needs no Docker and no model, and CI runs it.
+- `make book` prints both PDFs.
+- `make e2e` uses the real stack, model and browser, and takes about 15 minutes.
+- `make score` exits 1 below 100.
 
 ## Rules
 
@@ -20,4 +23,8 @@ change before it is called done.
   figure needs a reason in `design/diagrams/exempt.json` (`tests/test_diagrams.py`). Colours and type live in `design/BRAND.md`.
 - `make book` records source hashes and `make check` names a stale PDF. Never judge a PDF by eye: resets
   live in `design/book.css` (`tests/test_book.py`) and `make book` reads back with `pdftotext`.
+- Code blocks, tables and figures keep 5 mm before what follows: `make book` measures it and fails below.
+- `.githooks/pre-commit` runs `make book` when a commit stages a PDF source, then stages the PDFs. Arm it once
+  per clone: `git config core.hooksPath .githooks`.
+- Titles are claims that name the subject, in sentence case; `python3 ~/.claude/skills/lwp-shared/scripts/house_rules.py --voice --terms` on `workbook.html` and `guide.html` must report 0.
 - No em dashes (`scripts/check_prose.py`). Secrets never go on a command line.
