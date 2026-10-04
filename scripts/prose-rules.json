@@ -91,6 +91,77 @@
     "claim": [
       "owns the item",
       "first run own the item"
+    ],
+    "agent run ledger": [
+      "ledger repository",
+      "the ledger repo",
+      "ledger app"
+    ],
+    "subscription app": [
+      "subscription service"
+    ],
+    "agent loop": [
+      "runtime loop"
+    ],
+    "finish_reason": [
+      "cut-off check",
+      "cutoff check"
+    ],
+    "durable ledger": [
+      "ledger on disk"
+    ],
+    "context assembler": [
+      "code builds the context"
+    ],
+    "persistent facts": [
+      "rules survive summary",
+      "rules survive the summary"
+    ],
+    "path-scoped rules": [
+      "rules chosen by path"
+    ],
+    "direct prompt injection": [
+      "order in the resume"
+    ],
+    "delimiter": [
+      "text gets sealed"
+    ],
+    "instruction isolation": [
+      "typed tag stripped"
+    ],
+    "context pruning": [
+      "prune safely"
+    ],
+    "validator": [
+      "text check"
+    ],
+    "human in the loop": [
+      "person in the loop",
+      "people in the loop",
+      "persons in the loop"
+    ],
+    "step": [
+      "every station",
+      "each station",
+      "these stations",
+      "six stations",
+      "slowest station",
+      "one context layer sits under",
+      "drain the loops",
+      "drained through",
+      "where the crossover sits"
+    ],
+    "review queue": [
+      "sent to review"
+    ],
+    "forced tool_choice": [
+      "forced tool call"
+    ],
+    "syntactic validity": [
+      "valid shape"
+    ],
+    "mcp server": [
+      "server: child process"
     ]
   }
 }

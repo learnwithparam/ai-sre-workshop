@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DASHES = {"—": "em dash", "–": "en dash"}
 RULES_FILE = ROOT / "scripts/prose-rules.json"
-HOUSE_RULES = Path.home() / ".claude/skills/lwp-shared/scripts/house_rules.py"
+HOUSE_RULES = Path(__file__).resolve().parent / "lwp/house_rules.py"
 RULES = json.loads(RULES_FILE.read_text())
 WORDS = RULES["words"]
 PHRASES = RULES["phrases"]
@@ -31,10 +31,10 @@ PHRASES = RULES["phrases"]
 def rules_stale() -> str | None:
     """The lists are a committed copy of the house rules. Where the rules live, prove the copy matches.
 
-    CI has no home directory, so this passes there: drift is caught on a developer machine only.
+    The house rules are vendored in scripts/lwp/, so this runs in CI too.
     """
     if not HOUSE_RULES.exists():
-        print("prose rules: not compared with the house rules, none on this machine")
+        print("prose rules: not compared with the house rules, scripts/lwp/ is missing")
         return None
     current = subprocess.run(
         [sys.executable, str(HOUSE_RULES), "--vendor"], capture_output=True, text=True, check=True
@@ -55,6 +55,10 @@ def violations(text: str) -> list[str]:
     return found
 
 
+# The house rules list the banned words, so scanning their vendored copy always fails.
+VENDORED = "scripts/lwp/"
+
+
 def tracked() -> list[str]:
     """Every tracked or untracked-but-not-ignored prose file, as git sees it."""
     listed = subprocess.run(
@@ -65,7 +69,9 @@ def tracked() -> list[str]:
         check=True,
     ).stdout.split("\n")
     return [
-        str(ROOT / name) for name in listed if name.endswith((".md", ".html")) and (ROOT / name).is_file()
+        str(ROOT / name)
+        for name in listed
+        if name.endswith((".md", ".html")) and not name.startswith(VENDORED) and (ROOT / name).is_file()
     ]
 
 

@@ -33,7 +33,7 @@ filterwarnings = [
 line-length = 110
 target-version = "py313"
 # The demo app keeps its upstream code and its deliberate defects (the missing timeout is an exercise).
-extend-exclude = ["e2e/node_modules", "clickstack", "postgresql-db", "subscription-app", "load-generator"]
+extend-exclude = ["e2e/node_modules", "clickstack", "postgresql-db", "subscription-app", "load-generator", "scripts/lwp"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]
