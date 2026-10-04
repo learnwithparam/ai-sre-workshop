@@ -64,6 +64,7 @@ NOT_STAMPED: tuple[tuple[str, str], ...] = (
     ("scripts/check_prose.py", "a `make check` step"),
     ("scripts/prose-rules.json", "the word lists that step reads"),
     ("scripts/lwp/", "the vendored house rules those word lists come from"),
+    ("quality-baseline.json", "the ratchet check-quality reads, a `make check` step"),
     ("scripts/check_links.py", "a scheduled CI job"),
     ("scripts/contents.py", "generates the contents of a teaching page"),
     ("scripts/diagram.mjs", "draws the figures on the teaching pages"),

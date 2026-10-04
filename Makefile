@@ -43,6 +43,7 @@ check: ## Lint, unit and structural tests (no Docker, no model spend)
 	uv run --quiet ruff check .
 	uv run --quiet ruff format --check .
 	uv run --quiet python scripts/check_prose.py
+	python3 scripts/lwp/check-quality.py
 	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
 
 # Declared here, not in the .PHONY line above the first target: that line is inside the e2e stamp,

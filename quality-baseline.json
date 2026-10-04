@@ -1,0 +1,15 @@
+{
+  "comments": {
+    "e2e/lib/ui.ts": 1,
+    "e2e/specs/08-clickstack-tour.spec.ts": 1,
+    "scripts/build_book.mjs": 5,
+    "scripts/diagram.mjs": 1,
+    "scripts/highlight.mjs": 1,
+    "scripts/tree_hash.py": 1,
+    "tests/test_book.py": 1
+  },
+  "lines": {
+    "scripts/diagram.mjs": 635
+  },
+  "names": {}
+}
