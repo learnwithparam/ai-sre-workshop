@@ -1,16 +1,17 @@
 # Engineering standard
 
 A repo's `AGENTS.md` wins where it disagrees, but must say so. The incident behind each rule is in
-`docs/engineering-why.md` in the lwp-claude-plugins repo; read it only when you need to argue a rule.
+https://github.com/Param-Harrison/lwp-claude-plugins/blob/main/docs/engineering-why.md; read it only
+when you need to argue a rule.
 
 **Rule 0.** A check lands wired into `make check`, the build or CI in the same change. An unwired
 check, or a rule stated only in a doc, did not ship.
 
 ## Where the rest lives
 
-Path-scoped rules load when a matching file is read: `rules/lwp-api.md` (routes and services),
-`rules/lwp-db.md` (tables, queries, migrations), `rules/lwp-comments.md` and `rules/lwp-playwright.md`.
-`sync-vendored.py` copies them into each repo's `.claude/rules/`.
+Path-scoped rules load when a matching file is read: `.claude/rules/lwp-api.md` (routes and services),
+`.claude/rules/lwp-db.md` (tables, queries, migrations), `.claude/rules/lwp-comments.md` and
+`.claude/rules/lwp-playwright.md`. `sync-vendored.py` copies them into each repo from lwp-claude-plugins.
 
 ## Working rules
 
