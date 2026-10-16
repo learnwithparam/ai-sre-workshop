@@ -5,6 +5,7 @@ Usage:  check-affected.py            print the plan: which checks run, scoped ho
         check-affected.py --run      run the plan; on a pass, stamp the tree so the Stop hook accepts it
         check-affected.py --full     run the repo's whole `gate`
         check-affected.py --base REF diff against REF instead of the last verified tree
+        check-affected.py --files a,b  plan for these files, no diff (how a run reaches the box, which has no history)
         check-affected.py --audit    fail when a tracked file is claimed by no check, `full` or `ignore`
 Why: docs/decisions/scripts.md#check-affectedpy
 """
@@ -101,7 +102,7 @@ def changed_files(root: Path, base: str) -> list[str]:
     now = tree_id(root)
     diff = git(root, "diff", "--name-only", "--no-renames", base, now or "HEAD").stdout.split("\n")
     new = git(root, "ls-files", "-o", "--exclude-standard").stdout.split("\n")
-    return sorted({f for f in [*diff, *new] if f})
+    return sorted({f for f in [*diff, *new] if f and f != STAMP})
 
 
 def scoped_command(root: Path, check: dict, hit: list[str]) -> str | None:
@@ -122,18 +123,21 @@ def scoped_command(root: Path, check: dict, hit: list[str]) -> str | None:
     return run
 
 
-def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool) -> dict:
+def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: list[str] | None = None) -> dict:
     impact = cfg.get("impact") or {}
     gate = cfg.get("gate", "")
     if force_full:
         return {"mode": "full", "why": "--full", "steps": [("gate", gate)]}
     if not impact.get("checks"):
         return {"mode": "full", "why": "repo.json has no impact map", "steps": [("gate", gate)]}
-    base, base_why = resolve_base(root, impact, base_arg)
-    if not base:
-        return {"mode": "full", "why": base_why, "steps": [("gate", gate)]}
-    files = changed_files(root, base)
-    head = f"{len(files)} file(s) changed since {base_why} ({base[:10]})"
+    if given is not None:
+        files, head = given, f"{len(given)} file(s) named by --files"
+    else:
+        base, base_why = resolve_base(root, impact, base_arg)
+        if not base:
+            return {"mode": "full", "why": base_why, "steps": [("gate", gate)]}
+        files = changed_files(root, base)
+        head = f"{len(files)} file(s) changed since {base_why} ({base[:10]})"
     if not files:
         return {"mode": "scoped", "why": head, "steps": [], "files": files}
     if hits := [f for f in files if matches(f, impact.get("full", []))]:
@@ -156,12 +160,37 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool) -> dict:
     return {"mode": "scoped", "why": head, "steps": steps, "skipped": skipped, "files": files}
 
 
+def routed(root: Path) -> bool:
+    """lwpr picks this machine or the box; inside its run (LWPR_LOCAL here, LWPR_JOB there) it already has."""
+    return (root / ".lwpr.toml").is_file() and bool(shutil.which("lwpr")) and not os.environ.get("LWPR_JOB") \
+        and os.environ.get("LWPR_LOCAL") != "1"
+
+
 def offload(root: Path, cmd: str) -> str:
-    """The full gate keeps going to the lwpr build box, as it would when typed by hand."""
-    if (root / ".lwpr.toml").is_file() and shutil.which("lwpr") and not os.environ.get("LWPR_JOB") \
-            and os.environ.get("LWPR_LOCAL") != "1":
-        return f"lwpr run -- {shlex.quote(cmd)}"
-    return cmd
+    return f"lwpr run -- {shlex.quote(cmd)}" if routed(root) else cmd
+
+
+def through_lwpr(root: Path, p: dict) -> int:
+    """A scoped run goes where lwpr sends it, with the file list, since the box has no git history to diff."""
+    before = tree_id(root)
+    inner = shlex.join(["python3", "scripts/lwp/check-affected.py",
+                        "--run", "--files", ",".join(p["files"])])
+    rc = subprocess.run(["lwpr", "run", "--", inner], cwd=str(root)).returncode
+    if rc == 0 and before and tree_id(root) == before:
+        write_stamp(root, p["mode"])
+    return rc
+
+
+def width(cfg: dict, n: int) -> int:
+    """Checks at once: half the cores the machine has free now, since each test runner fans out
+    itself, capped by the map's `jobs`. A loaded machine runs them one by one rather than choke."""
+    cap = int((cfg.get("impact") or {}).get("jobs", n) or 1)
+    cores = os.cpu_count() or 1
+    try:
+        free = cores - os.getloadavg()[0]
+    except OSError:
+        free = cores / 2
+    return max(1, min(n, cap, int(free // 2)))
 
 
 def run_step(root: Path, name: str, cmd: str, logs: Path) -> tuple[str, int, float, Path]:
@@ -174,20 +203,34 @@ def run_step(root: Path, name: str, cmd: str, logs: Path) -> tuple[str, int, flo
 
 def execute(root: Path, cfg: dict, p: dict) -> int:
     steps = p["steps"]
+    if p["mode"] == "scoped" and steps and routed(root):
+        return through_lwpr(root, p)
     if p["mode"] == "full":
         steps = [(n, offload(root, c)) for n, c in steps]
     logs = Path(tempfile.mkdtemp(prefix="affected-"))
-    jobs = max(1, int((cfg.get("impact") or {}).get("jobs", 1))) if p["mode"] == "scoped" else 1
+    alone = {c["name"] for c in (cfg.get("impact") or {}).get("checks", []) if c.get("alone")}
+    first = [s for s in steps if s[0] in alone or p["mode"] == "full"]
+    pooled = [s for s in steps if s not in first]
+    jobs = width(cfg, len(pooled))
+    if pooled:
+        print(f"affected: {len(pooled)} check(s) {jobs} at a time, after {len(first)} that run alone")
     failed = []
+
+    def report(name: str, rc: int, took: float, log: Path) -> None:
+        if rc == 0:
+            print(f"  pass  {name}  ({took:.0f}s)")
+            return
+        failed.append(name)
+        lines = log.read_text(errors="replace").splitlines()
+        print(f"  FAIL  {name}  ({took:.0f}s, exit {rc}); last {min(60, len(lines))} lines, full log {log}")
+        print("\n".join(f"        {l}" for l in lines[-60:]))
+
+    # A check marked alone writes what others read (generated files) or holds a port, so it runs first.
+    for name, cmd in first:
+        report(*run_step(root, name, cmd, logs))
     with ThreadPoolExecutor(jobs) as pool:
-        for name, rc, took, log in pool.map(lambda s: run_step(root, s[0], s[1], logs), steps):
-            if rc == 0:
-                print(f"  pass  {name}  ({took:.0f}s)")
-                continue
-            failed.append(name)
-            lines = log.read_text(errors="replace").splitlines()
-            print(f"  FAIL  {name}  ({took:.0f}s, exit {rc}); last {min(60, len(lines))} lines, full log {log}")
-            print("\n".join(f"        {l}" for l in lines[-60:]))
+        for result in pool.map(lambda s: run_step(root, s[0], s[1], logs), pooled):
+            report(*result)
     if failed:
         print(f"affected: {len(failed)} of {len(steps)} failed: {', '.join(failed)}")
         return 1
@@ -233,7 +276,8 @@ def main() -> int:
     if "--audit" in args:
         return audit(root, cfg)
     base = args[args.index("--base") + 1] if "--base" in args and args.index("--base") + 1 < len(args) else None
-    p = plan(root, cfg, base, "--full" in args)
+    given = args[args.index("--files") + 1] if "--files" in args and args.index("--files") + 1 < len(args) else None
+    p = plan(root, cfg, base, "--full" in args, [f for f in given.split(",") if f] if given is not None else None)
     print(f"affected: {p['mode']}: {p['why']}")
     for name, cmd in p["steps"]:
         print(f"  run   {name}: {cmd}")
