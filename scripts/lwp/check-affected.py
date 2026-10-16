@@ -7,6 +7,7 @@ Usage:  check-affected.py            print the plan: which checks run, scoped ho
         check-affected.py --base REF diff against REF instead of the last verified tree
         check-affected.py --files a,b  plan for these files, no diff (how a run reaches the box, which has no history)
         check-affected.py --audit    fail when a tracked file is claimed by no check, `full` or `ignore`
+                                     or a gate step is run by no check, `covers` or `fullOnly`
 Why: docs/decisions/scripts.md#check-affectedpy
 """
 import json
@@ -250,6 +251,70 @@ def execute(root: Path, cfg: dict, p: dict) -> int:
     return 0
 
 
+NPM_STEP = re.compile(r"^npm (?:run )?(?:(?:-s|--silent) )*([\w:.-]+)(?: .*)?$")
+MAKE_STEP = re.compile(r"^(?:make|\$\(MAKE\)) (?:-\S+ )*([\w.-]+)$")
+BOOKKEEPING = re.compile(r"check-affected\.py --audit|gate-stamp|^echo |^true$|^:$")
+
+
+def make_rule(root: Path, target: str) -> tuple[list[str], list[str]]:
+    """A Makefile target's prerequisites and recipe lines (`@`/`-` and continuations folded)."""
+    try:
+        lines = (root / "Makefile").read_text().replace("\\\n", " ").splitlines()
+    except OSError:
+        return [], []
+    for i, line in enumerate(lines):
+        head = re.match(rf"^{re.escape(target)}\s*:(?!=)(.*)$", line)
+        if not head:
+            continue
+        recipe = []
+        for r in lines[i + 1:]:
+            if not r.startswith("\t"):
+                if r.strip():
+                    break
+                continue
+            s = r.strip().lstrip("@-").strip()
+            if s and not s.startswith("#"):
+                recipe.append(s)
+        return head.group(1).split("#")[0].split(), recipe
+    return [], []
+
+
+def gate_steps(root: Path, cmd: str, depth: int = 0) -> list[str]:
+    """The steps a gate command runs, one level into npm scripts and make targets, bookkeeping dropped."""
+    if BOOKKEEPING.search(cmd) or depth > 3:
+        return []
+    npm, mk = NPM_STEP.match(cmd), MAKE_STEP.match(cmd)
+    if npm and depth == 0:
+        try:
+            body = json.loads((root / "package.json").read_text()).get("scripts", {}).get(npm.group(1), "")
+        except (OSError, ValueError):
+            body = ""
+        return [s for part in body.split("&&") for s in gate_steps(root, part.strip(), depth + 1)] or [cmd]
+    if npm:
+        return [npm.group(1)]
+    if mk and depth == 0:
+        pre, recipe = make_rule(root, mk.group(1))
+        steps = [p for p in pre if any(not BOOKKEEPING.search(r) for r in make_rule(root, p)[1])]
+        work = [r for r in recipe if not BOOKKEEPING.search(r)]
+        if not steps and len(work) == 1 and NPM_STEP.match(work[0]):
+            return gate_steps(root, work[0])
+        return steps + [s for r in recipe for s in gate_steps(root, r, depth + 1)]
+    if mk:
+        return [mk.group(1)]
+    return [cmd]
+
+
+def uncovered_steps(root: Path, cfg: dict) -> tuple[list[str], list[str]]:
+    """Gate steps no check runs, `covers` or `fullOnly` names; and `fullOnly` entries the gate no longer runs."""
+    impact = cfg["impact"]
+    steps = gate_steps(root, cfg.get("gate", "make check"))
+    said = " ".join(f"{c['run']} {c.get('scoped', '')}" for c in impact["checks"])
+    named = {n for c in impact["checks"] for n in c.get("covers", [])} | set(impact.get("fullOnly", []))
+    token = lambda s: re.search(rf"(?<![\w:.-]){re.escape(s)}(?![\w:.-])", said)
+    missing = [s for s in steps if s not in named and not token(s)]
+    return missing, [s for s in impact.get("fullOnly", []) if s not in steps]
+
+
 def audit(root: Path, cfg: dict) -> int:
     impact = cfg.get("impact") or {}
     if not impact.get("checks"):
@@ -267,6 +332,14 @@ def audit(root: Path, cfg: dict) -> int:
         print(f"affected  FAIL  {len(stray)} tracked file(s) no check, `full` or `ignore` claims, so a change to "
               f"them runs the whole gate. Map them in .claude/repo.json impact:")
         print("\n".join(f"  {f}" for f in stray[:30]))
+        return 1
+    missing, stale = uncovered_steps(root, cfg)
+    if missing or stale:
+        if missing:
+            print(f"affected  FAIL  gate step(s) no check runs, so a scoped run skips them: {missing}. Run each in a "
+                  "check, name it in that check's `covers`, or list it in impact.fullOnly")
+        if stale:
+            print(f"affected  FAIL  impact.fullOnly names {stale}, which the gate no longer runs")
         return 1
     print(f"affected  ok  every tracked file is claimed by the impact map ({len(impact['checks'])} checks)")
     return 0
