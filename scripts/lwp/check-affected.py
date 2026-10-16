@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""Run only the checks a change reaches, from the `impact` map in .claude/repo.json; escalate to the full gate.
+
+Usage:  check-affected.py            print the plan: which checks run, scoped how, and why
+        check-affected.py --run      run the plan; on a pass, stamp the tree so the Stop hook accepts it
+        check-affected.py --full     run the repo's whole `gate`
+        check-affected.py --base REF diff against REF instead of the last verified tree
+        check-affected.py --audit    fail when a tracked file is claimed by no check, `full` or `ignore`
+Why: docs/decisions/scripts.md#check-affectedpy
+"""
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+STAMP = ".claude/.gate-ran"
+FULL_AT = 60
+
+
+def git(root: Path, *args: str, env: dict | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=str(root), env=env, capture_output=True, text=True, timeout=120)
+
+
+def tree_id(root: Path) -> str | None:
+    """Same fingerprint as gate-stamp.py and the Stop hook: tracked files as they are on disk."""
+    idx = git(root, "rev-parse", "--path-format=absolute", "--git-path", "index")
+    if idx.returncode != 0:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_idx = os.path.join(tmp, "index")
+        if os.path.exists(idx.stdout.strip()):
+            Path(tmp_idx).write_bytes(Path(idx.stdout.strip()).read_bytes())
+        env = {**os.environ, "GIT_INDEX_FILE": tmp_idx}
+        if git(root, "add", "-u", env=env).returncode != 0:
+            return None
+        out = git(root, "write-tree", env=env)
+        return out.stdout.strip() or None if out.returncode == 0 else None
+
+
+def glob_re(pattern: str) -> re.Pattern:
+    """`**/` spans folders, `*` stays inside one; matched against the whole repo-relative path."""
+    out, i = "", 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out, i = out + "(?:.*/)?", i + 3
+        elif pattern.startswith("**", i):
+            out, i = out + ".*", i + 2
+        elif pattern[i] == "*":
+            out, i = out + "[^/]*", i + 1
+        elif pattern[i] == "?":
+            out, i = out + "[^/]", i + 1
+        else:
+            out, i = out + re.escape(pattern[i]), i + 1
+    return re.compile(out + "$")
+
+
+def matches(path: str, patterns: list[str]) -> bool:
+    return any(glob_re(p).match(path) for p in patterns)
+
+
+def read_stamp(root: Path) -> str | None:
+    try:
+        parts = (root / STAMP).read_text().split()
+        return parts[0] if parts else None
+    except OSError:
+        return None
+
+
+def write_stamp(root: Path, mode: str) -> str | None:
+    tid = tree_id(root)
+    if tid:
+        (root / STAMP).parent.mkdir(parents=True, exist_ok=True)
+        (root / STAMP).write_text(f"{tid} {mode}\n")
+    return tid
+
+
+def resolve_base(root: Path, impact: dict, explicit: str | None) -> tuple[str | None, str]:
+    """The tree to diff against. A scoped pass on top of a verified tree leaves a verified tree, so the
+    last stamp (full or scoped) is the nearest known-green point; the branch point is the fallback."""
+    if explicit:
+        ref = git(root, "rev-parse", f"{explicit}^{{tree}}")
+        return (ref.stdout.strip(), explicit) if ref.returncode == 0 else (None, f"{explicit} (unknown ref)")
+    stamped = read_stamp(root)
+    if stamped and git(root, "cat-file", "-e", stamped).returncode == 0:
+        return stamped, "the last tree the gate passed on"
+    upstream = impact.get("base", "origin/main")
+    mb = git(root, "merge-base", "HEAD", upstream)
+    if mb.returncode == 0 and mb.stdout.strip():
+        return git(root, "rev-parse", f"{mb.stdout.strip()}^{{tree}}").stdout.strip(), f"the merge base with {upstream}"
+    return None, "no stamp and no merge base"
+
+
+def changed_files(root: Path, base: str) -> list[str]:
+    now = tree_id(root)
+    diff = git(root, "diff", "--name-only", "--no-renames", base, now or "HEAD").stdout.split("\n")
+    new = git(root, "ls-files", "-o", "--exclude-standard").stdout.split("\n")
+    return sorted({f for f in [*diff, *new] if f})
+
+
+def scoped_command(root: Path, check: dict, hit: list[str]) -> str | None:
+    """The command for this check over just `hit`, or None to skip it (nothing left to check)."""
+    run = check["run"]
+    each = check.get("each")
+    if each and check.get("scoped"):
+        rx = re.compile(each)
+        items = {m.group(1) for f in hit if (m := rx.match(f))}
+        if all(rx.match(f) for f in hit):
+            live = sorted(i for i in items if any((root / f).exists() for f in hit if rx.match(f).group(1) == i))
+            if not live:
+                return None
+            return check["scoped"].replace("{items}", shlex.quote(",".join(live)))
+    if "{files}" in run:
+        live = [f for f in hit if (root / f).is_file()]
+        return run.replace("{files}", " ".join(shlex.quote(f) for f in live)) if live else None
+    return run
+
+
+def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool) -> dict:
+    impact = cfg.get("impact") or {}
+    gate = cfg.get("gate", "")
+    if force_full:
+        return {"mode": "full", "why": "--full", "steps": [("gate", gate)]}
+    if not impact.get("checks"):
+        return {"mode": "full", "why": "repo.json has no impact map", "steps": [("gate", gate)]}
+    base, base_why = resolve_base(root, impact, base_arg)
+    if not base:
+        return {"mode": "full", "why": base_why, "steps": [("gate", gate)]}
+    files = changed_files(root, base)
+    head = f"{len(files)} file(s) changed since {base_why} ({base[:10]})"
+    if not files:
+        return {"mode": "scoped", "why": head, "steps": [], "files": files}
+    if hits := [f for f in files if matches(f, impact.get("full", []))]:
+        return {"mode": "full", "why": f"{head}; {hits[0]} is shared by every check (impact.full)",
+                "steps": [("gate", gate)], "files": files}
+    limit = impact.get("fullAt", FULL_AT)
+    if len(files) >= limit:
+        return {"mode": "full", "why": f"{head}, at or past impact.fullAt {limit}", "steps": [("gate", gate)],
+                "files": files}
+    checks = impact["checks"]
+    claimed = lambda f: matches(f, impact.get("ignore", [])) or any(matches(f, c["when"]) for c in checks)
+    if stray := [f for f in files if not claimed(f)]:
+        return {"mode": "full", "why": f"{head}; no check claims {stray[0]}, so its reach is unknown",
+                "steps": [("gate", gate)], "files": files}
+    steps, skipped = [], []
+    for c in checks:
+        hit = [f for f in files if matches(f, c["when"])]
+        cmd = scoped_command(root, c, hit) if hit else None
+        (steps.append((c["name"], cmd)) if cmd else skipped.append(c["name"]))
+    return {"mode": "scoped", "why": head, "steps": steps, "skipped": skipped, "files": files}
+
+
+def offload(root: Path, cmd: str) -> str:
+    """The full gate keeps going to the lwpr build box, as it would when typed by hand."""
+    if (root / ".lwpr.toml").is_file() and shutil.which("lwpr") and not os.environ.get("LWPR_JOB") \
+            and os.environ.get("LWPR_LOCAL") != "1":
+        return f"lwpr run -- {shlex.quote(cmd)}"
+    return cmd
+
+
+def run_step(root: Path, name: str, cmd: str, logs: Path) -> tuple[str, int, float, Path]:
+    t0 = time.time()
+    log = logs / f"{re.sub(r'[^\w.-]', '_', name)}.log"
+    with open(log, "w") as fh:
+        rc = subprocess.run(cmd, shell=True, cwd=str(root), stdout=fh, stderr=subprocess.STDOUT).returncode
+    return name, rc, time.time() - t0, log
+
+
+def execute(root: Path, cfg: dict, p: dict) -> int:
+    steps = p["steps"]
+    if p["mode"] == "full":
+        steps = [(n, offload(root, c)) for n, c in steps]
+    logs = Path(tempfile.mkdtemp(prefix="affected-"))
+    jobs = max(1, int((cfg.get("impact") or {}).get("jobs", 1))) if p["mode"] == "scoped" else 1
+    failed = []
+    with ThreadPoolExecutor(jobs) as pool:
+        for name, rc, took, log in pool.map(lambda s: run_step(root, s[0], s[1], logs), steps):
+            if rc == 0:
+                print(f"  pass  {name}  ({took:.0f}s)")
+                continue
+            failed.append(name)
+            lines = log.read_text(errors="replace").splitlines()
+            print(f"  FAIL  {name}  ({took:.0f}s, exit {rc}); last {min(60, len(lines))} lines, full log {log}")
+            print("\n".join(f"        {l}" for l in lines[-60:]))
+    if failed:
+        print(f"affected: {len(failed)} of {len(steps)} failed: {', '.join(failed)}")
+        return 1
+    tid = write_stamp(root, p["mode"])
+    print(f"affected: {len(steps)} check(s) passed ({p['mode']}); stamp {(tid or 'unavailable')[:12]}")
+    return 0
+
+
+def audit(root: Path, cfg: dict) -> int:
+    impact = cfg.get("impact") or {}
+    if not impact.get("checks"):
+        print("affected  ok  no impact map: every change runs the full gate")
+        return 0
+    bad = [c.get("name", "?") for c in impact["checks"] if not (c.get("name") and c.get("when") and c.get("run"))]
+    bad += [c["name"] for c in impact["checks"] if c.get("each") and "{items}" not in c.get("scoped", "")]
+    if bad:
+        print(f"affected  FAIL  checks need name, when and run (and `scoped` with {{items}} beside `each`): {bad}")
+        return 1
+    every = impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
+    tracked = git(root, "ls-files").stdout.split("\n")
+    stray = [f for f in tracked if f and not matches(f, every)]
+    if stray:
+        print(f"affected  FAIL  {len(stray)} tracked file(s) no check, `full` or `ignore` claims, so a change to "
+              f"them runs the whole gate. Map them in .claude/repo.json impact:")
+        print("\n".join(f"  {f}" for f in stray[:30]))
+        return 1
+    print(f"affected  ok  every tracked file is claimed by the impact map ({len(impact['checks'])} checks)")
+    return 0
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    top = git(Path.cwd(), "rev-parse", "--show-toplevel").stdout.strip()
+    if not top:
+        print("affected: not inside a git checkout")
+        return 2
+    root = Path(top)
+    try:
+        cfg = json.loads((root / ".claude/repo.json").read_text())
+    except (OSError, ValueError):
+        print("affected: no readable .claude/repo.json")
+        return 2
+    if "--audit" in args:
+        return audit(root, cfg)
+    base = args[args.index("--base") + 1] if "--base" in args and args.index("--base") + 1 < len(args) else None
+    p = plan(root, cfg, base, "--full" in args)
+    print(f"affected: {p['mode']}: {p['why']}")
+    for name, cmd in p["steps"]:
+        print(f"  run   {name}: {cmd}")
+    if p.get("skipped"):
+        print(f"  skip  {', '.join(p['skipped'])} (no changed file reaches them)")
+    if "--run" not in args and "--full" not in args:
+        return 0
+    return execute(root, cfg, p)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
