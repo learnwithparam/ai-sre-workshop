@@ -143,6 +143,9 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
     if kit := [f for f in files if matches(f, INERT_KIT)]:
         files = [f for f in files if f not in kit]
         head += f"; {len(kit)} vendored kit file(s) left to lwp-claude-plugins' evals"
+    # Right after a push the merge base is HEAD itself: an empty diff there proves nothing ran on this tree.
+    if not files and given is None and base_arg is None and not read_stamp(root):
+        return {"mode": "full", "why": f"{head}, and no run here has verified this tree", "steps": [("gate", gate)]}
     if not files:
         return {"mode": "scoped", "why": head, "steps": [], "files": files}
     if not impact.get("checks"):
