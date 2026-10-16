@@ -23,6 +23,10 @@ from pathlib import Path
 
 STAMP = ".claude/.gate-ran"
 FULL_AT = 60
+# Vendored from lwp-claude-plugins, whose evals test them, and no check's verdict reads them, so a kit sync
+# alone runs nothing. check-prose and check-quality stay mapped: a new rule can fail this repo's own files.
+INERT_KIT = ["scripts/lwp/check-affected.py", "scripts/lwp/gate-stamp.py", "scripts/lwp/push-remote.sh",
+             ".claude/rules/lwp-*.md"]
 
 
 def git(root: Path, *args: str, env: dict | None = None) -> subprocess.CompletedProcess:
@@ -128,8 +132,6 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
     gate = cfg.get("gate", "")
     if force_full:
         return {"mode": "full", "why": "--full", "steps": [("gate", gate)]}
-    if not impact.get("checks"):
-        return {"mode": "full", "why": "repo.json has no impact map", "steps": [("gate", gate)]}
     if given is not None:
         files, head = given, f"{len(given)} file(s) named by --files"
     else:
@@ -138,8 +140,14 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
             return {"mode": "full", "why": base_why, "steps": [("gate", gate)]}
         files = changed_files(root, base)
         head = f"{len(files)} file(s) changed since {base_why} ({base[:10]})"
+    if kit := [f for f in files if matches(f, INERT_KIT)]:
+        files = [f for f in files if f not in kit]
+        head += f"; {len(kit)} vendored kit file(s) left to lwp-claude-plugins' evals"
     if not files:
         return {"mode": "scoped", "why": head, "steps": [], "files": files}
+    if not impact.get("checks"):
+        return {"mode": "full", "why": f"{head}; repo.json has no impact map", "steps": [("gate", gate)],
+                "files": files}
     if hits := [f for f in files if matches(f, impact.get("full", []))]:
         return {"mode": "full", "why": f"{head}; {hits[0]} is shared by every check (impact.full)",
                 "steps": [("gate", gate)], "files": files}
@@ -249,7 +257,7 @@ def audit(root: Path, cfg: dict) -> int:
     if bad:
         print(f"affected  FAIL  checks need name, when and run (and `scoped` with {{items}} beside `each`): {bad}")
         return 1
-    every = impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
+    every = INERT_KIT + impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
     tracked = git(root, "ls-files").stdout.split("\n")
     stray = [f for f in tracked if f and not matches(f, every)]
     if stray:
