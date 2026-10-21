@@ -1,4 +1,4 @@
-"""LibreChat is wired to OpenRouter and both MCP servers, and the model id is written once."""
+"""LibreChat is wired to Anthropic and both MCP servers, and the model id is written once."""
 
 import re
 import subprocess
@@ -8,16 +8,18 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = yaml.safe_load((ROOT / "librechat/librechat.yaml").read_text())
-MODEL = "deepseek/deepseek-v4-flash"
+MODEL = "claude-haiku-5-5"
 
 
-def test_openrouter_endpoint_uses_the_env_key():
+def test_anthropic_endpoint_uses_the_env_key():
     (endpoint,) = CONFIG["endpoints"]["custom"]
-    assert endpoint["name"] == "OpenRouter"
-    assert endpoint["baseURL"] == "https://openrouter.ai/api/v1"
-    assert endpoint["apiKey"] == "${OPENROUTER_API_KEY}"
+    assert endpoint["name"] == "Anthropic"
+    assert endpoint["baseURL"] == "https://api.anthropic.com/v1"
+    assert endpoint["apiKey"] == "${ANTHROPIC_API_KEY}"
     assert endpoint["models"]["default"] == [MODEL]
     assert endpoint["models"]["fetch"] is False
+    # Haiku 5.5 answers 400 to any temperature but 1.
+    assert "temperature" in endpoint["dropParams"]
 
 
 def test_the_ai_sre_spec_is_enforced_with_both_mcp_servers():
@@ -25,7 +27,8 @@ def test_the_ai_sre_spec_is_enforced_with_both_mcp_servers():
     assert specs["enforce"] is True
     (spec,) = specs["list"]
     assert spec["name"] == "ai-sre"
-    assert spec["preset"]["endpoint"] == "OpenRouter"
+    assert spec["preset"]["endpoint"] == "Anthropic"
+    assert "temperature" not in spec["preset"]
     assert spec["preset"]["model"] == MODEL
     assert set(spec["mcpServers"]) == {"sre", "clickhouse"}
     assert "propose_remediation" in spec["preset"]["promptPrefix"]

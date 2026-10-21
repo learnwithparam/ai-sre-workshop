@@ -11,10 +11,10 @@ test("agent, MCP and control-plane spans land in ClickStack", async () => {
   );
   expect(rows.map((r) => r.ServiceName)).toEqual(["librechat", "mcp-clickhouse", "sre-control"]);
 
-  const [{ openrouter }] = clickhouse<{ openrouter: string }>(
-    `SELECT count() AS openrouter FROM default.otel_traces
+  const [{ anthropic }] = clickhouse<{ anthropic: string }>(
+    `SELECT count() AS anthropic FROM default.otel_traces
      WHERE Timestamp >= fromUnixTimestamp64Milli(${since}) AND ServiceName = 'librechat'
-       AND (SpanAttributes['server.address'] = 'openrouter.ai' OR SpanAttributes['net.peer.name'] = 'openrouter.ai')`,
+       AND (SpanAttributes['server.address'] = 'api.anthropic.com' OR SpanAttributes['net.peer.name'] = 'api.anthropic.com')`,
   );
-  expect(Number(openrouter), "LLM calls are visible as spans").toBeGreaterThan(0);
+  expect(Number(anthropic), "LLM calls are visible as spans").toBeGreaterThan(0);
 });

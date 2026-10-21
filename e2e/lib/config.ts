@@ -37,6 +37,6 @@ export const config = {
   chatUser: { email: required("LIBRECHAT_USER_EMAIL"), password: required("LIBRECHAT_USER_PASSWORD") },
   hyperdxUser: { email: required("HYPERDX_USER_EMAIL"), password: required("HYPERDX_USER_PASSWORD") },
   reader: { user: "sre_agent", password: required("CLICKHOUSE_READER_PASSWORD") },
-  openrouterKey: required("OPENROUTER_API_KEY"),
+  anthropicKey: required("ANTHROPIC_API_KEY"),
   hyperdxKey: required("HYPERDX_API_KEY"),
 } as const;

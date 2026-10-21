@@ -1,35 +1,39 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { config, ROOT } from "../lib/config";
-import { chatTokens, chatToolCalls, state } from "../lib/stack";
+import { ROOT } from "../lib/config";
+import { chatToolCalls, chatUsage, state } from "../lib/stack";
 import { expect, test } from "../lib/ui";
 
-test("report records tool calls, tokens, cost and time to root cause", async ({ request }) => {
+// Claude Haiku 5.5 per million tokens for a prompt of 100K tokens or fewer (Anthropic pricing, 21 Oct 2026).
+const USD_PER_MTOK = { prompt: 0.1, completion: 0.5 };
+
+test("report records tool calls, tokens, cost and time to root cause", async () => {
   const run = state.read();
-  const usage = await request.get("https://openrouter.ai/api/v1/key", {
-    headers: { Authorization: `Bearer ${config.openrouterKey}` },
-  });
-  const usageAfter = (await usage.json()).data.usage as number;
   // The model id is written once, in the AI SRE model spec (tests/test_librechat.py pins that).
   const model = readFileSync(resolve(ROOT, "librechat/librechat.yaml"), "utf8").match(/^\s+model: (\S+)$/m)![1];
 
   // Tool calls and tokens are per conversation; "to proposal" stops at the first propose_remediation.
   const scenario = (s: { conversationId: string; openedAt: number; proposedAt: number }) => {
     const calls = chatToolCalls(s.conversationId);
+    const usage = chatUsage(s.conversationId);
     return {
       tool_calls_to_proposal: calls.findIndex((c) => c.startsWith("propose_remediation")) + 1,
       tool_calls_total: calls.length,
-      tokens: chatTokens(s.conversationId),
+      tokens: usage.prompt + usage.completion,
+      cost_usd: Number(
+        ((usage.prompt * USD_PER_MTOK.prompt + usage.completion * USD_PER_MTOK.completion) / 1e6).toFixed(4),
+      ),
       time_to_root_cause_s: Math.round((s.proposedAt - s.openedAt) / 1000),
     };
   };
+  const badRelease = scenario(run.badRelease);
+  const docsHang = scenario(run.docsHang);
   const report = {
     model,
     generated_at: new Date().toISOString(),
-    // OpenRouter bills per key, so cost is measured across both investigations together.
-    total_cost_usd: Number((usageAfter - run.badRelease.usageBefore).toFixed(4)),
-    bad_release: scenario(run.badRelease),
-    docs_hang: scenario(run.docsHang),
+    total_cost_usd: Number((badRelease.cost_usd + docsHang.cost_usd).toFixed(4)),
+    bad_release: badRelease,
+    docs_hang: docsHang,
   };
 
   for (const s of [report.bad_release, report.docs_hang]) {

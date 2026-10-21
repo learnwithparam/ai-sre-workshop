@@ -20,7 +20,7 @@ browser.
 | `traffic` | Steady page views and signups, so every signal has a baseline | none |
 | `sre-control` | The control plane behind the AI SRE Control pages: detector, incidents and approvals, the SRE MCP server, the remediation runner | 8090 |
 | `mcp-clickhouse` | ClickHouse's official MCP server, for read-only SQL | internal |
-| `librechat` and `mongodb` | The AI SRE workspace, on OpenRouter's `deepseek-v4-flash`, connected to both MCP servers | 3080 |
+| `librechat` and `mongodb` | The AI SRE workspace, on Anthropic's `claude-haiku-5-5`, connected to both MCP servers | 3080 |
 | `otel-collector` and `socat` | Container CPU and memory stats from the Docker socket | none |
 | `load-generator` | Optional browser traffic (Locust and Chromium, 1.3 GB), under the `browser-load` profile | none |
 
@@ -44,7 +44,7 @@ limited to 8 GB. The e2e suite adds a headless Chromium on the host.
 2. Put two keys in `.env` at the repo root (the file is git-ignored):
    ```bash
    HYPERDX_API_KEY=<your ingestion key>
-   OPENROUTER_API_KEY=<your OpenRouter key>
+   ANTHROPIC_API_KEY=<your Anthropic key>
    ```
 3. Generate every other secret, build both app releases, start everything, and create the workshop
    logins:

@@ -304,7 +304,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?run make env}
       CREDS_KEY: ${CREDS_KEY:?run make env}
       CREDS_IV: ${CREDS_IV:?run make env}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?add your OpenRouter key to .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?add your Anthropic key to .env}
       SRE_MCP_TOKEN: ${SRE_MCP_TOKEN:?run make env}
       CLICKHOUSE_MCP_AUTH_TOKEN: ${CLICKHOUSE_MCP_AUTH_TOKEN:?run make env}
       SRE_PUBLIC_URL: ${SRE_PUBLIC_URL:-http://localhost:8090}

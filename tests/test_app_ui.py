@@ -117,7 +117,7 @@ def test_the_page_script_addresses_ids_that_exist():
 
 def test_styling_stays_in_the_stylesheet():
     assert page().inline_styles == []
-    assert 'href="css/clickhouse_css.css"' in TEMPLATE.read_text()
+    assert 'href="css/app.css"' in TEMPLATE.read_text()
 
 
 def test_the_page_declares_a_viewport():

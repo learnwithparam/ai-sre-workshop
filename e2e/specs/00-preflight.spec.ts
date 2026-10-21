@@ -6,10 +6,10 @@ import { expect, test } from "../lib/ui";
 test("keys, ingest and memory are ready", async ({ request }) => {
   state.merge({ runStartedAt: new Date().toISOString() });
 
-  const key = await request.get("https://openrouter.ai/api/v1/key", {
-    headers: { Authorization: `Bearer ${config.openrouterKey}` },
+  const key = await request.get("https://api.anthropic.com/v1/models", {
+    headers: { "x-api-key": config.anthropicKey, "anthropic-version": "2023-06-01" },
   });
-  expect(key.status(), "OPENROUTER_API_KEY is accepted by OpenRouter").toBe(200);
+  expect(key.status(), "ANTHROPIC_API_KEY is accepted by Anthropic").toBe(200);
 
   const ingest = await request.post(`${config.otlpUrl}/v1/logs`, {
     headers: { authorization: config.hyperdxKey, "content-type": "application/json" },

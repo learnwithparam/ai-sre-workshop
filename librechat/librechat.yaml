@@ -1,5 +1,5 @@
 # LibreChat as the AI SRE workspace, wired the way ClickHouse's agentic-data-stack wires it:
-# an OpenAI-compatible model endpoint plus MCP servers. One enforced model spec, so every
+# Anthropic's OpenAI-compatible endpoint plus MCP servers. One enforced model spec, so every
 # conversation runs the same model, the same protocol and the same two MCP servers.
 version: 1.3.1
 cache: true
@@ -23,12 +23,14 @@ interface:
 
 endpoints:
   custom:
-    - name: OpenRouter
-      apiKey: "${OPENROUTER_API_KEY}"
-      baseURL: https://openrouter.ai/api/v1
+    - name: Anthropic
+      apiKey: "${ANTHROPIC_API_KEY}"
+      baseURL: https://api.anthropic.com/v1
       models:
-        default: [deepseek/deepseek-v4-flash]
+        default: [claude-haiku-5-5]
         fetch: false
+      # Haiku 5.5 rejects any temperature but 1, so LibreChat sends none.
+      dropParams: [temperature, top_p, frequency_penalty, presence_penalty]
       titleConvo: true
       titleModel: current_model
       modelDisplayLabel: AI SRE
@@ -66,9 +68,8 @@ modelSpecs:
       default: true
       mcpServers: [sre, clickhouse]
       preset:
-        endpoint: OpenRouter
-        model: deepseek/deepseek-v4-flash
-        temperature: 0
+        endpoint: Anthropic
+        model: claude-haiku-5-5
         maxContextTokens: 200000
         greeting: Paste an incident link or id, or open one from sre-control.
         promptPrefix: |

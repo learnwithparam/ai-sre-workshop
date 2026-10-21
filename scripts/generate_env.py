@@ -1,7 +1,7 @@
 """Add every missing generated secret to .env. Never overwrites a value, never prints one.
 
 Two values cannot be generated and must be pasted in by you: HYPERDX_API_KEY (HyperDX, Team
-Settings) and OPENROUTER_API_KEY (openrouter.ai, Keys).
+Settings) and ANTHROPIC_API_KEY (console.anthropic.com, API keys).
 """
 
 import secrets
@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ENV = Path(__file__).resolve().parent.parent / ".env"
-FROM_YOU = ("HYPERDX_API_KEY", "OPENROUTER_API_KEY")
+FROM_YOU = ("HYPERDX_API_KEY", "ANTHROPIC_API_KEY")
 GENERATED = {
     "CLICKHOUSE_READER_PASSWORD": lambda: secrets.token_urlsafe(24),
     "CLICKHOUSE_WRITER_PASSWORD": lambda: secrets.token_urlsafe(24),

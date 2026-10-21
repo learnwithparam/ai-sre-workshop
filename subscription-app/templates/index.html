@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickHouse - The Fastest Analytical Database</title>
+    <title>Tallyfern - Invoices that get paid</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-    <link rel="stylesheet" href="css/clickhouse_css.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+    <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
     <a class="skip-link" href="#subscribe">Skip to the signup form</a>
 
     <header>
         <nav class="container" aria-label="Main">
-            <a href="#" class="logo-link" aria-label="ClickHouse home">
-                <img src="https://cdn.brandfetch.io/idnezyZEJm/theme/light/idGhgeQm90.svg?c=1bxid64Mup7aczewSAYMX&t=1739283415708" alt="ClickHouse" class="logo"
-                     onerror="this.hidden = true; this.nextElementSibling.hidden = false;">
-                <span class="logo-word" hidden>ClickHouse</span>
+            <a href="#" class="logo-link" aria-label="Tallyfern home">
+                <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M16 25V9m0 4-5-4m5 9 6-5m-6 10-4-3"/></svg>
+                <span class="logo-word">Tallyfern</span>
             </a>
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
@@ -30,77 +29,61 @@
 
     <main id="main">
         <section class="hero">
-            <div class="container">
-                <p class="eyebrow">Real-time analytics at any scale</p>
-                <h1>The <span class="highlight">fastest</span><br>analytical database</h1>
-                <p class="hero-copy">ClickHouse is the fastest and most resource efficient real-time data warehouse and open-source database for powering your analytics applications.</p>
-                <div class="hero-actions">
-                    <a href="#subscribe" class="cta-button">Get Started Free</a>
-                    <span class="hero-note">No credit card. Query billions of rows in your first hour.</span>
+            <div class="container hero-grid">
+                <div>
+                    <h1>Invoices that get paid before you chase them</h1>
+                    <p class="hero-copy">Tallyfern sends the invoice, reminds the client on the right day and matches the payment when it lands, so a small studio spends Friday on work instead of follow ups.</p>
+                    <div class="hero-actions">
+                        <a href="#subscribe" class="cta-button">Join the early list</a>
+                        <span class="hero-note">Free while we are in beta.</span>
+                    </div>
                 </div>
-            </div>
-        </section>
-
-        <section class="trusted-by">
-            <div class="container">
-                <h2 class="trusted-title">Trusted by industry leaders</h2>
-                <ul class="trusted-companies">
-                    <li class="company-logo">Anthropic</li>
-                    <li class="company-logo">Lyft</li>
-                    <li class="company-logo">Sony</li>
-                    <li class="company-logo">Cisco</li>
-                    <li class="company-logo">GitLab</li>
-                    <li class="company-logo">Uber</li>
-                </ul>
+                <figure class="slip" aria-label="An example invoice marked paid">
+                    <div class="slip-head"><span>Invoice 0142</span><span class="mono">Due 14 Nov</span></div>
+                    <dl class="slip-lines">
+                        <div><dt>Brand refresh, phase two</dt><dd class="mono">£3,200.00</dd></div>
+                        <div><dt>Illustration set</dt><dd class="mono">£850.00</dd></div>
+                        <div class="slip-total"><dt>Total</dt><dd class="mono">£4,050.00</dd></div>
+                    </dl>
+                    <p class="slip-stamp">Paid in 6 days</p>
+                </figure>
             </div>
         </section>
 
         <section class="features" id="features">
             <div class="container">
-                <h2 class="section-title">Why ClickHouse?</h2>
-                <p class="section-lede">One engine for the queries your product, your analysts and your on-call rotation all run.</p>
+                <h2 class="section-title">Why studios switch to Tallyfern</h2>
+                <p class="section-lede">Everything between sending the work and seeing the money, in one place.</p>
                 <div class="features-grid">
                     <article class="feature-card" data-feature="performance">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z"/></svg>
-                        </span>
-                        <h3>Blazing Fast</h3>
-                        <p>Ultimate query performance that your mission-critical and time-sensitive applications can depend on. Process billions of rows in milliseconds.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg></span>
+                        <h3>Invoices in a minute</h3>
+                        <p>Start from the last job for the same client, and every line, rate and tax setting comes with it.</p>
                     </article>
                     <article class="feature-card" data-feature="developer-friendly">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 7 4 4-4 4"/><path d="M12 15h8"/><rect x="2" y="3" width="20" height="18" rx="3"/></svg>
-                        </span>
-                        <h3>Developer Friendly</h3>
-                        <p>Built to ensure that even the most sophisticated data analysis can be done intuitively, using simple SQL.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                        <h3>Polite reminders</h3>
+                        <p>Reminders go out three days before and after the due date, written in your voice, and stop when the client pays.</p>
                     </article>
                     <article class="feature-card" data-feature="cost-effective">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
-                        </span>
-                        <h3>Cost Effective</h3>
-                        <p>Best-in-class compression ratios that reduce storage and accelerate performance, keeping your costs low.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6l2-4 2 8 2-4h4"/></svg></span>
+                        <h3>Payments matched</h3>
+                        <p>Connect your bank feed and each payment is matched to its invoice, with partial payments kept open.</p>
                     </article>
                     <article class="feature-card" data-feature="scalable">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6"/><path d="M11 20V9"/><path d="M16 20V4"/></svg>
-                        </span>
-                        <h3>Proven at Scale</h3>
-                        <p>Scale horizontally across hundreds of nodes while maintaining linear performance improvements. Handle petabyte-scale datasets.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-6"/><path d="M11 20V9"/><path d="M16 20V4"/></svg></span>
+                        <h3>Cash you can see</h3>
+                        <p>One page shows what is owed, what is late and what lands this month, per client and per project.</p>
                     </article>
                     <article class="feature-card" data-feature="opensource">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17"/><path d="M3.5 15h17"/><path d="M12 3c2.3 2.5 3.5 5.6 3.5 9s-1.2 6.5-3.5 9c-2.3-2.5-3.5-5.6-3.5-9S9.7 5.5 12 3Z"/></svg>
-                        </span>
-                        <h3>Open Source</h3>
-                        <p>Fully open-source with an active community. Deploy anywhere - on your machine, in the cloud, or as a managed service.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v16l-5-3-5 3z"/></svg></span>
+                        <h3>Ready for your accountant</h3>
+                        <p>Export every invoice and payment for the year in the format your accountant already uses.</p>
                     </article>
                     <article class="feature-card" data-feature="integrations">
-                        <span class="feature-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.1 0l2.4-2.4a5 5 0 0 0-7.1-7.1L11 4.9"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.4 2.4a5 5 0 0 0 7.1 7.1L13 19.1"/></svg>
-                        </span>
-                        <h3>100+ Integrations</h3>
-                        <p>Choose from our growing ecosystem of integrations for data ingestion, visualization, language clients, and more.</p>
+                        <span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.1 0l2.4-2.4a5 5 0 0 0-7.1-7.1L11 4.9"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.4 2.4a5 5 0 0 0 7.1 7.1L13 19.1"/></svg></span>
+                        <h3>Card and bank transfer</h3>
+                        <p>Clients pay by card or bank transfer from a link in the invoice, with no account to create.</p>
                     </article>
                 </div>
             </div>
@@ -108,26 +91,33 @@
 
         <section class="stats" id="performance">
             <div class="container">
-                <h2 class="section-title">Performance That Delivers</h2>
-                <p class="section-lede">Column-oriented databases are better suited to OLAP scenarios. They are at least 100x faster in processing most queries.</p>
+                <h2 class="section-title">Paid sooner, chased less</h2>
+                <p class="section-lede">What studios in the beta saw in their first three months.</p>
                 <dl class="stats-grid">
                     <div class="stat-card">
-                        <dt class="stat-number">100x</dt>
-                        <dd class="stat-label">Faster than traditional databases</dd>
+                        <dt class="stat-number">9 days</dt>
+                        <dd class="stat-label">Faster from invoice to payment</dd>
                     </div>
                     <div class="stat-card">
-                        <dt class="stat-number">1B+</dt>
-                        <dd class="stat-label">Rows processed per second</dd>
+                        <dt class="stat-number">0</dt>
+                        <dd class="stat-label">Reminder emails written by hand</dd>
                     </div>
                     <div class="stat-card">
-                        <dt class="stat-number">90%</dt>
-                        <dd class="stat-label">Compression ratio achieved</dd>
+                        <dt class="stat-number">2 hours</dt>
+                        <dd class="stat-label">Saved on bookkeeping each month</dd>
                     </div>
                     <div class="stat-card">
-                        <dt class="stat-number">1000+</dt>
-                        <dd class="stat-label">Companies trust ClickHouse</dd>
+                        <dt class="stat-number">Beta</dt>
+                        <dd class="stat-label">Studios bill with Tallyfern</dd>
                     </div>
                 </dl>
+            </div>
+        </section>
+
+        <section class="guides" id="docs">
+            <div class="container">
+                <h2 class="section-title">Guides</h2>
+                <p class="section-lede">Set up your first client, connect a bank feed and import last year's invoices.</p>
             </div>
         </section>
 
@@ -135,7 +125,7 @@
             <div class="container">
                 <div class="subscription-content">
                     <h2 class="section-title">Stay Updated</h2>
-                    <p class="section-lede">Get the latest news, updates, and event invitations from the ClickHouse community.</p>
+                    <p class="section-lede">Get a note when your invite is ready, and a short update each month after that.</p>
 
                     <form class="subscription-form" id="subscriptionForm" novalidate>
                         <div class="form-row">
@@ -145,17 +135,17 @@
                             </div>
                             <div class="form-group">
                                 <label for="company">Company</label>
-                                <input type="text" id="company" name="company" autocomplete="organization" placeholder="Your company name">
+                                <input type="text" id="company" name="company" autocomplete="organization" placeholder="Your studio or company">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="email">Email Address <span class="req" aria-hidden="true">*</span></label>
-                            <input type="email" id="email" name="email" required autocomplete="email" placeholder="your.email@company.com">
+                            <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@studio.com">
                         </div>
 
                         <div class="form-group">
-                            <label for="source">How did you find out about ClickHouse? <span class="req" aria-hidden="true">*</span></label>
+                            <label for="source">How did you find out about Tallyfern? <span class="req" aria-hidden="true">*</span></label>
                             <select id="source" name="source" required>
                                 <option value="">Please select...</option>
                                 <option value="webinar">Webinar</option>
@@ -173,7 +163,7 @@
                         </div>
 
                         <div class="form-message success-message" id="successMessage" role="status" hidden>
-                            Thank you for subscribing. You will receive updates and event invitations soon.
+                            Thank you for subscribing. Your invite will arrive soon.
                         </div>
 
                         <div class="form-message error-message" id="errorMessage" role="alert" hidden>
@@ -187,7 +177,8 @@
 
     <footer class="site-footer">
         <div class="container footer-inner">
-            <p class="footer-brand">ClickHouse</p>
+            <p class="footer-brand">Tallyfern</p>
+            <p class="footer-note">An invented product for the AI SRE workshop.</p>
             <ul class="footer-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#performance">Performance</a></li>
@@ -226,7 +217,7 @@
                 const response = await fetch('/load-docs');
                 const result = await response.json();
                 if (result.status == 'ok') {
-                    window.location.href = "https://clickhouse.com/docs";
+                    window.location.hash = "docs";
                 }
             } catch (error) {
                 console.error('Docs link error:', error);

@@ -2,12 +2,8 @@ import { config } from "../lib/config";
 import { auditEvents, chatToolCalls, clickhouse, nameConversation, state, waitFor } from "../lib/stack";
 import { expect, shot, test, waitForAnswer } from "../lib/ui";
 
-test("the AI SRE investigates with tools and proposes a grounded rollback", async ({ page, request }) => {
+test("the AI SRE investigates with tools and proposes a grounded rollback", async ({ page }) => {
   const { incidentId, openedAt } = state.read().badRelease;
-  const key = await request.get("https://openrouter.ai/api/v1/key", {
-    headers: { Authorization: `Bearer ${config.openrouterKey}` },
-  });
-  const usageBefore = (await key.json()).data.usage as number;
 
   await page.goto(config.sreUrl);
   await expect(page.getByRole("heading", { name: "Incidents", exact: true })).toBeVisible();
@@ -59,7 +55,6 @@ test("the AI SRE investigates with tools and proposes a grounded rollback", asyn
       conversationId,
       actionId: proposal.action_id,
       proposedAt: proposal.ms,
-      usageBefore,
     },
   });
 });

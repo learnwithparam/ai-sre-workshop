@@ -70,14 +70,18 @@ export const nameConversation = (conversationId: string, title: string): void =>
 };
 
 /** Prompt and completion tokens LibreChat recorded for one conversation. */
-export const chatTokens = (conversationId: string): number =>
-  Number(
+/** Prompt and completion tokens LibreChat recorded for one conversation. */
+export const chatUsage = (conversationId: string): { prompt: number; completion: number } => {
+  const rows = JSON.parse(
     run("docker", [
       "exec", "mongodb", "mongosh", "LibreChat", "--quiet", "--eval",
-      `db.transactions.aggregate([{ $match: { conversationId: ${JSON.stringify(conversationId)} } },
-        { $group: { _id: null, t: { $sum: { $abs: "$rawAmount" } } } }]).toArray()[0]?.t ?? 0`,
+      `JSON.stringify(db.transactions.aggregate([{ $match: { conversationId: ${JSON.stringify(conversationId)} } },
+        { $group: { _id: "$tokenType", t: { $sum: { $abs: "$rawAmount" } } } }]).toArray())`,
     ]), // prettier-ignore
-  );
+  ) as { _id: string; t: number }[];
+  const of = (type: string) => rows.find((r) => r._id === type)?.t ?? 0;
+  return { prompt: of("prompt"), completion: of("completion") };
+};
 
 export const inspect =(container: string, format: string): string =>
   run("docker", ["inspect", "-f", format, container]).trim();
