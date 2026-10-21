@@ -166,15 +166,21 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
         target: Annotated[str, Field(description="A target listed for that action in allowed_actions.")],
         root_cause: Annotated[str, Field(description="Two or three sentences: what fails, where, and why.")],
         faulty_service: Annotated[str, Field(description="The service whose telemetry shows the fault.")],
-        faulty_release: Annotated[
-            str,
-            Field(
-                description="The service.version that introduced the fault (NOT the release to roll back to)."
-            ),
-        ],
         trace_ids: Annotated[
             list[str], Field(description="Failing trace ids exactly as a tool returned them.")
         ],
+        # Optional since the docs-loader hang: no release caused it, and a required field made the
+        # model invent "docs-loader.unknown", which grounding refused (e2e run of 21 Oct 2026).
+        faulty_release: Annotated[
+            str,
+            Field(
+                description=(
+                    "The release that introduced the fault, as telemetry names it, for example v2 "
+                    "(NOT the release to roll back to). "
+                    "Leave empty when no release changed, for example a hang that a restart clears."
+                )
+            ),
+        ] = "",
         params: Annotated[
             dict[str, str] | None,
             Field(

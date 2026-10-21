@@ -42,6 +42,18 @@ def test_release_never_seen_is_rejected(propose):
         propose(release="v9")
 
 
+def test_a_release_named_with_its_service_is_grounded(propose, remediations):
+    rollback = propose(release="subscription-backend.v2")
+    assert remediations.status(rollback.action_id).state == "pending"
+
+
+def test_a_fault_with_no_release_can_be_proposed(propose, remediations):
+    restart = propose(
+        action="restart_service", target="docs-loader", params={}, service="docs-loader", release=""
+    )
+    assert remediations.status(restart.action_id).state == "pending"
+
+
 def test_action_outside_policy_is_rejected(propose):
     with pytest.raises(PolicyError):
         propose(action="drop_table", target="users", params={})

@@ -38,8 +38,10 @@ export const openHyperdx = async (page: Page): Promise<void> => {
   await expect(email.or(searchPage).first()).toBeVisible({ timeout: 60_000 });
   if (await email.isVisible()) {
     await email.fill(config.hyperdxUser.email);
+    // Enter, not a click on Login: HyperDX re-renders the form as it loads, and a click on the
+    // detached button retried until the test timed out (e2e run of 21 Oct 2026).
     await page.getByPlaceholder("Password").fill(config.hyperdxUser.password);
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByPlaceholder("Password").press("Enter");
   }
   await expect(searchPage).toBeVisible({ timeout: 30_000 });
 };

@@ -13,7 +13,10 @@ MODEL = "claude-haiku-5-5"
 
 def test_anthropic_endpoint_uses_the_env_key():
     (endpoint,) = CONFIG["endpoints"]["custom"]
-    assert endpoint["name"] == "Anthropic"
+    assert endpoint["name"] == "Workspace"
+    # A name holding "anthropic" or "claude" routes LibreChat to its native Claude client, whose
+    # thinking.type "enabled" Haiku 5.5 rejects with a 400 (e2e run of 21 Oct 2026).
+    assert not re.search("anthropic|claude", endpoint["name"], re.I)
     assert endpoint["baseURL"] == "https://api.anthropic.com/v1"
     assert endpoint["apiKey"] == "${ANTHROPIC_API_KEY}"
     assert endpoint["models"]["default"] == [MODEL]
@@ -27,7 +30,7 @@ def test_the_ai_sre_spec_is_enforced_with_both_mcp_servers():
     assert specs["enforce"] is True
     (spec,) = specs["list"]
     assert spec["name"] == "ai-sre"
-    assert spec["preset"]["endpoint"] == "Anthropic"
+    assert spec["preset"]["endpoint"] == "Workspace"
     assert "temperature" not in spec["preset"]
     assert spec["preset"]["model"] == MODEL
     assert set(spec["mcpServers"]) == {"sre", "clickhouse"}

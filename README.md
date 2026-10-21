@@ -61,6 +61,8 @@ limited to 8 GB. The e2e suite adds a headless Chromium on the host.
 | AI SRE Control | http://localhost:8090 | `SRE_APPROVER_EMAIL` |
 | LibreChat | http://localhost:3080 | `LIBRECHAT_USER_EMAIL` |
 
+If another project already holds port 3080, run `CHAT_PORT=3081 make up` and open LibreChat on 3081.
+
 Stop it with `make down`. Your data stays in `./clickstack/`, `./postgresql-db/` and the
 `librechat_mongodb` volume.
 

@@ -24,8 +24,13 @@ const required = (key: string): string => {
 };
 
 const domain = process.env.PUBLIC_DOMAIN ?? fileEnv.PUBLIC_DOMAIN;
+// CHAT_PORT and the like move a local port when another project holds the default.
+const portFor = (name: string, port: number): string => {
+  const key = `${name.toUpperCase()}_PORT`;
+  return process.env[key] ?? fileEnv[key] ?? String(port);
+};
 const url = (name: string, port: number): string =>
-  domain ? `https://${name}.${domain}` : `http://localhost:${port}`;
+  domain ? `https://${name}.${domain}` : `http://localhost:${portFor(name, port)}`;
 
 export const config = {
   appUrl: url("app", 8000),

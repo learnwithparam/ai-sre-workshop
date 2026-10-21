@@ -261,7 +261,7 @@ services:
       SRE_APPROVER_PASSWORD: ${SRE_APPROVER_PASSWORD:?run make env}
       SRE_SESSION_SECRET: ${SRE_SESSION_SECRET:?run make env}
       SRE_PUBLIC_URL: ${SRE_PUBLIC_URL:-http://localhost:8090}
-      CHAT_PUBLIC_URL: ${CHAT_PUBLIC_URL:-http://localhost:3080}
+      CHAT_PUBLIC_URL: ${CHAT_PUBLIC_URL:-http://localhost:${CHAT_PORT:-3080}}
       WORKSHOP_DIR: ${WORKSHOP_DIR:?run through make}
     volumes:
       # Remediation runs `docker compose` against this same project, so it sees the repo at the
@@ -285,7 +285,7 @@ services:
     container_name: librechat
     restart: unless-stopped
     ports:
-      - 3080:3080
+      - ${CHAT_PORT:-3080}:3080
     environment:
       <<: *otlp
       OTEL_TRACING_ENABLED: "true"
@@ -293,8 +293,8 @@ services:
       HOST: 0.0.0.0
       PORT: 3080
       MONGO_URI: mongodb://mongodb:27017/LibreChat
-      DOMAIN_CLIENT: ${CHAT_PUBLIC_URL:-http://localhost:3080}
-      DOMAIN_SERVER: ${CHAT_PUBLIC_URL:-http://localhost:3080}
+      DOMAIN_CLIENT: ${CHAT_PUBLIC_URL:-http://localhost:${CHAT_PORT:-3080}}
+      DOMAIN_SERVER: ${CHAT_PUBLIC_URL:-http://localhost:${CHAT_PORT:-3080}}
       CONFIG_PATH: /app/librechat.yaml
       SEARCH: "false"
       ALLOW_REGISTRATION: "false"

@@ -35,6 +35,9 @@ def run_sql() -> list[dict]:
     )
     trace_ids = [r["trace_id"] for r in telemetry.rows("sample_error_traces", service="subscription-backend",
                                                         minutes=60)]  # fmt: skip
+    # On a fresh stack the slowest requests are the cold first ones, sent before the log exporter
+    # started, so a trace that has logs goes first.
+    trace_ids.sort(key=lambda trace_id: not telemetry.rows("trace_logs", trace_id=trace_id))
     results = []
     for name, query in queries.items():
         if name.startswith("create_"):

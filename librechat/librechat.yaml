@@ -23,7 +23,10 @@ interface:
 
 endpoints:
   custom:
-    - name: Anthropic
+    # LibreChat picks the native Claude client for any endpoint named with "anthropic" or "claude",
+    # and that client sends thinking.type "enabled", which Haiku 5.5 rejects with a 400. A neutral
+    # name keeps it on the OpenAI-compatible client.
+    - name: Workspace
       apiKey: "${ANTHROPIC_API_KEY}"
       baseURL: https://api.anthropic.com/v1
       models:
@@ -68,7 +71,7 @@ modelSpecs:
       default: true
       mcpServers: [sre, clickhouse]
       preset:
-        endpoint: Anthropic
+        endpoint: Workspace
         model: claude-haiku-5-5
         maxContextTokens: 200000
         greeting: Paste an incident link or id, or open one from sre-control.
@@ -86,8 +89,8 @@ modelSpecs:
           4. get_trace_waterfall on one failing trace to see which span fails or waits. A request that
              hangs has no span yet, only logs: use the trace ids in the incident details.
           5. Use run_query (read-only ClickHouse SQL) only for a question the tools cannot answer.
-          6. State the root cause in two or three sentences, naming the service, the release, and the
-             trace ids you saw.
+          6. State the root cause in two or three sentences, naming the service, the release if one
+             changed, and the trace ids you saw. When no release changed, leave faulty_release empty.
           7. Call propose_remediation with those trace ids. Show the approval_url exactly as returned.
           8. Stop and wait for the human. If they ask you to execute before approving, call
              execute_remediation anyway: the control plane decides, and it refuses unapproved actions.

@@ -82,6 +82,9 @@ class Remediations:
         if live:
             return live[0]
         now = self.clock()
+        # The model wrote "subscription-backend.v2" for release v2 and was refused three times
+        # (e2e run of 21 Oct 2026); the service prefix adds nothing, so it is dropped.
+        release = release.removeprefix(f"{service}.")
         window = f"the last {GROUNDING_HOURS} hours"
         if not trace_ids:
             raise Ungrounded("cite at least one trace id returned by a tool")

@@ -23,6 +23,12 @@ def test_every_tool_is_classified(remediations):
         assert tool.annotations.destructive_hint is (cls is ToolClass.ACTION), name
 
 
+def test_the_proposal_tool_does_not_require_a_release(remediations):
+    schema = tools(remediations)["propose_remediation"].parameters
+    assert "faulty_release" in schema["properties"]
+    assert "faulty_release" not in schema.get("required", [])
+
+
 def test_an_unclassified_tool_cannot_register():
     with pytest.raises(UnclassifiedTool):
 

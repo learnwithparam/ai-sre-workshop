@@ -98,7 +98,7 @@ nav {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Hero */
-.hero { padding: 72px 0 88px; }
+.hero { padding: 72px 0 88px; overflow-x: clip; } /* the paid stamp lands from 1.6x scale past the edge */
 .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; }
 .hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); letter-spacing: -0.025em; max-width: 14ch; }
 .hero-copy { font-size: 1.15rem; color: var(--ink-soft); max-width: 52ch; margin: 24px 0 32px; }
