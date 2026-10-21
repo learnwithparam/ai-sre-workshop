@@ -79,6 +79,8 @@
     th { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
          color: var(--ink-faint); background: var(--surface-raised); }
     td a { color: var(--ink); }
+    /* A service name broke at its hyphen at 1280 wide, and a click between the halves missed the link. */
+    .service { white-space: nowrap; }
     .facts th { background: transparent; text-transform: none; letter-spacing: 0; font-size: 0.85rem;
                 color: var(--ink-muted); width: 34%; font-weight: 500; }
 

@@ -17,7 +17,7 @@
       {% for i in incidents %}
         <tr>
           <td><span class="pill" data-state="{{ i.state }}">{{ i.state|capitalize }}</span></td>
-          <td><a href="/incidents/{{ i.id }}"><strong>{{ i.service }}</strong></a>
+          <td><a class="service" href="/incidents/{{ i.id }}"><strong>{{ i.service }}</strong></a>
               <div class="muted mono">{{ phrase(i.rule) }}</div></td>
           <td>{{ i.summary }}</td>
           <td><time class="mono" datetime="{{ i.opened_at.isoformat() }}">{{ i.opened_at.strftime("%H:%M:%S") }} UTC</time>

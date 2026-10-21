@@ -15,6 +15,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 COMPOSE = ["docker", "compose", "-f", str(ROOT / "docker-compose.all-in-one.yml")]
 APP = os.environ.get("APP_URL", "http://localhost:8000")
+# Coloured on a terminal so a recorded or projected run reads at a glance; plain in logs.
+TTY = sys.stdout.isatty()
+
+
+def say(text: str, colour: str) -> None:
+    codes = {"red": "1;31", "green": "1;32", "yellow": "1;33"}
+    print(f"\033[{codes[colour]}m{text}\033[0m" if TTY else text)
 
 
 def compose(*args: str, release: str | None = None) -> None:
@@ -26,7 +33,7 @@ def compose(*args: str, release: str | None = None) -> None:
 
 def deploy(release: str) -> None:
     compose("up", "-d", "--no-deps", "--wait", "subscription-app", release=release)
-    print(f"subscription-app is now running release {release}")
+    say(f"subscription-app is now running release {release}", "red" if release == "v2" else "green")
 
 
 def hang_docs(count: int = 2) -> None:
@@ -41,7 +48,7 @@ def hang_docs(count: int = 2) -> None:
         t.start()
     for t in threads:
         t.join()
-    print(f"sent {count} requests to /load-docs; they are now hanging inside docs-loader")
+    say(f"sent {count} requests to /load-docs; they are now hanging inside docs-loader", "yellow")
 
 
 def main(scenario: str) -> None:
@@ -52,7 +59,7 @@ def main(scenario: str) -> None:
     elif scenario == "reset":
         deploy("v1")
         compose("restart", "docs-loader")
-        print("docs-loader restarted")
+        say("docs-loader restarted", "green")
     else:
         raise SystemExit(__doc__)
 
