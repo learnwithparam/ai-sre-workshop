@@ -182,6 +182,7 @@ The lines below are the machine-checked half: each names the standard term and t
 - **context pruning**: not "prune safely"
 - **validator**: not "text check"
 - **human in the loop**: not "person in the loop", "people in the loop", "persons in the loop"
+- **human review**: not "person layer", "keep a person on", "then a person", "two people approve", "one person to approve", "what stays with a person"
 - **step**: not "every station", "each station", "these stations", "six stations", "slowest station", "one context layer sits under", "drain the loops", "drained through", "where the crossover sits"
 - **review queue**: not "sent to review"
 - **forced tool_choice**: not "forced tool call"
