@@ -48,6 +48,7 @@ Rules 9 and 10 are the two a regex would get wrong in the expensive direction: i
 either pass every clever headline or fail every good one. They are reported as
 `model-judged` so they can never quietly count as clean.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -59,11 +60,14 @@ from pathlib import Path
 
 # Beside the script when a repo vendors it into scripts/lwp/; one level up inside the plugin.
 _HERE = Path(__file__).resolve().parent
-RULES_DOC = next((d / "house-rules.md" for d in (_HERE, _HERE.parent) if (d / "house-rules.md").is_file()),
-                 _HERE.parent / "house-rules.md")
+RULES_DOC = next(
+    (d / "house-rules.md" for d in (_HERE, _HERE.parent) if (d / "house-rules.md").is_file()),
+    _HERE.parent / "house-rules.md",
+)
 
 
 # --------------------------------------------------------------------------- parsing
+
 
 def _bullet_list(body: str, label: str) -> list[str]:
     """The `**Banned words**: a, b, c` line under Rule 5, as a list."""
@@ -200,9 +204,7 @@ def strip_code(text: str) -> str:
 # rhetorical nouns: "Two reasons. First, ... Second, ..." is the sanctioned shape, and
 # telling it apart from "two big wins" needs the following paragraph read. The inventory
 # nouns have no such exemption, so only they are checked here.
-COUNT_NOUNS = (
-    r"modules?|tutorials?|lessons?|chapters?|courses?|videos?"
-)
+COUNT_NOUNS = r"modules?|tutorials?|lessons?|chapters?|courses?|videos?"
 RHETORICAL_NOUNS = "things, ways, reasons, mistakes, tips, takeaways, wins"
 # Cut after measuring: `slots?` matched "slot proposal" and "the other 499 seats" is a
 # concurrency quiz. They are real Rule 1 nouns in cohort copy ("Ten seats") and ordinary
@@ -212,8 +214,7 @@ AMBIGUOUS_NOUNS = "seats, spots, slots, weeks, articles, posts"
 # inventory. Spelled numbers must also take a PLURAL noun, which "one" never does.
 SPELLED = r"two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozen"
 # (?<![\d,.$]) so the tail of "10,000 seats" and "$499 seats" does not match.
-RULE1 = re.compile(
-    rf"(?<![\d,.$])\b(?:\d{{1,3}}\+?|{SPELLED})\s+(?:{COUNT_NOUNS})\b", re.I)
+RULE1 = re.compile(rf"(?<![\d,.$])\b(?:\d{{1,3}}\+?|{SPELLED})\s+(?:{COUNT_NOUNS})\b", re.I)
 
 # Rule 2. Positional references, in rendered content only (strip_code runs first).
 RULE2 = re.compile(
@@ -248,9 +249,9 @@ def _titlecased(heading: str, allow: set) -> bool:
     if colon != -1:
         starts.add(len(WORD.findall(heading[: colon + 1])))
     offenders = [
-        w for i, w in enumerate(words)
-        if i not in starts and w[:1].isupper() and not w.isupper()
-        and w not in allow and w.rstrip(".,:;") not in allow
+        w
+        for i, w in enumerate(words)
+        if i not in starts and w[:1].isupper() and not w.isupper() and w not in allow and w.rstrip(".,:;") not in allow
     ]
     return len(offenders) >= 3
 
@@ -263,9 +264,7 @@ SLOP_CONTEXT_OK = {
     "landscape": re.compile(r"portrait|orientation|aspect|viewport|\bmode\b", re.I),
     # "As an AI, I cannot" is the disclaimer the rule bans. "Role-play as an AI agent that
     # has access to two tools" is a prompt in a course on agents, and it is correct.
-    "as an ai": re.compile(
-        r"as an AI (?:agent|system|tool|engineer|product|feature|startup|company|model that)",
-        re.I),
+    "as an ai": re.compile(r"as an AI (?:agent|system|tool|engineer|product|feature|startup|company|model that)", re.I),
 }
 
 
@@ -276,7 +275,7 @@ def _slop_words(text: str) -> list:
         if not m:
             continue
         ok = SLOP_CONTEXT_OK.get(w)
-        if ok and ok.search(text[max(0, m.start() - 60): m.end() + 60]):
+        if ok and ok.search(text[max(0, m.start() - 60) : m.end() + 60]):
             continue
         hits.append(w)
     return hits
@@ -294,48 +293,44 @@ def _slop_phrases(text: str) -> list:
         if not m:
             continue
         ok = SLOP_CONTEXT_OK.get(p)
-        if ok and ok.search(text[max(0, m.start() - 20): m.end() + 60]):
+        if ok and ok.search(text[max(0, m.start() - 20) : m.end() + 60]):
             continue
         hits.append(p)
     return hits
 
 
 CHECKS = [
-    ("rule1", "counts in narrative copy",
-     lambda t, c, a: [m.group(0) for m in RULE1.finditer(c)]),
-    ("rule2", "positional references",
-     lambda t, c, a: [m.group(0) for m in RULE2.finditer(c)]),
-    ("rule4", "bold markdown in a quoted string",
-     lambda t, c, a: [m.group(0)[:60] for m in RULE4.finditer(t)]),
+    ("rule1", "counts in narrative copy", lambda t, c, a: [m.group(0) for m in RULE1.finditer(c)]),
+    ("rule2", "positional references", lambda t, c, a: [m.group(0) for m in RULE2.finditer(c)]),
+    ("rule4", "bold markdown in a quoted string", lambda t, c, a: [m.group(0)[:60] for m in RULE4.finditer(t)]),
     ("rule5w", "AI slop word", lambda t, c, a: _slop_words(c)),
     # 🔴 WORD BOUNDARIES, NOT `in`. A bare substring test read "has an AI-specific trap"
     # as the banned phrase "as an AI" and reported a correct sentence as slop.
     ("rule5p", "AI slop phrase", lambda t, c, a: _slop_phrases(c)),
-    ("rule7", "title case heading",
-     lambda t, c, a: [h for h in HEADING.findall(t) if _titlecased(h, a)]),
+    ("rule7", "title case heading", lambda t, c, a: [h for h in HEADING.findall(t) if _titlecased(h, a)]),
 ]
 
 # Declared, not silently absent. A rule nothing checks must say so out loud, or a clean
 # report reads as "all ten rules hold" when it means "the five I can do hold".
 MODEL_JUDGED = {
     "rule3": "em/en dashes: check-prose.py owns this, with the quoted-span and "
-             "numeric-range exemptions it already got right. Run it too.",
+    "numeric-range exemptions it already got right. Run it too.",
     "rule1b": "counts before a rhetorical noun (" + RHETORICAL_NOUNS + "): Rule 1 exempts "
-              "a count whose items are enumerated on the same page, so 'Two reasons. "
-              "First... Second...' is legal and 'two big wins' is not. Telling them apart "
-              "needs the next paragraph read.",
+    "a count whose items are enumerated on the same page, so 'Two reasons. "
+    "First... Second...' is legal and 'two big wins' is not. Telling them apart "
+    "needs the next paragraph read.",
     "rule1c": "counts before an ambiguous noun (" + AMBIGUOUS_NOUNS + "): each is Rule 1 "
-              "vocabulary in cohort copy and an ordinary word in technical prose.",
+    "vocabulary in cohort copy and an ordinary word in technical prose.",
     "rule6": "generic claims: not mechanizable. 'hoping for the best' is an idiom, "
-             "'Return to top' is a scroll target and 'the top five chunks' is a "
-             "retrieval fact. Matching the bare words fired on all three.",
+    "'Return to top' is a scroll target and 'the top five chunks' is a "
+    "retrieval fact. Matching the bare words fired on all three.",
     "rule8": "links resolve: link_health.py owns this.",
     "rule9": "clarity beats cleverness in headlines: model-judged.",
     "rule10": "simple English in body copy: model-judged.",
     "rule12b": "resolve the name: code, then deck 1, then the workbook concept index, then industry "
-               "vocabulary. Only the banned paraphrases in the Rule 12 glossary are checked, with --terms.",
+    "vocabulary. Only the banned paraphrases in the Rule 12 glossary are checked, with --terms.",
     "rule11b": "name the action, not the concept: model-judged, see the Rule 11 note below. "
-               "The sentence and paragraph ceilings are checked, with --voice.",
+    "The sentence and paragraph ceilings are checked, with --voice.",
 }
 
 
@@ -381,7 +376,9 @@ LINK_TARGET = re.compile(r"\]\([^)]*\)")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(\[])")
 HTML_SKIP = re.compile(r"<(script|style|svg|pre|head)\b.*?</\1>|<!--.*?-->", re.S | re.I)
 HTML_CODE = re.compile(r"<code\b[^>]*>.*?</code>", re.S | re.I)
-HTML_BLOCK_END = re.compile(r"</(p|li|dt|dd|th|td|h[1-6]|div|section|article|tr|figure|figcaption|blockquote|ul|ol|table)>|<br\s*/?>", re.I)
+HTML_BLOCK_END = re.compile(
+    r"</(p|li|dt|dd|th|td|h[1-6]|div|section|article|tr|figure|figcaption|blockquote|ul|ol|table)>|<br\s*/?>", re.I
+)
 HTML_TAG = re.compile(r"<[^>]+>")
 
 
@@ -400,7 +397,9 @@ def _voice_source(path: str) -> str:
 
 def _html_prose(html: str) -> str:
     """A manuscript is running text between tags. Blocks that are not prose are dropped whole."""
-    html = HTML_CODE.sub("Code", HTML_SKIP.sub(" ", html))  # inline code is one capitalised word, so a sentence that starts with it still splits
+    html = HTML_CODE.sub(
+        "Code", HTML_SKIP.sub(" ", html)
+    )  # inline code is one capitalised word, so a sentence that starts with it still splits
     html = HTML_BLOCK_END.sub("\n\n", html)
     return unescape(HTML_TAG.sub("", html))
 
@@ -425,8 +424,11 @@ def _prose_blocks(text: str):
 def idiom_check_text(text: str) -> list:
     """Rule 10's named idioms, in prose outside code. Opt-in with --voice, like the ceilings."""
     body = strip_code(text)
-    return [{"rule": "rule10i", "label": "idiom, say the literal point", "hit": f'"{m.group(0)}"'}
-            for p in IDIOMS if (m := phrase_re(p).search(body))]
+    return [
+        {"rule": "rule10i", "label": "idiom, say the literal point", "hit": f'"{m.group(0)}"'}
+        for p in IDIOMS
+        if (m := phrase_re(p).search(body))
+    ]
 
 
 def voice_check_text(text: str) -> list:
@@ -434,13 +436,19 @@ def voice_check_text(text: str) -> list:
     for para in _prose_blocks(text):
         sentences = [s for s in SENTENCE_END.split(para) if s.strip()]
         if len(sentences) > MAX_SENTENCES:
-            out.append({"rule": "rule11p", "label": f"paragraph over {MAX_SENTENCES} sentences",
-                        "hit": f"{len(sentences)} sentences: {para[:60]}"})
+            out.append(
+                {
+                    "rule": "rule11p",
+                    "label": f"paragraph over {MAX_SENTENCES} sentences",
+                    "hit": f"{len(sentences)} sentences: {para[:60]}",
+                }
+            )
         for s in sentences:
             n = len(s.split())
             if n > MAX_WORDS:
-                out.append({"rule": "rule11w", "label": f"sentence over {MAX_WORDS} words",
-                            "hit": f"{n} words: {s[:70]}"})
+                out.append(
+                    {"rule": "rule11w", "label": f"sentence over {MAX_WORDS} words", "hit": f"{n} words: {s[:70]}"}
+                )
     return out
 
 
@@ -457,6 +465,7 @@ def voice_check_file(path: str) -> list:
 # about slides and drawings, and "a folder" is fine English in a blog post. The lists are
 # parsed out of house-rules.md, so a phrase added there is armed in the same edit.
 
+
 def terms_check_text(text: str) -> list:
     body = strip_code(text)
     out = []
@@ -464,8 +473,7 @@ def terms_check_text(text: str) -> list:
         for phrase in banned:
             m = phrase_re(phrase).search(body)
             if m:
-                out.append({"rule": "rule12", "label": f'say "{term}", the standard term',
-                            "hit": f'"{m.group(0)}"'})
+                out.append({"rule": "rule12", "label": f'say "{term}", the standard term', "hit": f'"{m.group(0)}"'})
     return out
 
 
@@ -496,9 +504,21 @@ def selftest() -> list:
         if idiom not in IDIOMS:
             problems.append(f'house_rules: Rule 10 lost the idiom "{idiom}"; the doc changed shape')
     # Each of these got past review once. Deleting a row would otherwise disarm it and stay green.
-    for term in ("worktree", "holdout tests", "guardrails agent", "error agent", "cold reader", "triage", "claim", "human in the loop", "step"):
+    for term in (
+        "worktree",
+        "holdout tests",
+        "guardrails agent",
+        "error agent",
+        "cold reader",
+        "triage",
+        "claim",
+        "human in the loop",
+        "step",
+    ):
         if not TERMS.get(term):
-            problems.append(f'house_rules: Rule 12 has no banned phrases for "{term}"; a row was deleted or the doc changed shape')
+            problems.append(
+                f'house_rules: Rule 12 has no banned phrases for "{term}"; a row was deleted or the doc changed shape'
+            )
     return problems
 
 
@@ -506,31 +526,54 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("files", nargs="*")
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--voice", action="store_true",
-                    help="also check Rule 11 (sentence and paragraph ceilings); opt-in, see the source")
-    ap.add_argument("--terms", action="store_true",
-                    help="also check Rule 12 (standard terms, no paraphrases); opt-in, see the source")
+    ap.add_argument(
+        "--voice",
+        action="store_true",
+        help="also check Rule 11 (sentence and paragraph ceilings); opt-in, see the source",
+    )
+    ap.add_argument(
+        "--terms",
+        action="store_true",
+        help="also check Rule 12 (standard terms, no paraphrases); opt-in, see the source",
+    )
     ap.add_argument("--selftest", action="store_true", help="prove every Rule 12 phrase fires, and stop")
     ap.add_argument("--rules", action="store_true", help="print the parsed rules and stop")
-    ap.add_argument("--vendor", action="store_true",
-                    help="print the word and phrase lists and Rule 11 ceilings a repo commits, and stop")
+    ap.add_argument(
+        "--vendor",
+        action="store_true",
+        help="print the word and phrase lists and Rule 11 ceilings a repo commits, and stop",
+    )
     args = ap.parse_args()
 
     if args.rules:
-        print(json.dumps({
-            "source": str(RULES_DOC),
-            "slop_words": SLOP_WORDS,
-            "slop_phrases": SLOP_PHRASES,
-            "allowlist": sorted(ALLOWLIST),
-            "terms": TERMS,
-            "model_judged": MODEL_JUDGED,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "source": str(RULES_DOC),
+                    "slop_words": SLOP_WORDS,
+                    "slop_phrases": SLOP_PHRASES,
+                    "allowlist": sorted(ALLOWLIST),
+                    "terms": TERMS,
+                    "model_judged": MODEL_JUDGED,
+                },
+                indent=2,
+            )
+        )
         return 0
 
     if args.vendor:
-        print(json.dumps({"words": SLOP_WORDS, "phrases": SLOP_PHRASES,
-                          "max_words": MAX_WORDS, "max_sentences": MAX_SENTENCES,
-                          "terms": TERMS}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "words": SLOP_WORDS,
+                    "phrases": SLOP_PHRASES,
+                    "max_words": MAX_WORDS,
+                    "max_sentences": MAX_SENTENCES,
+                    "terms": TERMS,
+                },
+                indent=2,
+            )
+        )
         return 0
 
     if args.selftest:
@@ -552,8 +595,10 @@ def main() -> int:
     else:
         for p in problems:
             print(f"{p['file']}: {p['label']}: {p['hit']}", file=sys.stderr)
-        print(f"house-rules: {len(args.files)} file(s), {len(problems)} violation(s); "
-              f"{len(MODEL_JUDGED)} rule(s) not machine-checkable ({', '.join(MODEL_JUDGED)})")
+        print(
+            f"house-rules: {len(args.files)} file(s), {len(problems)} violation(s); "
+            f"{len(MODEL_JUDGED)} rule(s) not machine-checkable ({', '.join(MODEL_JUDGED)})"
+        )
     return 1 if problems else 0
 
 

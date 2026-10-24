@@ -3,6 +3,7 @@
 
 Why: docs/decisions/scripts.md#gate-stamppy
 """
+
 import os
 import subprocess
 import sys

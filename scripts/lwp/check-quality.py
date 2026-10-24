@@ -6,6 +6,7 @@ Usage: check-quality.py [FILE...]   check the named files, or every tracked sour
        check-quality.py --init      list every current offender in quality-baseline.json (adoption only)
 Why: docs/decisions/scripts.md#check-qualitypy
 """
+
 import fnmatch
 import importlib.util
 import io
@@ -28,11 +29,17 @@ METRICS = {"comments", "lines", "names"}
 DEFAULT_EXCLUDE = ["*.d.ts", "*.min.js", "*generated*", "scripts/lwp/*", "*/vendor/*", "*/migrations/*"]
 TEST = re.compile(r"(\.test\.|\.spec\.|(^|/)(tests?|e2e|__tests__)/|(^|/)test_[^/]*\.py$)")
 BANNED = re.compile(r"^(utils?|helpers?|misc|common)$|[a-z](Manager|Handler)$")
-DIRECTIVE = re.compile(r"^(eslint|@ts-|biome-ignore|prettier-ignore|noqa|type:|pyright:|ruff:|istanbul|c8 |"
-                       r"/ <reference|!|-\*-|shellcheck|@vitest|@jest|fmt:|pragma)", re.I)
-NARRATION = re.compile(r"^(step \d+\b|now,? (we|let'?s)\b|here,? we\b|this (function|method) (does|will|handles|"
-                       r"returns)\b|(first|next|then|finally),? we\b|(loop|iterate) (over|through)\b|"
-                       r"increment the\b|initiali[sz]e the\b)", re.I)
+DIRECTIVE = re.compile(
+    r"^(eslint|@ts-|biome-ignore|prettier-ignore|noqa|type:|pyright:|ruff:|istanbul|c8 |"
+    r"/ <reference|!|-\*-|shellcheck|@vitest|@jest|fmt:|pragma)",
+    re.I,
+)
+NARRATION = re.compile(
+    r"^(step \d+\b|now,? (we|let'?s)\b|here,? we\b|this (function|method) (does|will|handles|"
+    r"returns)\b|(first|next|then|finally),? we\b|(loop|iterate) (over|through)\b|"
+    r"increment the\b|initiali[sz]e the\b)",
+    re.I,
+)
 LICENSE = re.compile(r"licen[cs]e|copyright|spdx", re.I)
 
 
@@ -63,7 +70,7 @@ def js_comments(text: str) -> list[tuple[int, str, bool]]:
             end = text.find("\n", i)
             end = n if end < 0 else end
             if not code_on_line:
-                out.append((line, text[i + 2:end].strip(), False))
+                out.append((line, text[i + 2 : end].strip(), False))
             i = end - 1
         elif c == "/" and nxt == "*":
             state, block, tags, start_line = "block", [(line, "")], False, line
@@ -83,15 +90,19 @@ def js_comments(text: str) -> list[tuple[int, str, bool]]:
 
 def hash_comments(path: Path, text: str) -> list[tuple[int, str, bool]]:
     if path.suffix != ".py":
-        return [(i, s.lstrip("#").strip(), False) for i, s in enumerate(text.splitlines(), 1)
-                if s.lstrip().startswith("#")]
+        return [
+            (i, s.lstrip("#").strip(), False) for i, s in enumerate(text.splitlines(), 1) if s.lstrip().startswith("#")
+        ]
     try:
         toks = list(tokenize.generate_tokens(io.StringIO(text).readline))
     except (tokenize.TokenError, SyntaxError):
         return []
     lines = text.splitlines()
-    return [(t.start[0], t.string.lstrip("#").strip(), False) for t in toks
-            if t.type == tokenize.COMMENT and not lines[t.start[0] - 1][:t.start[1]].strip()]
+    return [
+        (t.start[0], t.string.lstrip("#").strip(), False)
+        for t in toks
+        if t.type == tokenize.COMMENT and not lines[t.start[0] - 1][: t.start[1]].strip()
+    ]
 
 
 def comment_problems(path: Path, text: str) -> list[str]:
@@ -104,10 +115,15 @@ def comment_problems(path: Path, text: str) -> list[str]:
             continue
         header = run and run[0][0] <= 2 and any(LICENSE.search(t) for _, t, _ in run)
         if len(run) > MAX_RUN and not header and not any(api for *_, api in run):
-            out.append(f"line {run[0][0]}: {len(run)} comment lines; keep 3 or fewer, reasoning goes in docs/decisions/")
+            out.append(
+                f"line {run[0][0]}: {len(run)} comment lines; keep 3 or fewer, reasoning goes in docs/decisions/"
+            )
         run = [item]
-    out += [f"line {ln}: narrates what the code does (`{t[:40]}`); say why, or delete it"
-            for ln, t, _ in found if NARRATION.match(t)]
+    out += [
+        f"line {ln}: narrates what the code does (`{t[:40]}`); say why, or delete it"
+        for ln, t, _ in found
+        if NARRATION.match(t)
+    ]
     return out
 
 
@@ -116,8 +132,12 @@ def measure(path: Path) -> dict[str, list[str]]:
     lines = text.count("\n") + (not text.endswith("\n") and bool(text))
     return {
         "comments": comment_problems(path, text),
-        "lines": [f"{lines} lines; split it below {MAX_LINES}"] if lines > MAX_LINES and not TEST.search(path.as_posix()) else [],
-        "names": [f"`{path.stem}` says nothing about what is inside; name the concept"] if BANNED.search(path.stem) else [],
+        "lines": [f"{lines} lines; split it below {MAX_LINES}"]
+        if lines > MAX_LINES and not TEST.search(path.as_posix())
+        else [],
+        "names": [f"`{path.stem}` says nothing about what is inside; name the concept"]
+        if BANNED.search(path.stem)
+        else [],
     }
 
 
@@ -134,8 +154,11 @@ def rel(path: Path) -> Path:
 
 def tracked(exclude: list[str]) -> list[Path]:
     out = subprocess.run(["git", "ls-files", "-z"], capture_output=True, text=True, check=True, timeout=60).stdout
-    return [Path(p) for p in out.split("\0") if p and Path(p).suffix in JS | HASH and Path(p).is_file()
-            and not any(fnmatch.fnmatch(p, g) for g in exclude)]
+    return [
+        Path(p)
+        for p in out.split("\0")
+        if p and Path(p).suffix in JS | HASH and Path(p).is_file() and not any(fnmatch.fnmatch(p, g) for g in exclude)
+    ]
 
 
 def ours(base: dict) -> bool:
@@ -164,9 +187,13 @@ def main() -> int:
             if value:
                 now[metric][key] = value
             if value > allowed:
-                fails += ([f"{key}: {metric} grew from {allowed} to {value}"] if allowed else []) + [f"{key}: {f}" for f in found]
+                fails += ([f"{key}: {metric} grew from {allowed} to {value}"] if allowed else []) + [
+                    f"{key}: {f}" for f in found
+                ]
             elif value < allowed and not named:
-                fails.append(f"{key}: {metric} fell from {allowed} to {value}; run check-quality.py --update to lock it in")
+                fails.append(
+                    f"{key}: {metric} fell from {allowed} to {value}; run check-quality.py --update to lock it in"
+                )
     if mode == "--update":
         now = {m: {k: v for k, v in now[m].items() if k in base.get(m, {})} for m in now}
     if mode != "check":
@@ -176,8 +203,10 @@ def main() -> int:
     for f in fails:
         print(f"check-quality  FAIL  {f}")
     if not fails:
-        print(f"check-quality  ok  {len(files)} file(s); no comment run over {MAX_RUN} lines, no narration, "
-              f"no new file over {MAX_LINES} lines, no banned name, none past its baseline")
+        print(
+            f"check-quality  ok  {len(files)} file(s); no comment run over {MAX_RUN} lines, no narration, "
+            f"no new file over {MAX_LINES} lines, no banned name, none past its baseline"
+        )
     return int(bool(fails))
 
 

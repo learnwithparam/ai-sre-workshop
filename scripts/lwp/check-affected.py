@@ -11,6 +11,7 @@ Usage:  check-affected.py            print the plan: which checks run, scoped ho
                                      check, `full` or `ignore`, or a gate step is run by no check, `covers` or `fullOnly`
 Why: docs/decisions/scripts.md#check-affectedpy
 """
+
 import importlib.util
 import json
 import os
@@ -37,8 +38,15 @@ STAMP = ".claude/.gate-ran"
 FULL_AT = 60
 # Vendored from lwp-claude-plugins, whose evals test them, and no check's verdict reads them, so a kit sync
 # alone runs nothing. check-prose and check-quality stay mapped: a new rule can fail this repo's own files.
-INERT_KIT = ["scripts/lwp/check-affected.py", "scripts/lwp/gate-stamp.py", "scripts/lwp/push-remote.sh",
-             "scripts/lwp/repo.schema.json", "scripts/lwp/check-repo.py", ".claude/rules/lwp-*.md"]
+INERT_KIT = [
+    "scripts/lwp/check-affected.py",
+    "scripts/lwp/gate-stamp.py",
+    "scripts/lwp/push-remote.sh",
+    "scripts/lwp/repo.schema.json",
+    "scripts/lwp/check-repo.py",
+    ".claude/rules/lwp-*.md",
+]
+
 
 def git(root: Path, *args: str, env: dict | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=str(root), env=env, capture_output=True, text=True, timeout=120)
@@ -138,8 +146,9 @@ def scoped_command(root: Path, check: dict, hit: list[str]) -> str | None:
     return run
 
 
-def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: list[str] | None = None,
-         stage: str = "push") -> dict:
+def plan(
+    root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: list[str] | None = None, stage: str = "push"
+) -> dict:
     impact = cfg.get("impact") or {}
     gate = (cfg.get("stageGates") or {}).get(stage) or cfg.get("gate", "")
     if force_full:
@@ -161,20 +170,36 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
     if not files:
         return {"mode": "scoped", "why": head, "steps": [], "files": files}
     if not impact.get("checks"):
-        return {"mode": "full", "why": f"{head}; repo.json has no impact map", "steps": [("gate", gate)],
-                "files": files}
+        return {
+            "mode": "full",
+            "why": f"{head}; repo.json has no impact map",
+            "steps": [("gate", gate)],
+            "files": files,
+        }
     if hits := [f for f in files if matches(f, impact.get("full", []))]:
-        return {"mode": "full", "why": f"{head}; {hits[0]} is shared by every check (impact.full)",
-                "steps": [("gate", gate)], "files": files}
+        return {
+            "mode": "full",
+            "why": f"{head}; {hits[0]} is shared by every check (impact.full)",
+            "steps": [("gate", gate)],
+            "files": files,
+        }
     limit = impact.get("fullAt", FULL_AT)
     if len(files) >= limit:
-        return {"mode": "full", "why": f"{head}, at or past impact.fullAt {limit}", "steps": [("gate", gate)],
-                "files": files}
+        return {
+            "mode": "full",
+            "why": f"{head}, at or past impact.fullAt {limit}",
+            "steps": [("gate", gate)],
+            "files": files,
+        }
     checks = impact["checks"]
     claimed = lambda f: matches(f, impact.get("ignore", [])) or any(matches(f, c["when"]) for c in checks)
     if stray := [f for f in files if not claimed(f)]:
-        return {"mode": "full", "why": f"{head}; no check claims {stray[0]}, so its reach is unknown",
-                "steps": [("gate", gate)], "files": files}
+        return {
+            "mode": "full",
+            "why": f"{head}; no check claims {stray[0]}, so its reach is unknown",
+            "steps": [("gate", gate)],
+            "files": files,
+        }
     steps, skipped, later = [], [], []
     for c in checks:
         # A check still claims its files at an earlier stage, so its reach stays known; it just waits.
@@ -189,8 +214,12 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
 
 def routed(root: Path) -> bool:
     """lwpr picks this machine or the box; inside its run (LWPR_LOCAL here, LWPR_JOB there) it already has."""
-    return (root / ".lwpr.toml").is_file() and bool(shutil.which("lwpr")) and not os.environ.get("LWPR_JOB") \
+    return (
+        (root / ".lwpr.toml").is_file()
+        and bool(shutil.which("lwpr"))
+        and not os.environ.get("LWPR_JOB")
         and os.environ.get("LWPR_LOCAL") != "1"
+    )
 
 
 def offload(root: Path, cmd: str) -> str:
@@ -201,8 +230,7 @@ def through_lwpr(root: Path, p: dict) -> int:
     """A scoped run goes where lwpr sends it, with the file list, since the box has no git history to diff."""
     before = tree_id(root)
     staged = [] if p["stage"] == "push" else ["--stage", p["stage"]]
-    inner = shlex.join(["python3", "scripts/lwp/check-affected.py",
-                        "--run", *staged, "--files", ",".join(p["files"])])
+    inner = shlex.join(["python3", "scripts/lwp/check-affected.py", "--run", *staged, "--files", ",".join(p["files"])])
     rc = subprocess.run(["lwpr", "run", "--", inner], cwd=str(root)).returncode
     if rc == 0 and before and tree_id(root) == before and stamps(p):
         write_stamp(root, p["mode"])
@@ -297,19 +325,25 @@ def audit(root: Path, cfg: dict) -> int:
     if bad:
         print(f"affected  FAIL  checks need name, when and run (and `scoped` with {{items}} beside `each`): {bad}")
         return 1
-    every = INERT_KIT + impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
+    every = (
+        INERT_KIT + impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
+    )
     tracked = git(root, "ls-files").stdout.split("\n")
     stray = [f for f in tracked if f and not matches(f, every)]
     if stray:
-        print(f"affected  FAIL  {len(stray)} tracked file(s) no check, `full` or `ignore` claims, so a change to "
-              f"them runs the whole gate. Map them in repo.json impact:")
+        print(
+            f"affected  FAIL  {len(stray)} tracked file(s) no check, `full` or `ignore` claims, so a change to "
+            f"them runs the whole gate. Map them in repo.json impact:"
+        )
         print("\n".join(f"  {f}" for f in stray[:30]))
         return 1
     missing, stale = uncovered_steps(root, cfg)
     if missing or stale:
         if missing:
-            print(f"affected  FAIL  gate step(s) no check runs, so a scoped run skips them: {missing}. Run each in a "
-                  "check, name it in that check's `covers`, or list it in impact.fullOnly")
+            print(
+                f"affected  FAIL  gate step(s) no check runs, so a scoped run skips them: {missing}. Run each in a "
+                "check, name it in that check's `covers`, or list it in impact.fullOnly"
+            )
         if stale:
             print(f"affected  FAIL  impact.fullOnly names {stale}, which the gate no longer runs")
         return 1
@@ -337,7 +371,9 @@ def main() -> int:
     if stage not in STAGES:
         print(f"affected: --stage {stage} is not one of {STAGES}")
         return 2
-    p = plan(root, cfg, base, "--full" in args, [f for f in given.split(",") if f] if given is not None else None, stage)
+    p = plan(
+        root, cfg, base, "--full" in args, [f for f in given.split(",") if f] if given is not None else None, stage
+    )
     p["stage"] = stage
     print(f"affected: {p['mode']}{'' if stage == 'push' else f' ({stage})'}: {p['why']}")
     for name, cmd in p["steps"]:

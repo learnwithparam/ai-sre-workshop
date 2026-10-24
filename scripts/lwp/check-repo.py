@@ -5,6 +5,7 @@ the steps a gate command runs.
 Usage:  check-repo.py [REPO_JSON]   defaults to the repo's repo.json; exits 1 on a schema miss
 Why: docs/decisions/scripts.md#check-affectedpy
 """
+
 import json
 import re
 import sys
@@ -79,7 +80,7 @@ def make_rule(root: Path, target: str) -> tuple[list[str], list[str]]:
         if not head:
             continue
         recipe = []
-        for r in lines[i + 1:]:
+        for r in lines[i + 1 :]:
             if not r.startswith("\t"):
                 if r.strip():
                     break
