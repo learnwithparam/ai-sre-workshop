@@ -14,6 +14,8 @@ DASHES = {"—": "em dash", "–": "en dash"}
 # banned 20 phrases and this file checked 6, so fourteen of them were enforced by nothing
 # and no one could see it. house_rules.py parses both lists out of house-rules.md itself,
 # so the doc is the only place either is written down and adding a word arms it.
+# A __pycache__ beside the vendored copy was committed in two repos and changed on every run.
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from house_rules import (  # noqa: E402
     RULES_DOC, SLOP_WORDS, SLOP_PHRASES, SLOP_CONTEXT_OK, phrase_re,

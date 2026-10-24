@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Run only the checks a change reaches, from the `impact` map in .claude/repo.json; escalate to the full gate.
+"""Run only the checks a change reaches, from the `impact` map in repo.json; escalate to the full gate.
 
 Usage:  check-affected.py            print the plan: which checks run, scoped how, and why
         check-affected.py --run      run the plan; on a pass, stamp the tree so the Stop hook accepts it
         check-affected.py --full     run the repo's whole `gate`
         check-affected.py --base REF diff against REF instead of the last verified tree
         check-affected.py --files a,b  plan for these files, no diff (how a run reaches the box, which has no history)
-        check-affected.py --audit    fail when a tracked file is claimed by no check, `full` or `ignore`
-                                     or a gate step is run by no check, `covers` or `fullOnly`
+        check-affected.py --stage S  only checks whose `stage` is S or earlier (stop, push, nightly); default push
+        check-affected.py --audit    fail when repo.json breaks repo.schema.json, a tracked file is claimed by no
+                                     check, `full` or `ignore`, or a gate step is run by no check, `covers` or `fullOnly`
 Why: docs/decisions/scripts.md#check-affectedpy
 """
+import importlib.util
 import json
 import os
 import re
@@ -22,13 +24,21 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+# A __pycache__ beside a vendored script is an untracked file, which every run would read as a change.
+sys.dont_write_bytecode = True
+_spec = importlib.util.spec_from_file_location("check_repo", Path(__file__).resolve().with_name("check-repo.py"))
+_repo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_repo)
+SCHEMA_PATH, STAGES, load_schema = _repo.SCHEMA_PATH, _repo.STAGES, _repo.load_schema
+schema_errors, uncovered_steps, repo_json = _repo.schema_errors, _repo.uncovered_steps, _repo.repo_json
+context_errors = _repo.context_errors
+
 STAMP = ".claude/.gate-ran"
 FULL_AT = 60
 # Vendored from lwp-claude-plugins, whose evals test them, and no check's verdict reads them, so a kit sync
 # alone runs nothing. check-prose and check-quality stay mapped: a new rule can fail this repo's own files.
 INERT_KIT = ["scripts/lwp/check-affected.py", "scripts/lwp/gate-stamp.py", "scripts/lwp/push-remote.sh",
-             ".claude/rules/lwp-*.md"]
-
+             "scripts/lwp/repo.schema.json", "scripts/lwp/check-repo.py", ".claude/rules/lwp-*.md"]
 
 def git(root: Path, *args: str, env: dict | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=str(root), env=env, capture_output=True, text=True, timeout=120)
@@ -128,9 +138,10 @@ def scoped_command(root: Path, check: dict, hit: list[str]) -> str | None:
     return run
 
 
-def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: list[str] | None = None) -> dict:
+def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: list[str] | None = None,
+         stage: str = "push") -> dict:
     impact = cfg.get("impact") or {}
-    gate = cfg.get("gate", "")
+    gate = (cfg.get("stageGates") or {}).get(stage) or cfg.get("gate", "")
     if force_full:
         return {"mode": "full", "why": "--full", "steps": [("gate", gate)]}
     if given is not None:
@@ -164,12 +175,16 @@ def plan(root: Path, cfg: dict, base_arg: str | None, force_full: bool, given: l
     if stray := [f for f in files if not claimed(f)]:
         return {"mode": "full", "why": f"{head}; no check claims {stray[0]}, so its reach is unknown",
                 "steps": [("gate", gate)], "files": files}
-    steps, skipped = [], []
+    steps, skipped, later = [], [], []
     for c in checks:
+        # A check still claims its files at an earlier stage, so its reach stays known; it just waits.
+        if STAGES.index(c.get("stage", "stop")) > STAGES.index(stage):
+            later.append(c["name"])
+            continue
         hit = [f for f in files if matches(f, c["when"])]
         cmd = scoped_command(root, c, hit) if hit else None
         (steps.append((c["name"], cmd)) if cmd else skipped.append(c["name"]))
-    return {"mode": "scoped", "why": head, "steps": steps, "skipped": skipped, "files": files}
+    return {"mode": "scoped", "why": head, "steps": steps, "skipped": skipped, "later": later, "files": files}
 
 
 def routed(root: Path) -> bool:
@@ -185,10 +200,11 @@ def offload(root: Path, cmd: str) -> str:
 def through_lwpr(root: Path, p: dict) -> int:
     """A scoped run goes where lwpr sends it, with the file list, since the box has no git history to diff."""
     before = tree_id(root)
+    staged = [] if p["stage"] == "push" else ["--stage", p["stage"]]
     inner = shlex.join(["python3", "scripts/lwp/check-affected.py",
-                        "--run", "--files", ",".join(p["files"])])
+                        "--run", *staged, "--files", ",".join(p["files"])])
     rc = subprocess.run(["lwpr", "run", "--", inner], cwd=str(root)).returncode
-    if rc == 0 and before and tree_id(root) == before:
+    if rc == 0 and before and tree_id(root) == before and stamps(p):
         write_stamp(root, p["mode"])
     return rc
 
@@ -211,6 +227,12 @@ def run_step(root: Path, name: str, cmd: str, logs: Path) -> tuple[str, int, flo
     with open(log, "w") as fh:
         rc = subprocess.run(cmd, shell=True, cwd=str(root), stdout=fh, stderr=subprocess.STDOUT).returncode
     return name, rc, time.time() - t0, log
+
+
+def stamps(p: dict) -> bool:
+    """The stamp is the next run's base, so a stop-stage pass must not leave one: push checks would then
+    diff against a tree they never saw and skip."""
+    return STAGES.index(p["stage"]) >= STAGES.index("push")
 
 
 def execute(root: Path, cfg: dict, p: dict) -> int:
@@ -246,76 +268,26 @@ def execute(root: Path, cfg: dict, p: dict) -> int:
     if failed:
         print(f"affected: {len(failed)} of {len(steps)} failed: {', '.join(failed)}")
         return 1
+    if not stamps(p):
+        print(f"affected: {len(steps)} check(s) passed ({p['mode']}, {p['stage']}); no stamp below the push stage")
+        return 0
     tid = write_stamp(root, p["mode"])
     print(f"affected: {len(steps)} check(s) passed ({p['mode']}); stamp {(tid or 'unavailable')[:12]}")
     return 0
 
 
-NPM_STEP = re.compile(r"^npm (?:run )?(?:(?:-s|--silent) )*([\w:.-]+)(?: .*)?$")
-MAKE_STEP = re.compile(r"^(?:make|\$\(MAKE\)) (?:-\S+ )*([\w.-]+)$")
-BOOKKEEPING = re.compile(r"check-affected\.py --audit|gate-stamp|^echo |^true$|^:$")
-
-
-def make_rule(root: Path, target: str) -> tuple[list[str], list[str]]:
-    """A Makefile target's prerequisites and recipe lines (`@`/`-` and continuations folded)."""
-    try:
-        lines = (root / "Makefile").read_text().replace("\\\n", " ").splitlines()
-    except OSError:
-        return [], []
-    for i, line in enumerate(lines):
-        head = re.match(rf"^{re.escape(target)}\s*:(?!=)(.*)$", line)
-        if not head:
-            continue
-        recipe = []
-        for r in lines[i + 1:]:
-            if not r.startswith("\t"):
-                if r.strip():
-                    break
-                continue
-            s = r.strip().lstrip("@-").strip()
-            if s and not s.startswith("#"):
-                recipe.append(s)
-        return head.group(1).split("#")[0].split(), recipe
-    return [], []
-
-
-def gate_steps(root: Path, cmd: str, depth: int = 0) -> list[str]:
-    """The steps a gate command runs, one level into npm scripts and make targets, bookkeeping dropped."""
-    if BOOKKEEPING.search(cmd) or depth > 3:
-        return []
-    npm, mk = NPM_STEP.match(cmd), MAKE_STEP.match(cmd)
-    if npm and depth == 0:
-        try:
-            body = json.loads((root / "package.json").read_text()).get("scripts", {}).get(npm.group(1), "")
-        except (OSError, ValueError):
-            body = ""
-        return [s for part in body.split("&&") for s in gate_steps(root, part.strip(), depth + 1)] or [cmd]
-    if npm:
-        return [npm.group(1)]
-    if mk and depth == 0:
-        pre, recipe = make_rule(root, mk.group(1))
-        steps = [p for p in pre if any(not BOOKKEEPING.search(r) for r in make_rule(root, p)[1])]
-        work = [r for r in recipe if not BOOKKEEPING.search(r)]
-        if not steps and len(work) == 1 and NPM_STEP.match(work[0]):
-            return gate_steps(root, work[0])
-        return steps + [s for r in recipe for s in gate_steps(root, r, depth + 1)]
-    if mk:
-        return [mk.group(1)]
-    return [cmd]
-
-
-def uncovered_steps(root: Path, cfg: dict) -> tuple[list[str], list[str]]:
-    """Gate steps no check runs, `covers` or `fullOnly` names; and `fullOnly` entries the gate no longer runs."""
-    impact = cfg["impact"]
-    steps = gate_steps(root, cfg.get("gate", "make check"))
-    said = " ".join(f"{c['run']} {c.get('scoped', '')}" for c in impact["checks"])
-    named = {n for c in impact["checks"] for n in c.get("covers", [])} | set(impact.get("fullOnly", []))
-    token = lambda s: re.search(rf"(?<![\w:.-]){re.escape(s)}(?![\w:.-])", said)
-    missing = [s for s in steps if s not in named and not token(s)]
-    return missing, [s for s in impact.get("fullOnly", []) if s not in steps]
-
-
 def audit(root: Path, cfg: dict) -> int:
+    schema = load_schema()
+    if schema is None:
+        print(f"affected  FAIL  no readable {SCHEMA_PATH.name} beside this script; re-sync the kit")
+        return 1
+    if errs := schema_errors(cfg, schema, schema):
+        print(f"affected  FAIL  repo.json breaks {SCHEMA_PATH.name}:")
+        print("\n".join(f"  {e}" for e in errs[:30]))
+        return 1
+    if errs := context_errors(root):
+        print("affected  FAIL  " + "; ".join(errs))
+        return 1
     impact = cfg.get("impact") or {}
     if not impact.get("checks"):
         print("affected  ok  no impact map: every change runs the full gate")
@@ -330,7 +302,7 @@ def audit(root: Path, cfg: dict) -> int:
     stray = [f for f in tracked if f and not matches(f, every)]
     if stray:
         print(f"affected  FAIL  {len(stray)} tracked file(s) no check, `full` or `ignore` claims, so a change to "
-              f"them runs the whole gate. Map them in .claude/repo.json impact:")
+              f"them runs the whole gate. Map them in repo.json impact:")
         print("\n".join(f"  {f}" for f in stray[:30]))
         return 1
     missing, stale = uncovered_steps(root, cfg)
@@ -353,20 +325,27 @@ def main() -> int:
         return 2
     root = Path(top)
     try:
-        cfg = json.loads((root / ".claude/repo.json").read_text())
-    except (OSError, ValueError):
-        print("affected: no readable .claude/repo.json")
+        cfg = json.loads(repo_json(root).read_text())
+    except (AttributeError, OSError, ValueError):
+        print("affected: no readable .agents/repo.json or .claude/repo.json")
         return 2
     if "--audit" in args:
         return audit(root, cfg)
     base = args[args.index("--base") + 1] if "--base" in args and args.index("--base") + 1 < len(args) else None
     given = args[args.index("--files") + 1] if "--files" in args and args.index("--files") + 1 < len(args) else None
-    p = plan(root, cfg, base, "--full" in args, [f for f in given.split(",") if f] if given is not None else None)
-    print(f"affected: {p['mode']}: {p['why']}")
+    stage = args[args.index("--stage") + 1] if "--stage" in args and args.index("--stage") + 1 < len(args) else "push"
+    if stage not in STAGES:
+        print(f"affected: --stage {stage} is not one of {STAGES}")
+        return 2
+    p = plan(root, cfg, base, "--full" in args, [f for f in given.split(",") if f] if given is not None else None, stage)
+    p["stage"] = stage
+    print(f"affected: {p['mode']}{'' if stage == 'push' else f' ({stage})'}: {p['why']}")
     for name, cmd in p["steps"]:
         print(f"  run   {name}: {cmd}")
     if p.get("skipped"):
         print(f"  skip  {', '.join(p['skipped'])} (no changed file reaches them)")
+    if p.get("later"):
+        print(f"  wait  {', '.join(p['later'])} (a later stage owns them)")
     if "--run" not in args and "--full" not in args:
         return 0
     return execute(root, cfg, p)

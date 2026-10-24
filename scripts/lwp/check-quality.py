@@ -7,6 +7,7 @@ Usage: check-quality.py [FILE...]   check the named files, or every tracked sour
 Why: docs/decisions/scripts.md#check-qualitypy
 """
 import fnmatch
+import importlib.util
 import io
 import json
 import re
@@ -19,6 +20,10 @@ JS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"}
 HASH = {".py", ".sh", ".bash"}
 MAX_RUN, MAX_LINES = 3, 400
 BASELINE = Path("quality-baseline.json")
+sys.dont_write_bytecode = True
+_spec = importlib.util.spec_from_file_location("check_repo", Path(__file__).resolve().with_name("check-repo.py"))
+_repo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_repo)
 METRICS = {"comments", "lines", "names"}
 DEFAULT_EXCLUDE = ["*.d.ts", "*.min.js", "*generated*", "scripts/lwp/*", "*/vendor/*", "*/migrations/*"]
 TEST = re.compile(r"(\.test\.|\.spec\.|(^|/)(tests?|e2e|__tests__)/|(^|/)test_[^/]*\.py$)")
@@ -141,7 +146,8 @@ def ours(base: dict) -> bool:
 def main() -> int:
     args = sys.argv[1:]
     mode = args[0] if args[:1] in (["--update"], ["--init"]) else "check"
-    cfg = json.loads(Path(".claude/repo.json").read_text()).get("quality", {}) if Path(".claude/repo.json").is_file() else {}
+    conf = _repo.repo_json(Path.cwd())
+    cfg = json.loads(conf.read_text()).get("quality", {}) if conf else {}
     exclude = DEFAULT_EXCLUDE + cfg.get("exclude", [])
     named = [Path(a) for a in args if not a.startswith("--")]
     files = [rel(p) for p in named if p.suffix in JS | HASH and p.is_file()] if named else tracked(exclude)
