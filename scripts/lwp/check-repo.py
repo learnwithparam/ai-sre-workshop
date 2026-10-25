@@ -33,6 +33,23 @@ STAGES = ((load_schema() or {}).get("$defs", {}).get("stage", {}).get("enum")) o
 TYPES = {"object": dict, "array": list, "string": str, "integer": int, "boolean": bool}
 
 
+def glob_re(pattern: str) -> re.Pattern:
+    """`**/` spans folders, `*` stays inside one; matched against the whole repo-relative path."""
+    out, i = "", 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out, i = out + "(?:.*/)?", i + 3
+        elif pattern.startswith("**", i):
+            out, i = out + ".*", i + 2
+        elif pattern[i] == "*":
+            out, i = out + "[^/]*", i + 1
+        elif pattern[i] == "?":
+            out, i = out + "[^/]", i + 1
+        else:
+            out, i = out + re.escape(pattern[i]), i + 1
+    return re.compile(out + "$")
+
+
 def schema_errors(value, schema: dict, root: dict, at: str = "repo.json") -> list[str]:
     """The subset of JSON Schema repo.schema.json uses: $ref, type, enum, pattern, required, properties,
     additionalProperties, propertyNames, items. Enough to catch a misspelt key or an unknown stage."""
@@ -139,6 +156,41 @@ def context_errors(root: Path) -> list[str]:
     return errs
 
 
+# The runs-on prefix each ci.runner means; GitHub-hosted minutes are free only for public repos.
+RUNNERS = {"github": "ubuntu-", "ubicloud": "ubicloud-"}
+
+
+def ci_errors(root: Path, cfg: dict) -> list[str]:
+    """Branch protection requires the `push` job, so exactly one workflow has it, on ci.runner's machine, capped;
+    each schedule cron in repo.json is a cron some workflow runs on, so the two cannot drift."""
+    flows = {f.name: f.read_text() for f in sorted((root / ".github/workflows").glob("*.y*ml"))}
+    crons = {m for t in flows.values() for m in re.findall(r"(?m)^\s*-\s*cron:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", t)}
+    errs = [
+        f"schedule.{stage} is {cron!r}, but no workflow runs on that cron; repo.json and the workflow must agree"
+        for stage, cron in sorted((cfg.get("schedule") or {}).items())
+        if cron not in crons
+    ]
+    runner = (cfg.get("ci") or {}).get("runner")
+    if not runner:
+        return errs
+    jobs = []
+    for f in sorted((root / ".github/workflows").glob("*.y*ml")):
+        _, _, body = f.read_text().partition("\njobs:\n")
+        if m := re.search(r"(?m)^  push:\n((?:    .*\n|[ \t]*\n)*)", body):
+            jobs.append((f.name, m.group(1)))
+    if len(jobs) != 1:
+        return errs + [
+            f"ci.runner is {runner}, but {len(jobs)} workflows have a `push` job; branch protection needs one"
+        ]
+    name, job = jobs[0]
+    on = re.search(r"(?m)^    runs-on:\s*(\S+)", job)
+    if not (on and on.group(1).startswith(RUNNERS[runner])):
+        errs.append(f"{name}: the push job runs on {on.group(1) if on else 'nothing'}, not the {runner} runner")
+    if not re.search(r"(?m)^    timeout-minutes:\s*\d+\s*$", job):
+        errs.append(f"{name}: the push job has no timeout-minutes, so a hung run bills until GitHub kills it")
+    return errs
+
+
 def main() -> int:
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else repo_json(Path.cwd()) or Path(CONFIG_PATHS[0])
     schema = load_schema()
@@ -153,6 +205,9 @@ def main() -> int:
     if errs := schema_errors(cfg, schema, schema):
         print(f"check-repo  FAIL  {path} breaks {SCHEMA_PATH.name}:")
         print("\n".join(f"  {e}" for e in errs[:30]))
+        return 1
+    if errs := ci_errors(path.resolve().parent.parent, cfg):
+        print("check-repo  FAIL  " + "; ".join(errs))
         return 1
     print(f"check-repo  ok  {path} fits {SCHEMA_PATH.name}")
     return 0

@@ -32,6 +32,17 @@
       "required": ["runner"],
       "additionalProperties": false
     },
+    "acceptance": {
+      "description": "check-acceptance.py: specs carry AC-n lines; each has a holdout at holdout/<spec stem>/AC-n.*, written before the build.",
+      "type": "object",
+      "properties": {
+        "specs": { "$ref": "#/$defs/globs" },
+        "holdout": { "type": "string" },
+        "run": { "description": "Runs holdout files, {files} replaced by their paths.", "type": "string" }
+      },
+      "required": ["specs", "run"],
+      "additionalProperties": false
+    },
     "impact": {
       "type": "object",
       "properties": {

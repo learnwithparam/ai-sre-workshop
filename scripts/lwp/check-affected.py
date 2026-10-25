@@ -32,7 +32,7 @@ _repo = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_repo)
 SCHEMA_PATH, STAGES, load_schema = _repo.SCHEMA_PATH, _repo.STAGES, _repo.load_schema
 schema_errors, uncovered_steps, repo_json = _repo.schema_errors, _repo.uncovered_steps, _repo.repo_json
-context_errors = _repo.context_errors
+context_errors, ci_errors, glob_re = _repo.context_errors, _repo.ci_errors, _repo.glob_re
 
 STAMP = ".claude/.gate-ran"
 FULL_AT = 60
@@ -66,23 +66,6 @@ def tree_id(root: Path) -> str | None:
             return None
         out = git(root, "write-tree", env=env)
         return out.stdout.strip() or None if out.returncode == 0 else None
-
-
-def glob_re(pattern: str) -> re.Pattern:
-    """`**/` spans folders, `*` stays inside one; matched against the whole repo-relative path."""
-    out, i = "", 0
-    while i < len(pattern):
-        if pattern.startswith("**/", i):
-            out, i = out + "(?:.*/)?", i + 3
-        elif pattern.startswith("**", i):
-            out, i = out + ".*", i + 2
-        elif pattern[i] == "*":
-            out, i = out + "[^/]*", i + 1
-        elif pattern[i] == "?":
-            out, i = out + "[^/]", i + 1
-        else:
-            out, i = out + re.escape(pattern[i]), i + 1
-    return re.compile(out + "$")
 
 
 def matches(path: str, patterns: list[str]) -> bool:
@@ -313,7 +296,7 @@ def audit(root: Path, cfg: dict) -> int:
         print(f"affected  FAIL  repo.json breaks {SCHEMA_PATH.name}:")
         print("\n".join(f"  {e}" for e in errs[:30]))
         return 1
-    if errs := context_errors(root):
+    if errs := context_errors(root) + ci_errors(root, cfg):
         print("affected  FAIL  " + "; ".join(errs))
         return 1
     impact = cfg.get("impact") or {}
@@ -324,6 +307,10 @@ def audit(root: Path, cfg: dict) -> int:
     bad += [c["name"] for c in impact["checks"] if c.get("each") and "{items}" not in c.get("scoped", "")]
     if bad:
         print(f"affected  FAIL  checks need name, when and run (and `scoped` with {{items}} beside `each`): {bad}")
+        return 1
+    runs = [c["run"] for c in impact["checks"]]
+    if twice := sorted({r for r in runs if runs.count(r) > 1}):
+        print(f"affected  FAIL  more than one check runs {twice}, so a change both reach runs it twice; merge them")
         return 1
     every = (
         INERT_KIT + impact.get("full", []) + impact.get("ignore", []) + [g for c in impact["checks"] for g in c["when"]]
