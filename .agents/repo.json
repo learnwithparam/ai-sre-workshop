@@ -1,0 +1,5 @@
+{
+  "name": "ai-sre-workshop",
+  "gate": "make check",
+  "test": "make check"
+}

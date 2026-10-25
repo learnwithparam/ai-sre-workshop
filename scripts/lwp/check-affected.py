@@ -32,7 +32,12 @@ _repo = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_repo)
 SCHEMA_PATH, STAGES, load_schema = _repo.SCHEMA_PATH, _repo.STAGES, _repo.load_schema
 schema_errors, uncovered_steps, repo_json = _repo.schema_errors, _repo.uncovered_steps, _repo.repo_json
-context_errors, ci_errors, glob_re = _repo.context_errors, _repo.ci_errors, _repo.glob_re
+context_errors, ci_errors, hook_errors, glob_re = (
+    _repo.context_errors,
+    _repo.ci_errors,
+    _repo.hook_errors,
+    _repo.glob_re,
+)
 
 STAMP = ".claude/.gate-ran"
 FULL_AT = 60
@@ -42,6 +47,8 @@ INERT_KIT = [
     "scripts/lwp/check-affected.py",
     "scripts/lwp/gate-stamp.py",
     "scripts/lwp/push-remote.sh",
+    "scripts/lwp/pre-push.sh",
+    ".githooks/pre-push",
     "scripts/lwp/repo.schema.json",
     "scripts/lwp/check-repo.py",
     ".claude/rules/lwp-*.md",
@@ -296,7 +303,7 @@ def audit(root: Path, cfg: dict) -> int:
         print(f"affected  FAIL  repo.json breaks {SCHEMA_PATH.name}:")
         print("\n".join(f"  {e}" for e in errs[:30]))
         return 1
-    if errs := context_errors(root) + ci_errors(root, cfg):
+    if errs := context_errors(root) + ci_errors(root, cfg) + hook_errors(root):
         print("affected  FAIL  " + "; ".join(errs))
         return 1
     impact = cfg.get("impact") or {}

@@ -3,11 +3,14 @@
 the steps a gate command runs.
 
 Usage:  check-repo.py [REPO_JSON]   defaults to the repo's repo.json; exits 1 on a schema miss
+        check-repo.py --key KEY      print one top-level key of the repo's repo.json (empty when unset)
 Why: docs/decisions/scripts.md#check-affectedpy
 """
 
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -149,10 +152,35 @@ def context_errors(root: Path) -> list[str]:
     """AGENTS.md is the one brief every agent reads; CLAUDE.md only imports it, so the two cannot drift."""
     errs = [] if (root / "AGENTS.md").is_file() else ["no AGENTS.md at the root; every agent but one starts blind"]
     claude = root / "CLAUDE.md"
-    if claude.is_file() and "@AGENTS.md" not in claude.read_text().split():
+    # A CLAUDE.md symlinked to AGENTS.md is the same brief (ops did this, 25 Oct 2026).
+    same = claude.is_symlink() and claude.resolve() == (root / "AGENTS.md").resolve()
+    if claude.is_file() and not same and "@AGENTS.md" not in claude.read_text().split():
         errs.append("CLAUDE.md does not import @AGENTS.md, so it is a second brief")
     if all((root / c).is_file() for c in CONFIG_PATHS):
         errs.append(f"both {' and '.join(CONFIG_PATHS)} exist; keep {CONFIG_PATHS[0]}")
+    return errs
+
+
+# sync-vendored.py writes this as every repo's .githooks/pre-push, so the push gate lives in the kit alone.
+HOOK_STUB = '#!/bin/sh\n# Written by lwp-claude-plugins scripts/sync-vendored.py; the gate is scripts/lwp/pre-push.sh.\nexec scripts/lwp/pre-push.sh "$@"\n'
+
+
+def hook_errors(root: Path) -> list[str]:
+    """A hand-written hook drifted in five repos before the kit owned it (25 Oct 2026); CI clones never set
+    core.hooksPath, so that half is only asked of a checkout someone pushes from."""
+    hook = root / ".githooks/pre-push"
+    errs = (
+        []
+        if hook.is_file() and hook.read_text() == HOOK_STUB
+        else [
+            ".githooks/pre-push is not the kit's stub; run lwp-claude-plugins scripts/sync-vendored.py on this repo "
+            "and move any extra push step into repo.json prePush"
+        ]
+    )
+    if not os.environ.get("CI"):
+        path = subprocess.run(["git", "config", "core.hooksPath"], cwd=root, capture_output=True, text=True)
+        if path.stdout.strip() != ".githooks":
+            errs.append("core.hooksPath is not .githooks, so git never runs the push gate; run sync-vendored.py")
     return errs
 
 
@@ -192,6 +220,10 @@ def ci_errors(root: Path, cfg: dict) -> list[str]:
 
 
 def main() -> int:
+    if sys.argv[1:2] == ["--key"] and len(sys.argv) == 3:
+        conf = repo_json(Path.cwd())
+        print(json.loads(conf.read_text()).get(sys.argv[2], "") if conf else "")
+        return 0
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else repo_json(Path.cwd()) or Path(CONFIG_PATHS[0])
     schema = load_schema()
     if schema is None:

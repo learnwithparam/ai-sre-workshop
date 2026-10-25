@@ -7,6 +7,10 @@
   "properties": {
     "name": { "type": "string" },
     "gate": { "type": "string" },
+    "prePush": {
+      "description": "A command scripts/lwp/pre-push.sh runs on this machine after the gate passes or is queued on the box, for a push step that needs what the box lacks (secrets, a docker engine).",
+      "type": "string"
+    },
     "stageGates": {
       "description": "The whole-gate command per stage, used when a staged run escalates to full. A stage not named here falls back to gate.",
       "type": "object",
