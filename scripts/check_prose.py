@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DASHES = {"—": "em dash", "–": "en dash"}
 RULES_FILE = ROOT / "scripts/prose-rules.json"
-HOUSE_RULES = Path(__file__).resolve().parent / "lwp/house_rules.py"
+HOUSE_RULES = Path(__file__).resolve().parent / "kaas/house_rules.py"
 RULES = json.loads(RULES_FILE.read_text())
 WORDS = RULES["words"]
 PHRASES = RULES["phrases"]
@@ -31,10 +31,10 @@ PHRASES = RULES["phrases"]
 def rules_stale() -> str | None:
     """The lists are a committed copy of the house rules. Where the rules live, prove the copy matches.
 
-    The house rules are vendored in scripts/lwp/, so this runs in CI too.
+    The house rules are vendored in scripts/kaas/, so this runs in CI too.
     """
     if not HOUSE_RULES.exists():
-        print("prose rules: not compared with the house rules, scripts/lwp/ is missing")
+        print("prose rules: not compared with the house rules, scripts/kaas/ is missing")
         return None
     current = subprocess.run(
         [sys.executable, str(HOUSE_RULES), "--vendor"], capture_output=True, text=True, check=True
@@ -56,7 +56,7 @@ def violations(text: str) -> list[str]:
 
 
 # The house rules list the banned words, so scanning their vendored copy always fails.
-VENDORED = "scripts/lwp/"
+VENDORED = "scripts/kaas/"
 
 
 def tracked() -> list[str]:

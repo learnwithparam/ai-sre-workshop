@@ -63,7 +63,7 @@ NOT_STAMPED: tuple[tuple[str, str], ...] = (
     ("scripts/tree_hash.py", "this file: stamping the stamper invalidates every stamp on every edit"),
     ("scripts/check_prose.py", "a `make check` step"),
     ("scripts/prose-rules.json", "the word lists that step reads"),
-    ("scripts/lwp/", "the vendored house rules those word lists come from"),
+    ("scripts/kaas/", "the vendored house rules those word lists come from"),
     ("quality-baseline.json", "the ratchet check-quality reads, a `make check` step"),
     ("scripts/check_links.py", "a scheduled CI job"),
     ("scripts/contents.py", "generates the contents of a teaching page"),
