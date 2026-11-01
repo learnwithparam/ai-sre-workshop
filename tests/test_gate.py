@@ -119,3 +119,19 @@ def test_the_makefile_is_stamped_by_recipe_and_the_recipes_exist():
         assert f"{target}:" in slice_, f"the {target} recipe is missing from the stamped slice"
     assert "npx playwright test" in slice_, "the slice does not contain the command that runs the specs"
     assert "book:" not in slice_, "a target that cannot touch the stack is inside the stamp"
+
+
+def test_ruff_edit_keeps_stamp():
+    from tree_hash import pyproject_slice
+
+    base = '[project]\nname = "x"\ndependencies = ["a"]\n[tool.ruff]\nline-length = 100\n'
+    assert pyproject_slice(base) == pyproject_slice(base.replace("100", "120"))
+
+
+def test_dependency_edit_breaks_stamp():
+    from tree_hash import pyproject_slice
+
+    base = '[project]\nname = "x"\ndependencies = ["a"]\n[tool.ruff]\nline-length = 100\n'
+    assert pyproject_slice(base) != pyproject_slice(base.replace('"a"', '"a", "b"'))
+    uv = base + "[tool.uv]\nexclude-newer = '2026-01-01'\n"
+    assert pyproject_slice(uv) != pyproject_slice(uv.replace("2026-01-01", "2026-02-01"))

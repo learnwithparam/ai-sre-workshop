@@ -19,9 +19,11 @@ results come from a suite that reads the whole repository.
 """
 
 import hashlib
+import json
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,7 +45,7 @@ STAMPED: tuple[tuple[str, str], ...] = (
     ("scripts/chaos.py", "run by the e2e target to inject and reset the failure"),
     ("scripts/bootstrap_users.py", "run by `make up` to create the logins the specs sign in with"),
     ("scripts/generate_env.py", "run by `make env` to produce the secrets the stack boots with"),
-    ("pyproject.toml", "the dependencies those scripts run under"),
+    ("pyproject.toml", "the dependencies those scripts run under, hashed through pyproject_slice"),
     ("uv.lock", "the exact versions of them"),
     (".python-version", "the interpreter they run under"),
 )
@@ -143,11 +145,24 @@ def makefile_slice() -> str:
     return "".join(blocks)
 
 
+def pyproject_slice(text: str) -> str:
+    """Only the tables that decide what installs; a ruff or pytest setting cannot change a run."""
+    data = tomllib.loads(text)
+    keep = {"project": data.get("project", {}), "tool.uv": data.get("tool", {}).get("uv", {})}
+    return json.dumps(keep, sort_keys=True)
+
+
+def file_bytes(name: str, include_prose: bool) -> bytes:
+    if name == "pyproject.toml" and not include_prose:
+        return pyproject_slice((ROOT / name).read_text()).encode()
+    return (ROOT / name).read_bytes()
+
+
 def tree_hash(include_prose: bool) -> str:
     digest = hashlib.sha256()
     for name in tracked(include_prose):
         digest.update(name.encode())
-        digest.update((ROOT / name).read_bytes())
+        digest.update(file_bytes(name, include_prose))
     # Included whole for the check stamp, by recipe for the e2e stamp.
     digest.update(b"Makefile")
     digest.update((ROOT / "Makefile").read_bytes() if include_prose else makefile_slice().encode())
