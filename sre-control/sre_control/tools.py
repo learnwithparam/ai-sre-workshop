@@ -120,6 +120,11 @@ def build_mcp(*, telemetry, remediations: Remediations, token: str | None, publi
         return {"logs": rows("search_logs", 25, service=service, text=text, minutes=minutes)}
 
     @tool
+    def slo_burn(service: str, slo: float = 0.995) -> dict:
+        """Error budget burn rate over the last hour and the last six hours for one service."""
+        return {"service": service, "slo": slo, "burn": rows("slo_burn", 1, service=service, slo=slo)}
+
+    @tool
     def list_incidents(state: str = "open") -> dict:
         """List incidents opened by the detector. state is open, resolved or all."""
         found = [i for i in store.incidents() if state == "all" or i.state == state][:20]

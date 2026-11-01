@@ -77,6 +77,7 @@ async def call_tools(incident_id: str, action_id: str) -> list[dict]:
             ("list_sources", {}),
             ("service_timeseries", {"service": "subscription-backend"}),
             ("analyze_service_anomalies", {}),
+            ("slo_burn", {"service": "subscription-backend"}),
             ("get_event_deltas", {"service": "subscription-backend"}),
             ("event_patterns", {"service": "docs-loader"}),
             ("get_trace_waterfall", {"trace_id": trace_id}),

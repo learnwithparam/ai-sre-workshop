@@ -85,7 +85,9 @@ def test_an_incident_that_heals_on_its_own_closes_itself(store, remediations):
 def test_self_recovery_expires_pending_proposal(store, remediations, rollback, incident):
     signals = Signals()
     signals.current = 0.01
-    d = Detector(signals=signals, store=store, clock=lambda: NOW + timedelta(minutes=3), remediations=remediations)
+    d = Detector(
+        signals=signals, store=store, clock=lambda: NOW + timedelta(minutes=3), remediations=remediations
+    )
     d.tick()
     assert store.incident(incident.id).state == "resolved"
     assert remediations.status(rollback.action_id).state == "expired"

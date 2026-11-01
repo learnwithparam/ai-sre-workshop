@@ -78,5 +78,8 @@ score: ## Score the build 0 to 100 from the latest check and e2e results
 chaos: ## Inject a failure: make chaos SCENARIO=bad-release|docs-hang
 	uv run --quiet python scripts/chaos.py $(SCENARIO)
 
+exercise: ## Check a workshop exercise against its solution: make exercise N=2
+	uv run --quiet python scripts/exercise.py $(N)
+
 chaos-reset: ## Undo every injected failure
 	uv run --quiet python scripts/chaos.py reset

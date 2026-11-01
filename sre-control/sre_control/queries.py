@@ -13,6 +13,7 @@ TOOL_QUERIES = {
     "event_patterns": "event_patterns",
     "get_trace_waterfall": "get_trace_waterfall",
     "search_logs": "search_logs",
+    "slo_burn": "slo_burn",
 }
 
 BLOCK = re.compile(r"^-- name: (\w+)\n(.*?)(?=^-- name: |\Z)", re.M | re.S)

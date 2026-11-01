@@ -32,7 +32,10 @@ def test_old_trace_is_rejected(propose, remediations, known_trace):
 
     from tests.conftest import NOW
 
-    remediations.telemetry.traces[known_trace] = (NOW - timedelta(hours=3), frozenset({"subscription-backend"}))
+    remediations.telemetry.traces[known_trace] = (
+        NOW - timedelta(hours=3),
+        frozenset({"subscription-backend"}),
+    )
     with pytest.raises(Ungrounded, match="before this incident opened"):
         propose()
 

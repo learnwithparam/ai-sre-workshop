@@ -123,7 +123,10 @@ class Remediations:
         incident = self.store.incident(incident_id)
         too_old = [t for t in trace_ids if seen[t].first_seen < incident.opened_at - TRACE_LEAD]
         if too_old:
-            raise Ungrounded(f"these traces began before this incident opened, so they cannot explain it: {', '.join(too_old)}")
+            raise Ungrounded(
+                f"these traces began before this incident opened, so they cannot explain it: "
+                f"{', '.join(too_old)}"
+            )
         elsewhere = [t for t in trace_ids if incident.service not in seen[t].services]
         if elsewhere:
             raise Ungrounded(f"these traces never touched {incident.service}: {', '.join(elsewhere)}")

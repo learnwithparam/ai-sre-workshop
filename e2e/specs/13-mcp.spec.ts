@@ -13,7 +13,7 @@ test("every SRE read tool returns data", async () => {
     [
       "event_patterns", "get_event_deltas", "get_incident", "get_remediation_status",
       "get_trace_waterfall", "list_incidents", "list_sources", "search_logs",
-      "service_timeseries", "analyze_service_anomalies",
+      "service_timeseries", "analyze_service_anomalies", "slo_burn",
     ].sort(),
   ); // prettier-ignore
   for (const run of sre) {

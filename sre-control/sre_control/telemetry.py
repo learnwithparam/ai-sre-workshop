@@ -18,7 +18,11 @@ class ClickHouseTelemetry:
     def trace_window(self, trace_ids: list[str]) -> list[TraceSeen]:
         rows = self.rows("trace_window", trace_ids=trace_ids, hours=GROUNDING_HOURS)
         return [
-            TraceSeen(r["trace_id"], r["first_seen"].replace(tzinfo=r["first_seen"].tzinfo or UTC), frozenset(r["services"]))
+            TraceSeen(
+                r["trace_id"],
+                r["first_seen"].replace(tzinfo=r["first_seen"].tzinfo or UTC),
+                frozenset(r["services"]),
+            )
             for r in rows
         ]
 

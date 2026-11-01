@@ -94,7 +94,7 @@ The second scenario, `make chaos SCENARIO=docs-hang`, hangs requests inside docs
 
 | Tool | Class | Server |
 |---|---|---|
-| `list_sources`, `service_timeseries`, `analyze_service_anomalies`, `get_event_deltas`, `event_patterns`, `get_trace_waterfall`, `search_logs`, `list_incidents`, `get_incident`, `get_remediation_status` | read | sre-control |
+| `list_sources`, `service_timeseries`, `analyze_service_anomalies`, `get_event_deltas`, `event_patterns`, `get_trace_waterfall`, `search_logs`, `slo_burn`, `list_incidents`, `get_incident`, `get_remediation_status` | read | sre-control |
 | `run_query`, `list_databases`, `list_tables` | read, as the ClickHouse user `sre_agent` | mcp-clickhouse |
 | `propose_remediation` | stores a pending proposal | sre-control |
 | `execute_remediation` | runs `rollback_release` or `restart_service`, only after a human approval | sre-control |

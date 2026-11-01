@@ -18,6 +18,7 @@ TOOL_CLASSES: dict[str, ToolClass] = {
     "event_patterns": ToolClass.READ,
     "get_trace_waterfall": ToolClass.READ,
     "search_logs": ToolClass.READ,
+    "slo_burn": ToolClass.READ,
     "list_incidents": ToolClass.READ,
     "get_incident": ToolClass.READ,
     "get_remediation_status": ToolClass.READ,
