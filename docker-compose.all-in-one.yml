@@ -23,7 +23,8 @@ services:
       - ./clickstack/ch_logs:/var/log/clickhouse-server
       - ./config/clickhouse/users.d/sre.xml:/etc/clickhouse-server/users.d/sre.xml:ro
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8123/ping"]
+      # The collector can lose its first boot race with the app and never open 4318, so health needs the port.
+      test: ["CMD", "bash", "-c", "curl -sf http://localhost:8123/ping >/dev/null && exec 3<>/dev/tcp/127.0.0.1/4318"]
       interval: 10s
       timeout: 10s
       retries: 10

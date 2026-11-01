@@ -25,6 +25,7 @@ build: env ## Build the local images, including both subscription-app releases
 	APP_RELEASE=v2 $(COMPOSE) build subscription-app
 
 up: build ## Start the stack, wait until every service is healthy, create the workshop logins
+	$(COMPOSE) up -d --wait clickstack || { $(COMPOSE) restart clickstack && $(COMPOSE) up -d --wait clickstack; }
 	$(COMPOSE) up -d --wait --wait-timeout 600
 	@uv run --quiet python scripts/bootstrap_users.py
 

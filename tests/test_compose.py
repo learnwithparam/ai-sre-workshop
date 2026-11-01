@@ -121,3 +121,15 @@ def test_env_example_lists_every_required_variable():
     # WORKSHOP_DIR is set by the Makefile, not by the learner.
     missing = used - defaulted - listed - {"WORKSHOP_DIR"}
     assert not missing, f"the example file lacks {sorted(missing)}"
+
+
+def test_clickstack_health_needs_the_otlp_port():
+    test = " ".join(config(BASE)["services"]["clickstack"]["healthcheck"]["test"])
+
+    assert "4318" in test
+
+
+def test_make_up_restarts_an_unhealthy_clickstack_once():
+    up = Path("Makefile").read_text().split("\nup:")[1].split("\nup-vps")[0]
+
+    assert "restart clickstack" in up
