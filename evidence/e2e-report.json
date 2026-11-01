@@ -1,19 +1,19 @@
 {
   "model": "claude-haiku-5-5",
-  "generated_at": "2026-10-21T14:56:32.396Z",
-  "total_cost_usd": 0.0015,
+  "generated_at": "2026-11-01T16:41:34.548Z",
+  "total_cost_usd": 0.0011,
   "bad_release": {
     "tool_calls_to_proposal": 6,
-    "tool_calls_total": 11,
-    "tokens": 2078,
-    "cost_usd": 0.0008,
-    "time_to_root_cause_s": 97
+    "tool_calls_total": 9,
+    "tokens": 1577,
+    "cost_usd": 0.0005,
+    "time_to_root_cause_s": 124
   },
   "docs_hang": {
-    "tool_calls_to_proposal": 6,
+    "tool_calls_to_proposal": 7,
     "tool_calls_total": 10,
-    "tokens": 1505,
-    "cost_usd": 0.0007,
-    "time_to_root_cause_s": 28
+    "tokens": 1377,
+    "cost_usd": 0.0006,
+    "time_to_root_cause_s": 20
   }
 }
