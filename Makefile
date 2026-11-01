@@ -14,7 +14,11 @@ help: ## List every target
 	@grep -E '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-12s\033[0m %s\n", $$1, $$2}'
 
 env: ## Add any missing generated secrets to .env (never overwrites a value)
-	@uv run --quiet python scripts/generate_env.py
+	@uv run --quiet python scripts/generate_env.py; rc=$$?; \
+	if [ $$rc -eq 2 ]; then \
+	  HYPERDX_API_KEY=pending $(COMPOSE) up -d --wait clickstack; \
+	  echo "Paste the HyperDX key: open http://localhost:8080, create your account, copy Team Settings > Ingestion API Key into HYPERDX_API_KEY in .env, then run make up again."; \
+	fi; exit $$rc
 
 build: env ## Build the local images, including both subscription-app releases
 	$(COMPOSE) build

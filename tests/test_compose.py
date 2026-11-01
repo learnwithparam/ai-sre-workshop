@@ -62,6 +62,15 @@ def test_vps_publishes_only_web_ports():
     assert published == {("caddy", 80), ("caddy", 443)}
 
 
+def test_no_port_binds_all_interfaces():
+    """sre-control holds the docker socket and the approval page; a published port must not reach the LAN."""
+    for name, svc in config(BASE)["services"].items():
+        for p in svc.get("ports", []):
+            assert p.get("host_ip") == "127.0.0.1", f"{name} publishes {p['published']} on every interface"
+    caddy = {int(p["published"]): p.get("host_ip") for p in config(VPS)["services"]["caddy"]["ports"]}
+    assert set(caddy) == {80, 443}, "only Caddy faces the network on the VPS"
+
+
 def test_every_vps_ui_requires_login():
     caddyfile = (ROOT / "caddy/Caddyfile").read_text()
     routes = dict(re.findall(r"^(\w+)\.\{\$PUBLIC_DOMAIN\}\s*\{\s*reverse_proxy\s+(\S+)", caddyfile, re.M))
@@ -78,3 +87,37 @@ def test_e2e_targets_derive_from_public_domain():
     assert "PUBLIC_DOMAIN" in source
     assert source.count("localhost") == 1, "local URLs must come from the one url() helper"
     assert set(re.findall(r'url\("(\w+)",\s*\d+\)', source)) == set(VPS_ROUTES)
+
+
+def test_generate_env_replaces_change_me(tmp_path):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("generate_env", ROOT / "scripts/generate_env.py")
+    gen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gen)
+    target = tmp_path / "copied"
+    target.write_text((ROOT / ".env.example").read_text())
+    gen.main(target)
+    values = gen.read(target)
+    for key in gen.GENERATED:
+        assert values[key] != gen.PLACEHOLDER, key
+    assert target.read_text().count("CREDS_KEY=") == 1, "a copied example must not gain duplicate lines"
+    assert gen.main(target) == 2, "no ingestion key yet means ClickStack must be started to get one"
+    target.write_text(target.read_text().replace("HYPERDX_API_KEY=change-me", "HYPERDX_API_KEY=hdx-test"))
+    assert gen.main(target) == 1, "the Anthropic key is still only yours to supply"
+
+
+def test_readme_runs_env_before_compose():
+    steps = (ROOT / "README.md").read_text().split("## Start the lab")[1].split("4. Open the pages")[0]
+    assert steps.index("make env") < steps.index("make up")
+    assert "docker compose" not in steps, "a fresh clone has no .env until make env writes it"
+
+
+def test_env_example_lists_every_required_variable():
+    compose = (ROOT / "docker-compose.all-in-one.yml").read_text()
+    used = set(re.findall(r"\$\{([A-Z_0-9]+)", compose))
+    defaulted = set(re.findall(r"\$\{([A-Z_0-9]+):?-", compose))
+    listed = set(re.findall(r"^([A-Z_0-9]+)=", (ROOT / ".env.example").read_text(), re.M))
+    # WORKSHOP_DIR is set by the Makefile, not by the learner.
+    missing = used - defaulted - listed - {"WORKSHOP_DIR"}
+    assert not missing, f"the example file lacks {sorted(missing)}"

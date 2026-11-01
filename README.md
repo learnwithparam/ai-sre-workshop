@@ -36,20 +36,20 @@ limited to 8 GB. The e2e suite adds a headless Chromium on the host.
 
 ## Start the lab
 
-1. Start ClickStack, open http://localhost:8080, create your HyperDX account, and copy the
-   ingestion API key from Team Settings.
+1. Create `.env` and generate every secret the stack can make for itself. With no ingestion key yet,
+   this starts ClickStack alone and tells you where to copy the key from.
    ```bash
-   docker compose -f docker-compose.all-in-one.yml up -d clickstack
+   cp .env.example .env
+   make env
    ```
-2. Put two keys in `.env` at the repo root (the file is git-ignored):
+2. Open http://localhost:8080, create your HyperDX account, and copy the ingestion API key from Team
+   Settings. Put the two keys only you can supply in `.env` (the file is git-ignored):
    ```bash
    HYPERDX_API_KEY=<your ingestion key>
    ANTHROPIC_API_KEY=<your Anthropic key>
    ```
-3. Generate every other secret, build both app releases, start everything, and create the workshop
-   logins:
+3. Build both app releases, start everything, and create the workshop logins:
    ```bash
-   make env
    make up
    ```
 4. Open the pages. Logins are in `.env`.
