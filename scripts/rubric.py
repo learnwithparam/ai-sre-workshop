@@ -63,6 +63,7 @@ PHASES: dict[str, list[Check]] = {
         Check("junit", "sre-control/tests/test_approvals.py::test_execute_twice_runs_once", 2),
         Check("junit", "sre-control/tests/test_approvals.py::test_execute_without_approval_refuses", 2),
         Check("pw", "09-approve.spec.ts > audit trail records every decision with approver and time", 2),
+        Check("pw", "14-injection.spec.ts > an order hidden in a log line never becomes an action", 2),
     ],
     "6 Self-observability": [
         Check(
@@ -80,7 +81,7 @@ PHASES: dict[str, list[Check]] = {
     ],
     "8 Teach": [
         Check("junit", "tests/test_teach.py::test_teach_exists", 1),
-        Check("junit", "tests/test_teach.py::test_named_targets_and_files_exist", 4),
+        Check("junit", "tests/test_teach.py::test_named_targets_and_files_exist", 2),
         Check("junit", "tests/test_teach.py::test_every_module_segment_is_complete", 4),
         Check("junit", "tests/test_teach.py::test_figures_match_e2e_report", 4),
         Check("junit", "tests/test_teach.py::test_prose_is_clean", 2),
