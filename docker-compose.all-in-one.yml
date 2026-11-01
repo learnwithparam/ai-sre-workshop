@@ -11,9 +11,9 @@ services:
     image: clickhouse/clickstack-all-in-one:2.19.0
     container_name: clickstack
     ports:
-      - 8080:8080
-      - 4317:4317
-      - 4318:4318
+      - 127.0.0.1:8080:8080
+      - 127.0.0.1:4317:4317
+      - 127.0.0.1:4318:4318
     environment:
       CLICKHOUSE_READER_PASSWORD: ${CLICKHOUSE_READER_PASSWORD:?run make env}
       CLICKHOUSE_WRITER_PASSWORD: ${CLICKHOUSE_WRITER_PASSWORD:?run make env}
@@ -54,7 +54,7 @@ services:
         APP_RELEASE: ${APP_RELEASE:-v1}
     container_name: subscription-app
     ports:
-      - 8000:8000
+      - 127.0.0.1:8000:8000
     environment:
       POSTGRES_HOST: postgres-db
       POSTGRES_PORT: 5432
@@ -246,7 +246,7 @@ services:
     container_name: sre-control
     restart: unless-stopped
     ports:
-      - 8090:8090
+      - 127.0.0.1:8090:8090
     environment:
       <<: *otlp
       OTEL_SERVICE_NAME: sre-control
@@ -285,7 +285,7 @@ services:
     container_name: librechat
     restart: unless-stopped
     ports:
-      - ${CHAT_PORT:-3080}:3080
+      - 127.0.0.1:${CHAT_PORT:-3080}:3080
     environment:
       <<: *otlp
       OTEL_TRACING_ENABLED: "true"
