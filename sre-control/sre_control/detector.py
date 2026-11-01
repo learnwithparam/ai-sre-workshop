@@ -118,6 +118,9 @@ class Detector:
             if not awaiting and now - incident.opened_at > SELF_RECOVERY_AFTER:
                 healthy, evidence = self._healthy(incident)
                 if healthy:
+                    for action in actions:
+                        if action.state == "pending":
+                            self.remediations.expire(action.action_id, reason="self_recovered")
                     note = f"signal recovered with no remediation executed: {evidence}"
                     self.store.resolve_incident(incident.id, actor="detector", at=now, note=note)
                 continue

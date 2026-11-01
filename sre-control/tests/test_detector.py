@@ -2,6 +2,9 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
+from sre_control.approvals import InvalidTransition
 from sre_control.detector import Detector, ErrorRateSample, StuckRequests
 
 NOW = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
@@ -77,6 +80,19 @@ def test_an_incident_that_heals_on_its_own_closes_itself(store, remediations):
     assert incident.state == "resolved"
     (resolved,) = store.events(incident_id=incident.id, kind="incident_resolved")
     assert resolved.actor == "detector"
+
+
+def test_self_recovery_expires_pending_proposal(store, remediations, rollback, incident):
+    signals = Signals()
+    signals.current = 0.01
+    d = Detector(signals=signals, store=store, clock=lambda: NOW + timedelta(minutes=3), remediations=remediations)
+    d.tick()
+    assert store.incident(incident.id).state == "resolved"
+    assert remediations.status(rollback.action_id).state == "expired"
+    (expired,) = store.events(action_id=rollback.action_id, kind="remediation_expired")
+    assert expired.payload == {"reason": "self_recovered"}
+    with pytest.raises(InvalidTransition):
+        remediations.approve(rollback.action_id, approver="oncall")
 
 
 def test_a_failed_verification_does_not_block_the_next_incident(store, remediations, known_trace):

@@ -6,13 +6,14 @@ Every transition is an event in the audit log, and state is derived from those e
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Protocol
 
 from sre_control.policy import validate_action
 from sre_control.store import Event, Store, new_id, utcnow
 
 GROUNDING_HOURS = 6  # evidence must have been reported within this window
+TRACE_LEAD = timedelta(minutes=15)  # a failing request can start just before the detector notices
 
 
 class ApprovalRequired(PermissionError):
@@ -27,8 +28,15 @@ class Ungrounded(ValueError):
     pass
 
 
+@dataclass(frozen=True)
+class TraceSeen:
+    trace_id: str
+    first_seen: datetime
+    services: frozenset[str]
+
+
 class Telemetry(Protocol):
-    def missing_trace_ids(self, trace_ids: list[str]) -> list[str]: ...
+    def trace_window(self, trace_ids: list[str]) -> list[TraceSeen]: ...
     def service_seen(self, service: str) -> bool: ...
     def release_seen(self, service: str, release: str) -> bool: ...
 
@@ -85,16 +93,7 @@ class Remediations:
         # The model wrote "subscription-backend.v2" for release v2 and was refused three times
         # (e2e run of 21 Oct 2026); the service prefix adds nothing, so it is dropped.
         release = release.removeprefix(f"{service}.")
-        window = f"the last {GROUNDING_HOURS} hours"
-        if not trace_ids:
-            raise Ungrounded("cite at least one trace id returned by a tool")
-        if not self.telemetry.service_seen(service):
-            raise Ungrounded(f"service {service!r} has no telemetry in {window}")
-        if release and not self.telemetry.release_seen(service, release):
-            raise Ungrounded(f"release {release!r} of {service} has no telemetry in {window}")
-        missing = self.telemetry.missing_trace_ids(trace_ids)
-        if missing:
-            raise Ungrounded(f"these trace ids have no spans in {window}: {', '.join(missing)}")
+        self._ground(incident_id, service, release, trace_ids)
         action_id = new_id("act")
         payload = {
             "action": action,
@@ -107,6 +106,27 @@ class Remediations:
         }
         self.store.append(Event(now, incident_id, action_id, "remediation_proposed", proposed_by, payload))
         return self.status(action_id)
+
+    def _ground(self, incident_id: str, service: str, release: str, trace_ids: list[str]) -> None:
+        """Evidence must exist, belong to this incident's service, and not predate the incident."""
+        window = f"the last {GROUNDING_HOURS} hours"
+        if not trace_ids:
+            raise Ungrounded("cite at least one trace id returned by a tool")
+        if not self.telemetry.service_seen(service):
+            raise Ungrounded(f"service {service!r} has no telemetry in {window}")
+        if release and not self.telemetry.release_seen(service, release):
+            raise Ungrounded(f"release {release!r} of {service} has no telemetry in {window}")
+        seen = {t.trace_id: t for t in self.telemetry.trace_window(trace_ids)}
+        missing = [t for t in trace_ids if t not in seen]
+        if missing:
+            raise Ungrounded(f"these trace ids have no spans in {window}: {', '.join(missing)}")
+        incident = self.store.incident(incident_id)
+        too_old = [t for t in trace_ids if seen[t].first_seen < incident.opened_at - TRACE_LEAD]
+        if too_old:
+            raise Ungrounded(f"these traces began before this incident opened, so they cannot explain it: {', '.join(too_old)}")
+        elsewhere = [t for t in trace_ids if incident.service not in seen[t].services]
+        if elsewhere:
+            raise Ungrounded(f"these traces never touched {incident.service}: {', '.join(elsewhere)}")
 
     def status(self, action_id: str) -> ActionState:
         events = self.store.events(action_id=action_id)
@@ -135,6 +155,8 @@ class Remediations:
                     state = replace(state, state="approved")
                 case "remediation_rejected":
                     state = replace(state, state="rejected")
+                case "remediation_expired":
+                    state = replace(state, state="expired")
                 case "remediation_edited":
                     state = replace(state, state="pending", **e.payload)
                 case "remediation_executed":
@@ -163,8 +185,15 @@ class Remediations:
     def reject(self, action_id: str, *, approver: str, reason: str) -> ActionState:
         return self._decide(action_id, "remediation_rejected", approver, {"reason": reason}, {"pending"})
 
+    def expire(self, action_id: str, *, reason: str) -> ActionState:
+        """The outage it answered is over, so approving it now would change a healthy system."""
+        return self._decide(action_id, "remediation_expired", "sre-control", {"reason": reason}, {"pending"})
+
     def edit(self, action_id: str, *, editor: str, action: str, target: str, params: dict) -> ActionState:
         validate_action(action, target, params)
+        # An edit can come long after the proposal; the evidence it still rests on must still exist.
+        current = self.status(action_id)
+        self._ground(current.incident_id, current.service, current.release, current.trace_ids)
         payload = {"action": action, "target": target, "params": params}
         return self._decide(action_id, "remediation_edited", editor, payload, {"pending", "rejected"})
 

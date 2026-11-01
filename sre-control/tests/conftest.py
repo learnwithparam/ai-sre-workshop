@@ -13,10 +13,15 @@ class FakeTelemetry:
     """Telemetry that knows one service, one release and one failing trace."""
 
     services = {"subscription-backend": {"v1", "v2"}, "docs-loader": {"1.0.0"}}
-    traces = {KNOWN_TRACE}
 
-    def missing_trace_ids(self, trace_ids):
-        return [t for t in trace_ids if t not in self.traces]
+    def __init__(self):
+        # trace id -> (first span time, services it touched)
+        self.traces = {KNOWN_TRACE: (NOW, frozenset({"subscription-backend", "docs-loader"}))}
+
+    def trace_window(self, trace_ids):
+        from sre_control.approvals import TraceSeen
+
+        return [TraceSeen(t, *self.traces[t]) for t in trace_ids if t in self.traces]
 
     def service_seen(self, service):
         return service in self.services

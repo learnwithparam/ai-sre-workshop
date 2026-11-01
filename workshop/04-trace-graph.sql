@@ -57,20 +57,23 @@ GROUP BY release
 ORDER BY first_seen
 LIMIT 20;
 
--- name: known_trace_ids
--- teaches: grounding. A proposal is refused unless every trace id it cites exists, as a span or,
--- for a request that never finished and so never exported a span, as a correlated log line.
+-- name: trace_window
+-- teaches: grounding. A proposal is refused unless every trace id it cites exists as a span or, for a
+-- request that never finished and so never exported a span, as a correlated log line. The control plane
+-- also reads when each trace began and which services it touched, so an old trace or one that never reached
+-- the failing service cannot justify a change.
 -- example: trace_ids=@sample_error_traces hours=6
-SELECT trace_id FROM (
-    SELECT DISTINCT TraceId AS trace_id
+SELECT trace_id, min(ts) AS first_seen, groupUniqArray(service) AS services FROM (
+    SELECT TraceId AS trace_id, Timestamp AS ts, ServiceName AS service
     FROM default.otel_traces
     WHERE TraceId IN {trace_ids:Array(String)} AND Timestamp > now() - toIntervalHour({hours:UInt32})
-    UNION DISTINCT
-    SELECT DISTINCT if(TraceId != '', TraceId, LogAttributes['trace_id']) AS trace_id
+    UNION ALL
+    SELECT if(TraceId != '', TraceId, LogAttributes['trace_id']) AS trace_id, Timestamp AS ts, ServiceName AS service
     FROM default.otel_logs
     WHERE (TraceId IN {trace_ids:Array(String)} OR LogAttributes['trace_id'] IN {trace_ids:Array(String)})
       AND Timestamp > now() - toIntervalHour({hours:UInt32})
 )
+GROUP BY trace_id
 LIMIT 100;
 
 -- name: trace_logs

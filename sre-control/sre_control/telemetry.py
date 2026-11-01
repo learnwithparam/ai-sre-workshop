@@ -1,8 +1,9 @@
 """Read-only access to ClickStack telemetry, always as the sre_agent user, always via workshop SQL."""
 
+from datetime import UTC
 from typing import Any
 
-from sre_control.approvals import GROUNDING_HOURS
+from sre_control.approvals import GROUNDING_HOURS, TraceSeen
 from sre_control.queries import Query
 
 
@@ -14,10 +15,12 @@ class ClickHouseTelemetry:
         result = self.client.query(self.queries[name].sql, parameters=params)
         return [dict(zip(result.column_names, row, strict=True)) for row in result.result_rows]
 
-    def missing_trace_ids(self, trace_ids: list[str]) -> list[str]:
-        rows = self.rows("known_trace_ids", trace_ids=trace_ids, hours=GROUNDING_HOURS)
-        found = {r["trace_id"] for r in rows}
-        return [t for t in trace_ids if t not in found]
+    def trace_window(self, trace_ids: list[str]) -> list[TraceSeen]:
+        rows = self.rows("trace_window", trace_ids=trace_ids, hours=GROUNDING_HOURS)
+        return [
+            TraceSeen(r["trace_id"], r["first_seen"].replace(tzinfo=r["first_seen"].tzinfo or UTC), frozenset(r["services"]))
+            for r in rows
+        ]
 
     def releases(self, service: str) -> set[str]:
         return {r["release"] for r in self.rows("service_releases", service=service, hours=GROUNDING_HOURS)}

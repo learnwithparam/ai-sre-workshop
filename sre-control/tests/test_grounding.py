@@ -27,6 +27,38 @@ def test_ungrounded_proposal_is_rejected(propose, incident, store, known_trace):
     assert store.events(incident_id=incident.id, kind="remediation_proposed") == []
 
 
+def test_old_trace_is_rejected(propose, remediations, known_trace):
+    from datetime import timedelta
+
+    from tests.conftest import NOW
+
+    remediations.telemetry.traces[known_trace] = (NOW - timedelta(hours=3), frozenset({"subscription-backend"}))
+    with pytest.raises(Ungrounded, match="before this incident opened"):
+        propose()
+
+
+def test_other_service_trace_is_rejected(propose, remediations, known_trace):
+    from tests.conftest import NOW
+
+    remediations.telemetry.traces[known_trace] = (NOW, frozenset({"docs-loader"}))
+    with pytest.raises(Ungrounded, match="never touched subscription-backend"):
+        propose()
+
+
+def test_edit_with_ungrounded_trace_is_refused(propose, remediations, known_trace):
+    rollback = propose()
+    del remediations.telemetry.traces[known_trace]
+    with pytest.raises(Ungrounded, match=known_trace):
+        remediations.edit(
+            rollback.action_id,
+            editor="oncall",
+            action="rollback_release",
+            target="subscription-app",
+            params={"release": "v1"},
+        )
+    assert remediations.status(rollback.action_id).state == "pending"
+
+
 def test_proposal_needs_at_least_one_trace(propose):
     with pytest.raises(Ungrounded):
         propose(trace_ids=[])

@@ -58,7 +58,7 @@
           {% if e.kind == "incident_opened" %}{{ e.payload.summary }}
           {% elif e.kind == "remediation_proposed" %}<code>{{ e.payload.action }} {{ e.payload.target }}</code>: {{ e.payload.root_cause }}
           {% elif e.kind == "remediation_edited" %}Changed to <code>{{ e.payload.action }} {{ e.payload.target }}</code>
-          {% elif e.kind == "remediation_rejected" %}{{ e.payload.reason }}
+          {% elif e.kind in ("remediation_rejected", "remediation_expired") %}{{ e.payload.reason }}
           {% elif e.kind == "remediation_refused" %}Refused while {{ e.payload.state }}: no human had approved it
           {% elif e.kind in ("remediation_executed", "remediation_failed") %}<code>{{ e.payload.result.command }}</code> exited {{ e.payload.result.exit_code }}
           {% elif e.kind.startswith("verification") %}<code>{{ e.payload }}</code>
