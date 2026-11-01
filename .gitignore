@@ -14,3 +14,4 @@ e2e/playwright/.auth/
 e2e/playwright-report/
 e2e/test-results/
 .claude/.gate-ran
+scripts/mermaid/node_modules/

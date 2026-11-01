@@ -8,7 +8,7 @@ COMPOSE_VPS := $(COMPOSE) -f docker-compose.vps.yml
 # sre-control mounts the repo at this same absolute path, so compose paths resolve identically.
 export WORKSHOP_DIR := $(CURDIR)
 
-.PHONY: help env build up down ps logs check book e2e score chaos chaos-reset
+.PHONY: help env build up down ps logs check e2e score chaos chaos-reset
 
 help: ## List every target
 	@grep -E '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-12s\033[0m %s\n", $$1, $$2}'
@@ -48,22 +48,9 @@ check: ## Lint, unit and structural tests (no Docker, no model spend)
 	uv run --quiet ruff format --check .
 	uv run --quiet python scripts/check_prose.py
 	python3 scripts/kaas/check-quality.py
+	@test -d scripts/mermaid/node_modules || (cd scripts/mermaid && npm ci --silent --no-audit --no-fund)
+	node scripts/check-mermaid.mjs $$(git ls-files -co --exclude-standard '*.md')
 	uv run --quiet pytest --continue-on-collection-errors --junitxml=artifacts/junit.xml
-
-# Declared here, not in the .PHONY line above the first target: that line is inside the e2e stamp,
-# and a target that prints a page must not cost a Docker run to re-certify.
-.PHONY: tokens diagrams
-tokens: ## Regenerate design/tokens.css from design/tokens.json
-	@uv run --quiet python scripts/tokens.py
-
-diagrams: ## Redraw every figure and colour every code block in the workbook and the guide
-	@node scripts/diagram.mjs
-	@node scripts/highlight.mjs
-
-book: diagrams ## Render the workbook and the guide to PDF, then read them back
-	@cd e2e && npm ci --silent && npx playwright install chromium --only-shell >/dev/null 2>&1 || true
-	@uv run --quiet python scripts/contents.py
-	@node scripts/build_book.mjs
 
 e2e: up ## Full stack, real model, real browser; writes artifacts/playwright.json
 	@mkdir -p artifacts evidence/screens && rm -f artifacts/playwright.json artifacts/run-state.json

@@ -1,0 +1,9 @@
+{
+  "name": "ai-sre-workshop-mermaid-check",
+  "private": true,
+  "description": "Pinned parser for the mermaid blocks in the Markdown docs (scripts/check-mermaid.mjs).",
+  "devDependencies": {
+    "mermaid": "11.17.2",
+    "playwright-core": "1.63.0"
+  }
+}

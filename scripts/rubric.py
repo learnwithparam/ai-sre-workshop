@@ -80,11 +80,12 @@ PHASES: dict[str, list[Check]] = {
         Check("junit", "tests/test_compose.py::test_e2e_targets_derive_from_public_domain", 1),
     ],
     "8 Teach": [
-        Check("junit", "tests/test_teach.py::test_teach_exists", 1),
-        Check("junit", "tests/test_teach.py::test_named_targets_and_files_exist", 2),
-        Check("junit", "tests/test_teach.py::test_every_module_segment_is_complete", 4),
-        Check("junit", "tests/test_teach.py::test_figures_match_e2e_report", 4),
-        Check("junit", "tests/test_teach.py::test_prose_is_clean", 2),
-        Check("junit", "tests/test_teach.py::test_screenshots_come_from_the_e2e_run", 2),
+        Check("junit", "tests/test_walkthrough_shape.py::test_walkthrough_has_the_six_sections_in_order", 4),
+        Check("junit", "tests/test_walkthrough_shape.py::test_walkthrough_draws_at_least_two_diagrams", 3),
+        Check("junit", "tests/test_walkthrough_shape.py::test_every_concept_has_an_anchor", 3),
+        Check(
+            "junit", "tests/test_walkthrough_shape.py::test_every_module_exercise_states_what_to_expect", 3
+        ),
+        Check("junit", "tests/test_walkthrough_shape.py::test_readme_links_the_walkthrough", 2),
     ],
 }

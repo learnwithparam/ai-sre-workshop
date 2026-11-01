@@ -60,8 +60,7 @@ def test_every_scored_check_exists():
 
 
 def test_prose_check_is_wired():
-    teach_test = (ROOT / "tests/test_teach.py").read_text()
-    assert "check_prose" in teach_test
+    assert "check_prose.py" in (ROOT / "Makefile").read_text()
     assert (ROOT / "scripts/check_prose.py").exists()
 
     # The word lists are a committed copy of the house rules. Where the rules exist it must match them.
@@ -101,9 +100,9 @@ def test_the_stamp_covers_what_an_e2e_run_loads():
     assert is_stamped("sre-control/sre_control/detector.py"), "the control plane under test is not stamped"
     assert is_stamped("workshop/02-anomaly.sql"), "a query the agent's tools load is not stamped"
     assert is_stamped("e2e/specs/07-bad-release.spec.ts"), "a spec is not stamped"
-    assert not is_stamped("design/book.css"), "a print stylesheet cannot change what a run proved"
-    assert not is_stamped("tests/test_book.py"), "a unit test is not loaded by a spec"
-    assert not is_stamped("scripts/build_book.mjs"), "the PDF builder is not loaded by a spec"
+    assert not is_stamped("docs/walkthrough.md"), "prose cannot change what a run proved"
+    assert not is_stamped("tests/test_gate.py"), "a unit test is not loaded by a spec"
+    assert not is_stamped("scripts/check-mermaid.mjs"), "the diagram parser is not loaded by a spec"
 
 
 def test_the_makefile_is_stamped_by_recipe_and_the_recipes_exist():
@@ -118,7 +117,7 @@ def test_the_makefile_is_stamped_by_recipe_and_the_recipes_exist():
     for target in E2E_RECIPES:
         assert f"{target}:" in slice_, f"the {target} recipe is missing from the stamped slice"
     assert "npx playwright test" in slice_, "the slice does not contain the command that runs the specs"
-    assert "book:" not in slice_, "a target that cannot touch the stack is inside the stamp"
+    assert "check:" not in slice_, "a target that cannot touch the stack is inside the stamp"
 
 
 def test_ruff_edit_keeps_stamp():

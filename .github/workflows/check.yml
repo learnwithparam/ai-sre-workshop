@@ -17,6 +17,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.9.x"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Chromium for the mermaid check
+        run: cd scripts/mermaid && npm ci --no-audit --no-fund && npx playwright-core install --with-deps chromium
       - name: Lint, unit and structural tests
         run: make check
       - name: Upload test results
