@@ -1,3 +1,7 @@
+> **Archived.** This workshop moved to [learnwithparam/ai-sre](https://github.com/learnwithparam/ai-sre).
+>
+> This repo stays here for reference and gets no more updates.
+
 # AI SRE Workshop
 
 This repository is the lab for the AI SRE workshop at learnwithparam. It runs a small, fully
