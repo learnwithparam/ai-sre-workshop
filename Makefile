@@ -42,12 +42,13 @@ ps: ## Show service health
 logs: ## Follow logs for one service: make logs SERVICE=sre-control
 	$(COMPOSE) logs -f $(SERVICE)
 
-check: ## Lint, unit and structural tests (no Docker, no model spend)
+check: ## Lint, prose, plain English in the lessons, unit and structural tests (no Docker, no model spend)
 	@mkdir -p artifacts && rm -f artifacts/junit.xml
 	@uv run --quiet python scripts/tree_hash.py --all > artifacts/check-tree.txt
 	uv run --quiet ruff check .
 	uv run --quiet ruff format --check .
 	uv run --quiet python scripts/check_prose.py
+	node scripts/learner-clarity.mjs
 	python3 scripts/kaas/check-quality.py
 	@test -d scripts/mermaid/node_modules || (cd scripts/mermaid && npm ci --silent --no-audit --no-fund)
 	node scripts/check-mermaid.mjs $$(git ls-files -co --exclude-standard '*.md')

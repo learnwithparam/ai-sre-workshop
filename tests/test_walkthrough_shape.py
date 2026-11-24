@@ -1,10 +1,13 @@
-"""docs/walkthrough.md is the one teaching document: fixed sections, diagrams, anchored concepts."""
+"""docs/walkthrough.md holds the ideas: fixed sections, diagrams, anchored concepts. docs/learner/ holds the
+lessons a learner follows alone: one per exercise, each with its picture, its commands and what to expect."""
 
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DOC = ROOT / "docs" / "walkthrough.md"
+LESSONS = ROOT / "docs" / "learner"
+LESSON_SECTIONS = ("Goal", "Starting point", "If you get stuck")
 SECTIONS = [
     "The problem",
     "What you build",
@@ -33,12 +36,38 @@ def test_every_concept_has_an_anchor():
     assert missing == []
 
 
-def test_every_module_exercise_states_what_to_expect():
+def test_every_exercise_has_a_lesson_with_expect():
+    exercises = sorted((ROOT / "workshop" / "exercises").glob("*.sql"))
+    assert len(exercises) == 5
+    for exercise in exercises:
+        name = re.search(r"^-- name: (\w+)", exercise.read_text(), re.M).group(1)
+        lesson = (LESSONS / exercise.name.replace(".sql", ".md")).read_text()
+        assert f"make exercise N={int(exercise.name[:2])}" in lesson, exercise.name
+        assert f"Expect: `match: {name} returns the same N row(s) as the solution`" in lesson, exercise.name
+
+
+def test_every_lesson_has_its_shape():
+    lessons = sorted(LESSONS.glob("*.md"))
+    assert [p.name[:2] for p in lessons] == [f"{n:02d}" for n in range(len(lessons))]
+    for lesson in lessons:
+        text = lesson.read_text()
+        headings = re.findall(r"^## (.+)$", text, re.M)
+        assert headings[0].startswith("Why"), lesson.name
+        assert all(h in headings for h in LESSON_SECTIONS), lesson.name
+        assert "```mermaid" in text, lesson.name
+        for image in re.findall(r"!\[[^\]]+\]\(([^)]+)\)", text):
+            assert (lesson.parent / image).resolve().is_file(), f"{lesson.name}: {image}"
+        for block in re.finditer(r"```bash\n.*?```\n\n([^\n]*)", text, re.S):
+            assert block.group(1).startswith("Expect:"), f"{lesson.name}: a bash block lacks an Expect: line"
+
+
+def test_walkthrough_links_every_lesson():
     text = DOC.read_text()
-    modules = re.findall(r"^### Module \d.*$", text, re.M)
-    assert len(modules) == 5
-    assert text.count("Expect:") >= 5
+    missing = [p.name for p in sorted(LESSONS.glob("*.md")) if f"learner/{p.name}" not in text]
+    assert missing == []
 
 
 def test_readme_links_the_walkthrough():
-    assert "docs/walkthrough.md" in (ROOT / "README.md").read_text()
+    readme = (ROOT / "README.md").read_text()
+    assert "docs/walkthrough.md" in readme
+    assert all(f"docs/learner/{p.name}" in readme for p in LESSONS.glob("*.md"))
