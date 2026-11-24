@@ -52,12 +52,14 @@ STAMPED: tuple[tuple[str, str], ...] = (
 
 # What it does not. A change here cannot alter what a recorded run proved.
 NOT_STAMPED: tuple[tuple[str, str], ...] = (
-    ("docs/", "prose: the walkthrough learners follow"),
+    ("docs/", "prose: the lessons and the walkthrough learners follow"),
     ("tests/", "the unit and structural suite, which `make check` runs and no spec loads"),
     ("scripts/rubric.py", "the scorecard, which reads results rather than producing them"),
     ("scripts/score.py", "the scorer, same"),
     ("scripts/tree_hash.py", "this file: stamping the stamper invalidates every stamp on every edit"),
     ("scripts/check_prose.py", "a `make check` step"),
+    ("scripts/learner-clarity.mjs", "a `make check` step, copied from the teach repo"),
+    ("scripts/plain-english.mjs", "the reading grade learner-clarity.mjs reads, copied from the teach repo"),
     ("scripts/prose-rules.json", "the word lists that step reads"),
     ("scripts/kaas/", "the vendored house rules those word lists come from"),
     ("quality-baseline.json", "the ratchet check-quality reads, a `make check` step"),

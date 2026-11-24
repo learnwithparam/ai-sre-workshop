@@ -108,7 +108,7 @@ def test_generate_env_replaces_change_me(tmp_path):
 
 
 def test_readme_runs_env_before_compose():
-    steps = (ROOT / "README.md").read_text().split("## Start the lab")[1].split("4. Open the pages")[0]
+    steps = (ROOT / "README.md").read_text().split("## Run it")[1].split("\n## ")[0]
     assert steps.index("make env") < steps.index("make up")
     assert "docker compose" not in steps, "a fresh clone has no .env until make env writes it"
 

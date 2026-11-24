@@ -212,97 +212,21 @@ Each term below has one short definition. Other sections link here by anchor.
 
 ## Run it
 
-### Start the lab
+The lessons in [docs/learner](learner/00-setup.md) take you through the lab one step at a time, with a screenshot for each screen.
 
-Follow the setup in `README.md`. The short version is:
-
-```bash
-cp .env.example .env
-make env
-make up
-```
-
-`make env` generates the secrets the stack can make for itself. The first run stops before `make up` and asks you to copy the HyperDX ingestion key from Team Settings into `.env`. Do not paste keys onto a command line.
-
-Once the stack is healthy, `make exercise N=<n>` runs each learner file and its solution block against ClickHouse as the read-only `sre_agent` user, and compares the rows. The stack must be up for it to work.
-
-### Module 1: the substrate
-
-The question is which services report, and how many spans and errors each one holds.
-
-Open `workshop/exercises/01-substrate.sql` and replace the `TODO` with the condition that marks a failing span. Then run `make exercise N=1`.
-
-Expect: `match: list_services returns the same N row(s) as the solution`, where N is the row count
-
-### Module 2: anomaly
-
-The question is what the error rate looks like per bucket, and whether the last minute falls outside the normal band.
-
-Open `workshop/exercises/02-anomaly.sql` and replace the `TODO` with the error rate, which is errors divided by requests. Then run `make exercise N=2`.
-
-Expect: `match: service_timeseries returns the same N row(s) as the solution`, where N is the row count
-
-### Module 3: event deltas
-
-The question is what the failing requests have in common that the healthy ones do not.
-
-Open `workshop/exercises/03-event-deltas.sql` and replace the `TODO` with the rule for a new pattern, which is one that appears in the incident window and never in the baseline. Then run `make exercise N=3`.
-
-Expect: `match: get_event_deltas returns the same N row(s) as the solution`, where N is the row count
-
-### Module 4: trace graph
-
-The question is which request to open, and what its waterfall shows.
-
-Open `workshop/exercises/04-trace-graph.sql` and replace the `TODO` in the `ORDER BY` so failing requests come first, then the slowest. Then run `make exercise N=4`.
-
-Expect: `match: sample_error_traces returns the same N row(s) as the solution`, where N is the row count
-
-### Module 5: SLO burn
-
-The question is how fast the budget is burning over the last hour. The exercise uses a 99.5 percent objective, so the budget is half a percent of failed requests.
-
-Open `workshop/exercises/05-slo-burn.sql` and replace the `TODO` with the one hour error rate divided by the budget. Then run `make exercise N=5`.
-
-Expect: `match: slo_burn returns the same N row(s) as the solution`, where N is the row count
-
-### Run the live incident
-
-Run the bad release, then follow the incident on the control page at http://localhost:8090.
-
-```bash
-make chaos SCENARIO=bad-release
-```
-
-1. The detector opens an incident within about a minute.
-2. Choose **Investigate with AI SRE**, which opens LibreChat with the incident.
-3. The agent calls the read tools, names the release that broke, and calls `propose_remediation` with trace ids as evidence.
-4. Ask the agent to execute the change anyway. The refusal is recorded in the audit log.
-5. Open the approval link, read the evidence and the blast radius, and click **Approve**.
-6. Tell the agent. It runs the rollback, and sre-control verifies recovery on a minute of fresh traffic before it resolves the incident.
-
-Expect: an incident naming the error rate and the bound it crossed, a refusal in chat before approval, and after Approve, the rollback exit code followed by a passed verification and a resolved incident.
-
-Reset with `make chaos-reset` when you are done. It redeploys v1 and restarts docs-loader.
-
-### Facilitator run of show
-
-This is the day plan. It has no slot for Module 5, so run it as an exercise after Module 4 when time allows.
-
-| Time | Step | What the room sees |
-|---|---|---|
-| 08:15 | Before the room arrives, alone | Stack healthy after `make up`. Nothing has fired yet. |
-| 09:00 to 09:30 | Setup and the map of the lab | Services up, a signup that confirms in under a second, and a footer reading Release v1. |
-| 09:30 to 11:00 | Module 1, the substrate | Services in ClickStack, and the signup they made in the results table. |
-| 11:00 to 12:30 | Module 2, anomaly | Every service with `anomalous = 0`, then one row per minute from the view. |
-| 13:30 to 15:00 | Modules 3 and 4, event deltas and trace graph | A new pattern, connection pool exhausted, failing on release v2 only, and a waterfall with a slow Postgres span. |
-| 15:00 to 16:15 | Tool limits | Both MCP servers answer 401 without the bearer token, and ClickHouse refuses an INSERT sent through the read tool. |
-| 16:15 to 17:00 | The live incident | The incident, the refused execute, the approval, the rollback, and the resolved state. |
-| 17:00 to 17:30 | What to harden | The logged signup email in the span attributes, and the approval page as the evidence screen. |
+| Lesson | The question it answers |
+|---|---|
+| [Set up the lab](learner/00-setup.md) | Is every service up, and can you see your own signup? |
+| [Read the raw data](learner/01-substrate.md) | Which services report, and how many of their spans failed? |
+| [Spot an odd minute](learner/02-anomaly.md) | What is the error rate per bucket, and is the last minute outside the band? |
+| [Find what changed](learner/03-event-deltas.md) | What do the failing requests have that the healthy ones do not? |
+| [Open one request](learner/04-trace-graph.md) | Which request to open, and what does its waterfall show? |
+| [Measure the budget burn](learner/05-slo-burn.md) | How fast is the error budget burning? |
+| [Run a live incident](learner/06-live-incident.md) | Can the agent find the cause, and does the approval hold? |
 
 ## What to watch for
 
-These three behaviours are the ones the room should see, and the ones to harden before any of this runs on your own systems.
+These three behaviours are the ones to watch in the lab, and the ones to harden before any of this runs on your own systems.
 
 ### Prompt injection through a log line
 
