@@ -17,10 +17,13 @@ also runs live. `make e2e` proves every change before it is called done.
 - Every MCP tool is classified in `sre-control/sre_control/policy.py`; only `execute_remediation` acts, and
   only after a human approval event.
 - The audit log is append-only; state derives from `sre.incident_events`.
-- Learners follow `docs/learner/`, one lesson per exercise plus setup and the live incident: each opens with
-  why, has a mermaid picture, and an `Expect:` line after every bash block. `docs/walkthrough.md` holds the
-  ideas: six fixed sections, every concept an anchor. `tests/test_walkthrough_shape.py` checks both, and
-  `make check` parses each diagram (`scripts/check-mermaid.mjs`).
+- Learners follow `docs/learner/`, one lesson per exercise plus setup and the live incident, in the buildcamp
+  lesson shape: why with reading links, a Before drawing, steps that each end in **Verify:**, and an `Expect:`
+  line after every bash block. Every `evidence/screens/*.png` sits on some lesson. Drawings are lwp-canvas
+  Misc case `aisre`, saved as SVG into `docs/images/diagrams/`: change the canvas, then export again.
+  `docs/walkthrough.md` holds the ideas: six fixed sections, every concept an anchor.
+  `tests/test_walkthrough_shape.py` checks both, and `make check` parses each Mermaid diagram
+  (`scripts/check-mermaid.mjs`).
 - Lessons and README read at grade 6 or below (`scripts/learner-clarity.mjs`). It and `scripts/plain-english.mjs`
   are copies from the private teach repo, which checks they match: edit them there, never here.
 - Facilitator notes live in the teach repo, never in this public repo.
